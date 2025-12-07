@@ -1,0 +1,61 @@
+- hosts: all
+  vars:
+    collect_binary: '../collect/dist/collect'
+    allNetworkInterfaces: "{{ ansible_facts | dict2items | selectattr('value.ipv4', 'defined') | selectattr('value.device', 'defined') | map(attribute='value') | list }}"
+  tasks:
+  - name: Set interfaces list
+    set_fact:
+      interfaces: "{{ interfaces|default([]) + [item.device] }}"
+    loop: "{{ allNetworkInterfaces }}"
+    loop_control:
+      label: "{{ item.device }}"
+    when: item.active is defined and item.active|bool and item.type == 'ether'
+
+  - name: Make collect compatible interfaces string
+    set_fact:
+      interfaces_string: "{{ interfaces|join(',') }}"
+
+  - name: Detected interfaces
+    debug:
+      msg: "{{ interfaces_string }}"
+
+  - name: Copy collect binary to remote machine -> /root/collect
+    copy:
+      src: '{{ playbook_dir }}/../collect/dist/collect'
+      dest: /root/collect
+      owner: root
+      group: root
+      mode: 0700
+    become: yes
+
+  - name: Copy config.yaml to remote machine -> /root/config.yaml
+    copy:
+      src: '{{ playbook_dir }}/../collect/config.yaml'
+      dest: /root/config.yaml
+      owner: root
+      group: root
+      mode: 0400
+    become: yes
+
+  - name: Run collection
+    command: /root/collect -c /root/config.yaml --collect --capture -if {{ interfaces_string }}
+    register: _collect
+    become: yes
+
+  - name: Capture collection package name
+    set_fact:
+      collect_tar: "{{ _collect.stdout_lines[-1:] | regex_search('(/.*\\.tar\\.gz)') }}"
+
+  - name: 'Fetch collection "{{ collect_tar }}" -> ./fetched_collections'
+    fetch:
+      src: "{{ collect_tar }}"
+      dest: "{{ playbook_dir }}/fetched_collections/"
+      flat: yes
+    become: yes
+
+  - name: Remove collection from the remote host
+    file:
+      state: absent
+      path: "{{ collect_tar }}"
+    become: yes
+

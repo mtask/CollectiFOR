@@ -8,3 +8,4 @@ collect/memory/lime*
 dist
 build
 collect.spec
+ansible_collect/fetched_collections/*.tar.gz
