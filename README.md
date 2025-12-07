@@ -29,12 +29,8 @@ Supports file collection, memory acquisition, network capture, checksum calculat
 
 ## Requirements
 
-- Python 3.10+
-- Python packages:
-  - scapy
-  - jinja2
-  - psutil
-  - yara-python
+- Collection: `collect/requirements.txt`
+- Analysis/Scan: `analyze/requirements.txt`
 - Optional (for memory acquisition):
   - LiME kernel module
 ---
