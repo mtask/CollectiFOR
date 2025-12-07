@@ -1,4 +1,4 @@
-# Store results here
+# Store collection results here
 outdir: /tmp/out
 compress_collection: true
 modules:
@@ -13,6 +13,7 @@ modules:
     memory:
       capture_method: lime
       lime:
+        # Module not included
         path: memory/lime-6.14.0-36-generic.ko
         # Format: lime/raw
         format: lime
@@ -87,6 +88,7 @@ modules:
       - docker info
       - kubectl get pods --all-namespaces
     # Files and directories to collect
+    # Full copies are taken to collection
     files_and_dirs:
       - /proc/version
       - /proc/cmdline
