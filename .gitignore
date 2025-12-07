@@ -3,4 +3,6 @@ analyze/load_sources.sh
 __pycache__
 analyze/patterns
 analyze/yara
+analyze/report/report*
 collect/memory/lime*
+

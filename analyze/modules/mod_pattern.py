@@ -51,7 +51,7 @@ def match(pattern_source, target, recursive=True):
 
     if recursive and os.path.isdir(target):
         # -R recursive, -n include filename automatically
-        cmd = base_cmd + ["-R", target]
+        cmd = base_cmd + ["-r", target]
     else:
         cmd = base_cmd + [target]
 
@@ -76,7 +76,7 @@ def match(pattern_source, target, recursive=True):
         if "Permission denied" in str(proc.stderr):
             print(f"All files could not be accessed with the current privileges")
         else:
-            raise RuntimeError(f"grep error: {proc.stderr}")
+            print(f"grep error: {repr(proc.stderr)}")
 
     # ------------------------------------------------------------------
     # Parse grep output:

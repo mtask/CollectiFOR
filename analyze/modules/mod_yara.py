@@ -48,7 +48,7 @@ def search(rules_dir, target_path):
     elif os.path.isdir(target_path):
         for f in Path(target_path).rglob("*"):
             f = str(f)
-            if os.path.isfile(f):
+            if os.path.isfile(f) and not os.path.islink(f):
                 externals = _get_file_data(f)
                 file_list.append([f, externals])
     for r in Path(rules_dir).rglob("*.yar"):

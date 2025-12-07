@@ -131,5 +131,195 @@
     {% endif %}
 </div>
 
+<!-- ======================== Persistence Results ======================== -->
+<div class="section">
+    <h2>Persistence Analysis Results</h2>
+
+    {% if persistence_result %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Artifact</th>
+                    <th>Indicator</th>
+                    <th>Description</th>
+                    <th>Command / ExecStart / Line</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in persistence_result %}
+                    <tr>
+                        <td>{{ result.artifact }}</td>
+                        <td>{{ result.indicator }}</td>
+                        <td>{{ result.description }}</td>
+                        <td>
+                            {% if result.execstart %}
+                                {{ result.execstart }}
+                            {% elif result.command %}
+                                {{ result.command }}
+                            {% elif result.line %}
+                                {{ result.line }}
+                            {% else %}
+                                <span class="no-results">N/A</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    {% else %}
+        <p class="no-results">No persistence indicators found.</p>
+    {% endif %}
+</div>
+
+<!-- ======================== PCAP Analysis Results ======================== -->
+<div class="section">
+    <h2>PCAP Analysis Results</h2>
+
+    {% if pcap_result %}
+        <table>
+            <thead>
+                <tr>
+                    <th>PCAP File</th>
+                    <th>Type</th>
+                    <th>Indicator</th>
+                    <th>Src IP:Port → Dst IP:Port (Proto)</th>
+                    <th>Query / Info</th>
+                    <th>Period / Count</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in pcap_result %}
+                    <tr>
+                        <td>{{ result.pcap_file }}</td>
+                        <td>{{ result.type }}</td>
+                        <td>{{ result.indicator }}</td>
+                        <td>
+                            {% set src = result.src_ip if result.src_ip else 'N/A' %}
+                            {% set sport = result.src_port if result.src_port else 'N/A' %}
+                            {% set dst = result.dst_ip if result.dst_ip else 'N/A' %}
+                            {% set dport = result.dst_port if result.dst_port else 'N/A' %}
+                            {% set proto = result.protocol.upper() if result.protocol else 'N/A' %}
+                            {{ src }}:{{ sport }} → {{ dst }}:{{ dport }} ({{ proto }})
+                        </td>
+                        <td>
+                            {% if result.query %}
+                                {{ result.query }}
+                            {% elif result.info %}
+                                {{ result.info }}
+                            {% else %}
+                                <span class="no-results">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if result.period and result.count %}
+                                {{ result.period }} s / {{ result.count }}
+                            {% else %}
+                                <span class="no-results">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ result.description }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    {% else %}
+        <p class="no-results">No PCAP analysis results found.</p>
+    {% endif %}
+</div>
+
+<!-- ======================== Log Analysis Results ======================== -->
+<div class="section">
+    <h2>Log Analysis Results</h2>
+
+    {% if log_result %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Artifact (Log File)</th>
+                    <th>Indicator</th>
+                    <th>Description</th>
+                    <th>User</th>
+                    <th>TTY</th>
+                    <th>Remote Host / IP</th>
+                    <th>Line</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in log_result %}
+                    <tr>
+                        <td>{{ entry.artifact }}</td>
+                        <td>{{ entry.indicator }}</td>
+                        <td>{{ entry.description }}</td>
+                        <td>{{ entry.user if entry.user else 'N/A' }}</td>
+                        <td>{{ entry.tty if entry.tty else 'N/A' }}</td>
+                        <td>
+                            {% if entry.rhost %}
+                                {{ entry.rhost }}
+                            {% elif entry.ip %}
+                                {{ entry.ip }}
+                            {% else %}
+                                <span class="no-results">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td><pre>{{ entry.line }}</pre></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    {% else %}
+        <p class="no-results">No log analysis results found.</p>
+    {% endif %}
+</div>
+
+<!-- ======================== File Permissions Analysis ======================== -->
+<div class="section">
+    <h2>File Permissions Analysis</h2>
+
+    {% if file_permission_result %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Path</th>
+                    <th>Mode</th>
+                    <th>Permissions</th>
+                    <th>Owner</th>
+                    <th>Group</th>
+                    <th>Size</th>
+                    <th>Timestamp</th>
+                    <th>Issue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for entry in file_permission_result %}
+                    <tr>
+                        <td>{{ entry.path }}</td>
+                        <td>{{ entry.mode }}</td>
+                        <td>{{ entry.perms }}</td>
+                        <td>{{ entry.owner }}</td>
+                        <td>{{ entry.group }}</td>
+                        <td>{{ entry.size }}</td>
+                        <td>{{ entry.timestamp }}</td>
+                        <td>
+                            {% if entry.reason %}
+                                <span class="issue">{{ entry.reason }}</span>
+                            {% else %}
+                                <span class="no-results">None</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    {% else %}
+        <p class="no-results">No suspicious file permissions detected.</p>
+    {% endif %}
+</div>
+
+
 </body>
 </html>

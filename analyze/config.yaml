@@ -1,5 +1,5 @@
 # Store results here
-outdir: /tmp/out
+reportdir: report
 modules:
   pattern:
     # Pattern txt files are here. One pattern per line
