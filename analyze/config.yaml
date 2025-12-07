@@ -1,0 +1,12 @@
+# Store results here
+outdir: /tmp/out
+modules:
+  pattern:
+    # Pattern txt files are here. One pattern per line
+    # Can contain sub directories
+    patterns_dir: ./patterns
+  yara:
+    # Yara yar files are here
+    # Can contain sub directories
+    rules_dir: ./yara
+  # Capture e.g. network traffic to pcap

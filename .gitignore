@@ -1,7 +1,6 @@
-load_sources.sh
+analyze/load_sources.sh
 venv
 __pycache__
-patterns
-output
-yara
-memory/lime*
+analyze/patterns
+analyze/yara
+collect/memory/lime*

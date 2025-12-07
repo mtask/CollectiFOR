@@ -18,23 +18,9 @@ def load_config(path):
         data = yaml.safe_load(f)
     return data
 
-def report(report_dir, yara_data=[], pattern_data={}):
-    env = Environment(loader=FileSystemLoader("./"))
-    template = env.get_template("templates/report.html")
-    html = template.render(
-        pattern_result=pattern_data,
-        yara_result=yara_data
-    )
-
-    with open(os.path.join(report_dir, "report.html"), "w") as f:
-        f.write(html)
-
 def validate_config(args, config):
     if args.capture and not args.interfaces and config['modules']['capture']['enable_network']:
         print("-if / --interfaces is required when using --capture and network capturing is enabled in configuration")
-        sys.exit(1)
-    if (args.pattern or args.yara) and not args.target_path:
-        print("-tp / --target-path is required with --yara and --pattern")
         sys.exit(1)
 
 def main(args):
@@ -64,46 +50,16 @@ def main(args):
             mc.checksums(outdir, mod_collect['checksums'])
         if mod_collect['enable_files_and_dirs']:
             mc.files_and_dirs(outdir, mod_collect['files_and_dirs'])
-    if args.pattern:
-        logging.info("Running pattern module")
-        import modules.mod_pattern as mp
-        mod_pattern = config['modules']['pattern']
-        pattern_result = mp.search(mod_pattern['patterns_dir'], args.target_path)
-        print(json.dumps(pattern_result, indent=2))
-    if args.yara:
-        logging.info("Running yara module")
-        import modules.mod_yara as my
-        mod_yara = config['modules']['yara']
-        yara_result = my.search(mod_yara['rules_dir'], args.target_path)
-        print(json.dumps(yara_result, indent=2))
     report(outdir, yara_data=yara_result, pattern_data=pattern_result)
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="PyTriage"
+        description="Triage collection"
     )
     parser.add_argument(
         "-c", "--config",
         required=True,
         help="Path to the YAML configuration file"
-    )
-
-    parser.add_argument(
-        "-tp", "--target-path",
-        required=False,
-        help="Target file/directory for pattern matching"
-    )
-
-    parser.add_argument(
-        "--yara",
-        action='store_true',
-        help="Enable yara module"
-    )
-
-    parser.add_argument(
-        "--pattern",
-        action='store_true',
-        help="Enable pattern module"
     )
 
     parser.add_argument(
