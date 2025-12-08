@@ -31,8 +31,6 @@ def main(args):
     dir_timestamp =  datetime.now().strftime("%Y%m%d_%H%M%S")
     outdir = os.path.join(config['outdir'], dir_timestamp)
     os.makedirs(outdir, exist_ok=True)
-    pattern_result = []
-    yara_result = []
     if args.capture:
         logging.info("Running capture module")
         import modules.mod_capture as mcap
