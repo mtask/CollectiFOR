@@ -23,16 +23,18 @@ def _command(cmd):
         raise RuntimeError(f"Failed to execute grep: {e}")
     return proc.stdout, proc.stderr
 
-def _store_output(outdir, outfile, stdout, stderr):
+def _store_output(outdir, outfile, cmd, stdout, stderr):
     logging.info(f"Store command output: {outfile}")
     outdir = os.path.join(outdir, 'commands')
     os.makedirs(outdir, exist_ok=True)
     if stdout:
-        with open(os.path.join(outdir, f"stdout.{outfile}"), 'w+') as f:
-            f.write(stdout)
+        with open(os.path.join(outdir, f"stdout.{outfile}"), 'a+') as f:
+            f.write(f'#command:{cmd}\n')
+            f.write(stdout+'\n')
     if stderr:
-        with open(os.path.join(outdir, f"stdout.{outfile}"), 'w+') as f:
-            f.write(stdout)
+        with open(os.path.join(outdir, f"stderr.{outfile}"), 'a+') as f:
+            f.write(f'#command:{cmd}\n')
+            f.write(stderr+'\n')
 
 def _copy_with_full_path(src_path, outdir):
     os.makedirs(outdir, exist_ok=True)
@@ -60,7 +62,7 @@ def commands(outdir, commands):
     logging.info(f"Collecting command outputs")
     for cmd in commands:
         stdout, stderr = _command(cmd)
-        _store_output(outdir, f"{cmd.replace(' ', '_').replace('-','_').replace('/', '_').replace('=', '_')}.txt", stdout, stderr)
+        _store_output(outdir, f"{cmd.split()[0]}.txt", cmd, stdout, stderr)
 
 def files_and_dirs(outdir, paths):
     for p in paths:
@@ -94,7 +96,7 @@ def find_luks_devices(outdir):
     for luksdev in luks_devices:
         cmd = f"cryptsetup luksDump {luksdev}"
         stdout, stderr = _command(cmd)
-        _store_output(outdir, f"{cmd.replace(' ', '_').replace('-','_').replace('/', '_').replace('=', '_')}.txt", stdout, stderr)
+        _store_output(outdir, f"{cmd.split()[0]}.txt", cmd, stdout, stderr)
 
 def _get_md5(file_path, chunk_size=8192):
     """

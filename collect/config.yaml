@@ -84,6 +84,8 @@ modules:
       - arp -n
       # Docker / containers
       - docker ps -a                       # containers
+      - "docker ps -a | awk '{print $1}'|grep -v CONTAINER |xargs -n1 docker inspect"
+      - "docker network ls | awk '{print $1}'|grep -v NETWORK |xargs -n1 docker network inspect"
       - docker images                      # images
       - docker info
       - kubectl get pods --all-namespaces
