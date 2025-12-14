@@ -1,7 +1,4 @@
 - hosts: all
-  vars:
-    collect_binary: '../collect/dist/collect'
-    allNetworkInterfaces: "{{ ansible_facts | dict2items | selectattr('value.ipv4', 'defined') | selectattr('value.device', 'defined') | map(attribute='value') | list }}"
   tasks:
   - name: Set interfaces list
     set_fact:
@@ -21,16 +18,16 @@
 
   - name: Copy collect binary to remote machine -> /root/collect
     copy:
-      src: '{{ playbook_dir }}/../collect/dist/collect'
+      src: '{{ collect_binary }}'
       dest: /root/collect
       owner: root
       group: root
       mode: 0700
     become: yes
 
-  - name: Copy config.yaml to remote machine -> /root/config.yaml
-    copy:
-      src: '{{ playbook_dir }}/../collect/config.yaml'
+  - name: Copy config.yaml.j2 to remote machine -> /root/config.yaml
+    template:
+      src: 'config.yaml.j2'
       dest: /root/config.yaml
       owner: root
       group: root

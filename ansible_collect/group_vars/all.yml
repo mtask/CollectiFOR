@@ -1,0 +1,142 @@
+####################
+# Common variables #
+####################
+
+collect_binary: '{{ playbook_dir }}/../collect/dist/collect'
+allNetworkInterfaces: "{{ ansible_facts | dict2items | selectattr('value.ipv4', 'defined') | selectattr('value.device', 'defined') | map(attribute='value') | list }}"
+
+# config.yaml variables #
+#########################
+# Store collection results here
+outdir: /tmp/out
+# Compress collection directory when finished to tar.gz
+compress_collection: true
+capture_enable_network: true
+capture_network:
+  timeout: 60
+# Collect command outputs for the given commands
+collect_enable_commands: true
+# Copy files and directories from the given paths
+collect_enable_files_and_dirs: true
+# Collect checksums for the given paths
+collect_enable_checksums: true
+# Find luks devices and collect luksDump
+collect_enable_luks: true
+# Collect file permissions for the given paths
+collect_enable_file_permissions: true
+# Collect details about network listening processes
+collect_enable_listeners: true
+# Command outputs
+collect_commands:
+  - ps auxwwwef
+  - aa-status
+  - systemctl list-units --type=service --all
+  - systemctl list-timers --all
+  - systemctl status                 # general system status
+  - aa-status                        # AppArmor status (if installed)
+  - service --status-all             # SysV service status (if available)
+  # Auditd
+  - auditctl -l
+  - auditctl -s
+  - aureport -i --summary -ts recent
+  # Users and login history
+  - who
+  - w
+  - last
+  - lastb
+  - id
+  - groups
+  - getent passwd
+  - getent shadow                     # requires root
+  - getent group
+  - crontab -l                        # current user
+  - sudo crontab -l -u root           # root crontab
+  # Network and connections
+  - netstat -tulnpa
+  - ss -tulnpa
+  - ip addr show
+  - ip route show
+  - iptables-save
+  - iptables -L -n
+  - ip6tables -L -n
+  - nft list ruleset
+  - ufw status verbose
+  - firewall-cmd --state
+  - firewall-cmd --list-all
+  - sshd -T
+  # Package / installed software
+  - dpkg -l                           # Debian/Ubuntu
+  - rpm -qa                           # RHEL/CentOS
+  - apt-cache policy                   # Debian package policy
+  - yum list installed                 # RHEL package list
+  - flatpak list                       # if flatpak is used
+  - snap list                          # if snap is used
+  # Disk and filesystem
+  - df -h
+  - mount
+  - lsblk -f
+  - findmnt
+  # Kernel and system info
+  - uname -a
+  - cat /proc/version
+  - dmesg
+  - lsmod
+  - sysctl -a
+  # Network routes / ARP / firewall
+  - ip neigh
+  - arp -n
+  # Docker / containers
+  - docker ps -a                       # containers
+  - "docker ps -a | awk '{print $1}'|grep -v CONTAINER |xargs -n1 docker inspect"
+  - "docker network ls | awk '{print $1}'|grep -v NETWORK |xargs -n1 docker network inspect"
+  - docker images                      # images
+  - docker info
+  - kubectl get pods --all-namespaces
+# Files and directories to collect
+# Full copies are taken to collection
+collect_files_and_dirs:
+  - /proc/version
+  - /proc/cmdline
+  - /proc/modules
+  - /lib/systemd/system
+  - /var/spool/cron/crontabs
+  - /etc/
+  - /root/.ssh
+  - /home/*/.ssh
+  - /root/.bash_history
+  - /root/.zsh_history
+  - /home/*/.bash_history
+  - /home/*/.zsh_history
+  - /var/lib/dpkg/status
+  - /var/lib/rpm
+  - /var/www/
+  - /var/log/
+  - /opt
+  - /srv
+  # Docker/Kubernetes (if present)
+  #- /var/lib/docker
+  #- /var/lib/kubelet
+  # Key binaries and scripts
+  #- /usr/bin
+  #- /usr/local/bin
+  #- /bin
+  #- /sbin
+  #- /usr/sbin
+  # Temp files (possible malware drops)
+  #- /tmp
+  #- /var/tmp
+collect_checksums:
+  # Directories are always recursive
+  - /etc/
+  - /usr/bin
+  - /usr/local/bin
+  - /bin
+  - /sbin
+  - /usr/sbin
+  #- /lib64
+  #- /lib
+  #- /usr/lib64
+  #- /usr/lib
+  #- /var/lib
+collect_file_permissions:
+  - /etc/

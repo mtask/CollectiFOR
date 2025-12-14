@@ -1,0 +1,61 @@
+# Store collection results here
+outdir: "{{ outdir }}"
+# Compress collection directory when finished to tar.gz
+compress_collection: {{ compress_collection|to_yaml }}
+modules:
+  # Capture e.g. network traffic to pcap
+  capture:
+    enable_network: {{ capture_enable_network|to_yaml }}
+    # seconds
+    network:
+      own_thread: {{ capture_network.own_thread|default(false)|to_yaml }} 
+      timeout: {{ capture_network.timeout }}
+    # Capture network traffic
+    # Capture volatile memory
+    enable_memory: false
+    memory:
+      capture_method: lime
+      lime:
+        # Module not included
+        path: memory/lime-6.14.0-36-generic.ko
+        # Format: lime/raw
+        format: lime
+  collect:
+    # Collect command outputs for the given commands
+    enable_commands: {{ collect_enable_commands|to_yaml }}
+    # Copy files and directories from the given paths
+    enable_files_and_dirs:  {{ collect_enable_files_and_dirs|to_yaml }}
+    # Collect checksums for the given paths
+    enable_checksums:  {{ collect_enable_checksums|to_yaml }}
+    # Find luks devices and collect luksDump
+    enable_luks:  {{ collect_enable_luks|to_yaml }}
+    # Collect file permissions for the given paths
+    enable_file_permissions:  {{ collect_enable_file_permissions|to_yaml }}
+    # Collect details about network listening processes
+    enable_listeners:  {{ collect_enable_listeners|to_yaml }}
+    # Luks
+    luks:
+    # Command outputs
+    commands:
+      list:
+{% for c in collect_commands %}
+        - "{{ c }}"
+{% endfor %}
+    # Files and directories to collect
+    # Full copies are taken to collection
+    files_and_dirs:
+      list:
+{% for c in collect_files_and_dirs %}
+        - {{ c }}
+{% endfor %}
+    checksums:
+      list:
+{% for c in collect_checksums %}
+        - {{ c }}
+{% endfor %}
+    file_permissions:
+      list:
+{% for c in collect_file_permissions %}
+        - {{ c }}
+{% endfor %}
+    listeners:
