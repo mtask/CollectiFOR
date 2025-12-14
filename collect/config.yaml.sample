@@ -122,7 +122,8 @@ modules:
       - /var/lib/rpm
       - /var/www/
       - /var/log/
-      - /opt/srv
+      - /opt
+      - /srv
       # Docker/Kubernetes (if present)
       #- /var/lib/docker
       #- /var/lib/kubelet
