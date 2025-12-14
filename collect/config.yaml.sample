@@ -1,7 +1,7 @@
 # Store collection results here
 outdir: /tmp/out
 # Compress collection directory when finished to tar.gz
-compress_collection: false
+compress_collection: true
 modules:
   # Capture e.g. network traffic to pcap
   capture:

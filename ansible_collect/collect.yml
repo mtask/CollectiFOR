@@ -39,9 +39,12 @@
     register: _collect
     become: yes
 
+  - debug:
+      msg: "{{ _collect.stdout_lines[-1] }}"
+
   - name: Capture collection package name
     set_fact:
-      collect_tar: "{{ _collect.stdout_lines[-1:] | regex_search('(/.*\\.tar\\.gz)') }}"
+      collect_tar: "{{ _collect.stdout_lines[-1] | regex_search('(/.*\\.tar\\.gz)') }}"
 
   - name: 'Fetch collection "{{ collect_tar }}" -> ./fetched_collections'
     fetch:
