@@ -67,7 +67,12 @@ modules:
       - ip addr show
       - ip route show
       - iptables-save
+      - iptables -L -n
+      - ip6tables -L -n
+      - nft list ruleset
       - ufw status verbose
+      - firewall-cmd --state
+      - firewall-cmd --list-all
       - sshd -T
       # Package / installed software
       - dpkg -l                           # Debian/Ubuntu
@@ -117,6 +122,7 @@ modules:
       - /var/lib/rpm
       - /var/www/
       - /var/log/
+      - /opt/srv
       # Docker/Kubernetes (if present)
       #- /var/lib/docker
       #- /var/lib/kubelet
