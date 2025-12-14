@@ -26,7 +26,8 @@ You can modify `config.yaml` to skip network capture as well if you want to or s
 ```yaml
 modules:
   capture:
-    network_timeout: 60
+    network:
+      timeout: 60
     enable_network: false
     enable_memory: false
 ```
