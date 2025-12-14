@@ -101,11 +101,48 @@ modules:
     # Full copies are taken to collection
     files_and_dirs:
       list:
+      - /proc/version
+      - /proc/cmdline
+      - /proc/modules
+      - /lib/systemd/system
+      - /var/spool/cron/crontabs
       - /etc/
+      - /root/.ssh
+      - /home/*/.ssh
+      - /root/.bash_history
+      - /root/.zsh_history
+      - /home/*/.bash_history
+      - /home/*/.zsh_history
+      - /var/lib/dpkg/status
+      - /var/lib/rpm
+      - /var/www/
+      - /var/log/
+      # Docker/Kubernetes (if present)
+      #- /var/lib/docker
+      #- /var/lib/kubelet
+      # Key binaries and scripts
+      #- /usr/bin
+      #- /usr/local/bin
+      #- /bin
+      #- /sbin
+      #- /usr/sbin
+      # Temp files (possible malware drops)
+      #- /tmp
+      #- /var/tmp
     checksums:
       list:
       # Directories are always recursive
       - /etc/
+      - /usr/bin
+      - /usr/local/bin
+      - /bin
+      - /sbin
+      - /usr/sbin
+      #- /lib64
+      #- /lib
+      #- /usr/lib64
+      #- /usr/lib
+      #- /var/lib
     file_permissions:
       list:
       - /etc/

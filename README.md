@@ -33,73 +33,22 @@ Supports file collection, memory acquisition, network capture, checksum calculat
 - Analysis/Scan: `analyze/requirements.txt`
 - Optional (for memory acquisition):
   - LiME kernel module
+
 ---
 
 ## Usage
 
 ### Collect Mode
 
-`collect.py` gathers system artifacts, memory, and network captures.
+- See [collect/README.md](https://github.com/mtask/PyTriage/tree/main/collect/README.md)
 
-```bash
-python collect.py --config config.yaml --collect --capture --interfaces eth0,wlan0
-```
-
-**Options:**
-- `--config`: Path to YAML configuration file.
-- `--capture`: Enable network and/or memory capture (can be configured in config file)
-- `--interfaces`: Comma-separated list of interfaces for packet capture.
-
-**YAML configuration:**
-
-Check `collect/config.yaml`.
-
-**Example Output Directory Structure:**
-
-```
-/tmp/out/<timestamp>/
-├── capture/
-│   ├── eth0.pcap
-│   └── eth0.pcap.txt
-├── checksums/
-│   ├── md5.txt
-│   ├── sha1.txt
-│   └── sha256.txt
-├── commands/
-│   ├── stdout.ps.txt
-│   └── stdout.ls.txt
-├── file_permissions.txt
-└── files_and_dirs/
-```
-
-**Remote collection:** See [ansible-collect](https://github.com/mtask/PyTriage/tree/main/ansible_collect).
+- **Remote collection:** see [ansible-collect](https://github.com/mtask/PyTriage/tree/main/ansible_collect).
 
 ---
 
 ### Analyze Mode
 
-`analyze.py` analyzes collected data for anomalies and IoCs.
 
-```bash
-python analyze.py --config config.yaml --collection-path /tmp/out/<collection>.tar.gz --pattern --yara --analysis
-```
-
-**YAML configuration:**
-
-Check `analyze/config.yaml`.
-
-**Options:**
-- `--collection-path`: Path to the collected tar.gz. (required)
-- `--pattern`: Enable IoC pattern matching. (optional)
-- `--yara`: Enable YARA scanning. (optional)
-- `--analysis`: Enable other analysis modules against `files_and_dirs` content in the collection. (optional)
-
-**Analysis Output:**
-- HTML report with sections for:
-  - YARA results
-  - Pattern matches
-  - PCAP analysis
-  - File permissions issues
-  - Logs anomalies
+- See [analyze/README.md](https://github.com/mtask/PyTriage/tree/main/analyze/README.md)
 
 ---

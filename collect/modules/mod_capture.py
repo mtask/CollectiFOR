@@ -27,7 +27,9 @@ def _pcap_to_text(pcap):
             except Exception as e:
                 f.write(f"{i}: <Failed to parse packet: {e}>\n")
 
-def network_interfaces(outdir, timeout, ifaces):
+def network(outdir, config):
+    timeout = config['timeout']
+    ifaces = config['interfaces']
     outdir = os.path.join(outdir, "capture")
     os.makedirs(outdir, exist_ok=True)
     outfile = os.path.join(outdir, f"{'_'.join(ifaces)}.pcap")
@@ -130,7 +132,7 @@ def acquire_memory_lime(
     if shutil.which("insmod") is None or shutil.which("rmmod") is None:
         raise LiMEError("insmod/rmmod not found in PATH")
 
-    module_name = os.path.splitext(os.path.basename(lime_path))[0]
+    module_name = 'lime'
 
     insmod_cmd = ["insmod", lime_path, f"path={outfile}", f"format={lime_format}"]
     logging.info("Loading LiME module with: %s", " ".join(insmod_cmd))

@@ -1,12 +1,14 @@
 import subprocess
 import hashlib
 import os
+import re
 import shutil
 import logging
 import glob
 import stat
 import pwd
 import grp
+import json
 from pathlib import Path
 
 def _command(cmd):
@@ -58,20 +60,20 @@ def _copy_with_full_path(src_path, outdir):
     else:
         logging.warning(f"Source path does not exist: {src_path}")
 
-def commands(outdir, commands):
+def commands(outdir, config):
     logging.info(f"Collecting command outputs")
-    for cmd in commands:
+    for cmd in config['list']:
         stdout, stderr = _command(cmd)
         _store_output(outdir, f"{cmd.split()[0]}.txt", cmd, stdout, stderr)
 
-def files_and_dirs(outdir, paths):
-    for p in paths:
+def files_and_dirs(outdir, config):
+    for p in config['list']:
         logging.info(f"Copying path {p}")
         expanded_paths = glob.glob(p)
         for ep in  expanded_paths:
             _copy_with_full_path(ep, os.path.join(outdir, "files_and_dirs"))
 
-def find_luks_devices(outdir):
+def luks(outdir, config):
     """
     Return a list of LUKS-encrypted block devices on the system.
     Uses lsblk + fstype detection.
@@ -135,12 +137,12 @@ def _store_checksums(outdir, filename, content):
         for c in content:
             f.write(f"{c}\n")
 
-def checksums(outdir, paths):
+def checksums(outdir, config):
     md5s = []
     sha1s = []
     sha256s = []
     file_list = []
-    for fp in paths:
+    for fp in config['list']:
         if os.path.isfile(fp):
             file_list.append(fp)
         elif os.path.isdir(fp):
@@ -160,12 +162,12 @@ def checksums(outdir, paths):
     _store_checksums(outdir,'sha1.txt', sha1s)
     _store_checksums(outdir,'sha256.txt', sha256s)
 
-def file_permissions(outdir, paths):
+def file_permissions(outdir, config):
     outfile = os.path.join(outdir, "file_permissions.txt")
     os.makedirs(outdir, exist_ok=True)
 
     with open(outfile, "w") as f:
-        for fp in paths:
+        for fp in config['list']:
             for sfp in Path(fp).rglob("*"):
                 logging.info(f"Getting file permissions for path: {sfp}")
                 try:
@@ -195,3 +197,230 @@ def file_permissions(outdir, paths):
 
                 except Exception as e:
                     f.write(f"{sfp} ERROR: {e}\n")
+
+
+#####################
+# Module: listeners #
+#####################
+
+def _get_exec_path(pid):
+    try:
+        return os.readlink(f"/proc/{pid}/exe")
+    except Exception:
+        return ""
+
+def _extract_paths(text):
+    PATH_RE = re.compile(
+        r'(?<![\w-])'          # avoid --flag=/path
+        r'(/(?:[A-Za-z0-9._+-]+/)*[A-Za-z0-9._+-]+)'
+    )
+    EXCLUDE_PREFIXES = (
+        "/proc",
+        "/sys",
+        "/dev",
+        "/run",
+    )
+    paths = set()
+    for match in PATH_RE.findall(text):
+        if match.startswith(EXCLUDE_PREFIXES):
+            continue
+        paths.add(match)
+    return paths
+
+def _extract_environment_files(text):
+    paths = set()
+
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+
+        if not line.startswith("EnvironmentFile"):
+            continue
+
+        # EnvironmentFile=/path or EnvironmentFile=-/path
+        _, _, value = line.partition("=")
+        value = value.strip()
+        if not value:
+            continue
+
+        # systemd allows multiple files separated by whitespace
+        for token in value.split():
+            optional = token.startswith("-")
+            path = token[1:] if optional else token
+
+            # Handle globs
+            matches = glob.glob(path)
+            for p in matches:
+                if os.path.isfile(p) or os.path.isdir(p):
+                    paths.add(p)
+
+    return paths
+
+def _get_cmdline_paths(pid):
+    try:
+        with open(f"/proc/{pid}/cmdline", "rb") as f:
+            raw = f.read()
+        argv = raw.split(b"\x00")
+        argv = [a.decode(errors="ignore") for a in argv if a]
+    except Exception:
+        return set()
+
+    paths = set()
+
+    for i, arg in enumerate(argv):
+        # Case 1: argument itself contains a path
+        for p in _extract_paths(arg):
+            if os.path.isfile(p) or os.path.isdir(p):
+                paths.add(p)
+
+        # Case 2: flag followed by path (e.g. --config /etc/foo.conf)
+        if arg.startswith("-") and i + 1 < len(argv):
+            for p in _extract_paths(argv[i + 1]):
+                if os.path.isfile(p) or os.path.isdir(p):
+                    paths.add(p)
+
+    return paths
+
+def _get_unit_paths(unit_path):
+    paths = set()
+
+    try:
+        with open(unit_path, "r") as f:
+            content = f.read()
+            # regular path extraction
+            for p in _extract_paths(content):
+                if os.path.isfile(p) or os.path.isdir(p):
+                    paths.add(p)
+            # EnvironmentFile extraction
+            paths |= _extract_environment_files(content)
+    except Exception:
+        return paths
+
+    # Drop-in directory: foo.service.d/*.conf
+    dropin_dir = f"{unit_path}.d"
+    if os.path.isdir(dropin_dir):
+        for name in os.listdir(dropin_dir):
+            if not name.endswith(".conf"):
+                continue
+            try:
+                with open(os.path.join(dropin_dir, name), "r") as f:
+                    content = f.read()
+                    for p in _extract_paths(content):
+                        if os.path.isfile(p) or os.path.isdir(p):
+                            paths.add(p)
+                    paths |= _extract_environment_files(content)
+            except Exception:
+                pass
+
+    return paths
+
+
+def _get_systemd_unit(pid):
+    """
+    Returns systemd unit name (e.g. ssh.service) or empty string
+    """
+    try:
+        with open(f"/proc/{pid}/cgroup", "r") as f:
+            for line in f:
+                # system.slice/ssh.service
+                match = re.search(r"/([^/]+\.service)", line)
+                if match:
+                    return match.group(1)
+    except Exception:
+        pass
+    return ""
+
+def _get_systemd_fragment(unit):
+    """
+    Returns full path to unit file or empty string
+    """
+    try:
+        proc = subprocess.run(
+            ["systemctl", "show", "-p", "FragmentPath", unit],
+            capture_output=True,
+            text=True,
+        )
+        if proc.returncode == 0:
+            _, _, value = proc.stdout.partition("=")
+            return value.strip()
+    except Exception:
+        pass
+    return ""
+
+def _get_listeners():
+    cmd = "ss -H -l -n -p -u -t"
+    stdout, stderr = _command(cmd)
+
+    result = {"tcp": [], "udp": []}
+
+    pid_re = re.compile(r'pid=(\d+)')
+    proc_re = re.compile(r'\("([^"]+)"')
+    port_re = re.compile(r':(\d+)$')
+
+    # Cache systemd lookups (huge speed win)
+    systemd_cache = {}
+
+    for line in stdout.splitlines():
+        parts = line.split()
+        if len(parts) < 5:
+            continue
+
+        protocol = parts[0]
+        local_addr = parts[4]
+
+        port_match = port_re.search(local_addr)
+        if not port_match:
+            continue
+        port = int(port_match.group(1))
+
+        pid_match = pid_re.search(line)
+        proc_match = proc_re.search(line)
+        if not pid_match or not proc_match:
+            continue
+
+        pid = int(pid_match.group(1))
+        process = proc_match.group(1)
+
+        exec_path = _get_exec_path(pid)
+
+        # --- systemd handling ---
+        systemd_unit = _get_systemd_unit(pid)
+        systemd_path = ""
+
+        if systemd_unit:
+            if systemd_unit not in systemd_cache:
+                systemd_cache[systemd_unit] = _get_systemd_fragment(systemd_unit)
+            systemd_path = systemd_cache[systemd_unit]
+
+        # --- related paths ---
+        related_paths = set()
+
+        # from cmdline
+        related_paths |= _get_cmdline_paths(pid)
+
+        # from systemd unit
+        if systemd_path:
+            related_paths |= _get_unit_paths(systemd_path)
+
+        entry = {
+            "pid": pid,
+            "protocol": protocol,
+            "port": port,
+            "process": process,
+            "exec": exec_path,
+            "systemd": systemd_path,
+            "related_paths": sorted(related_paths),
+        }
+
+        if protocol in result:
+            result[protocol].append(entry)
+    return result
+
+def listeners(outdir, config):
+    """
+    Get details of network listening processes
+    """
+    listener_data = _get_listeners()
+    with open(os.path.join(outdir, "listeners.json"), 'w+') as f:
+        f.write(json.dumps(listener_data, indent=2))

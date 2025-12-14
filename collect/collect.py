@@ -26,6 +26,54 @@ def validate_config(args, config):
         print("-if / --interfaces is required when using --capture and network capturing is enabled in configuration")
         sys.exit(1)
 
+def run_collect_modules(enabled_collect_modules, outdir, config, threads=[]):
+    logging.info("[+] Running collect modules")
+    import modules.mod_collect as mc
+    for cm in enabled_collect_modules:
+        logging.info(f"[+] Running module {cm}")
+        current_module = cm.replace('enable_', '')
+        logging.info(f"[+] Running module {current_module}")
+        mod = getattr(mc, current_module)
+        if not config[current_module]:
+            config[current_module] = {}
+        if config[current_module].get('own_thread', False):
+            collect_thread = threading.Thread(
+                target=mod,
+                args=(
+                    outdir,
+                    config[current_module]
+                )
+            )
+            collect_thread.start()
+            threads.append(collect_thread)
+        else:
+            mod(outdir, config[current_module])
+    return threads
+
+def run_capture_modules(enabled_capture_modules, outdir, config, interfaces="", threads=[]):
+    logging.info("[+] Running capture modules")
+    import modules.mod_capture as mcap
+    for cm in enabled_capture_modules:
+        current_module = cm.replace('enable_', '')
+        logging.info(f"[+] Running module {current_module}")
+        config[current_module]['interfaces'] = interfaces.strip().split(',')
+        mod = getattr(mcap, current_module)
+        if not config[current_module]:
+            config[current_module] = {}
+        if config[current_module].get('own_thread', False):
+            capture_thread = threading.Thread(
+                target=mod,
+                args=(
+                    outdir,
+                    config[current_module]
+                )
+            )
+            capture_thread.start()
+            threads.append(capture_thread)
+        else:
+            mod(outdir, config[current_module])
+    return threads
+
 def main(args):
     config = load_config(args.config)
     validate_config(args, config)
@@ -34,51 +82,25 @@ def main(args):
     os.makedirs(outdir, exist_ok=True)
     threads = []
     if args.capture:
-        logging.info("Running capture module")
-        import modules.mod_capture as mcap
-        mod_capture = config['modules']['capture']
-        if mod_capture['enable_memory']:
-            mcap.memory(outdir, mod_capture['memory'])
-        if mod_capture['enable_network']:
-            net_capture_thread = threading.Thread(
-                target=mcap.network_interfaces,
-                args=(
-                    outdir,
-                    int(mod_capture['network_timeout']),
-                    args.interfaces.strip().split(','),
-                )
-            )
-            net_capture_thread.start()
-            threads.append(net_capture_thread)
+        config_mod_capture = config['modules']['capture']
+        enabled_capture_modules = {
+            k: v for k, v in config['modules']['capture'].items()
+            if k.startswith("enable_") and v
+        }
+        threads = threads + run_capture_modules(enabled_capture_modules, outdir, config_mod_capture, interfaces=args.interfaces)
     if args.collect:
-        logging.info("Running collect module")
-        import modules.mod_collect as mc
-        mod_collect = config['modules']['collect']
-        if mod_collect['enable_files_and_dirs']:
-            files_and_dirs_thread = threading.Thread(
-                target=mc.files_and_dirs,
-                args=(
-                    outdir,
-                    mod_collect['files_and_dirs']
-                )
-            )
-            files_and_dirs_thread.start()
-            threads.append(files_and_dirs_thread)
-            #mc.files_and_dirs(outdir, mod_collect['files_and_dirs'])
-        if mod_collect['enable_file_permissions']:
-            mc.file_permissions(outdir, mod_collect['file_permissions'])
-        if mod_collect['enable_commnds']:
-            mc.commands(outdir, mod_collect['commands'])
-        if mod_collect['enable_luks']:
-            mc.find_luks_devices(outdir)
-        if mod_collect['enable_checksums']:
-            mc.checksums(outdir, mod_collect['checksums'])
+        enabled_collect_modules = {
+            k: v for k, v in config['modules']['collect'].items()
+            if k.startswith("enable_") and v
+        }
+        config_mod_collect = config['modules']['collect']
+        threads = threads + run_collect_modules(enabled_collect_modules, outdir, config_mod_collect)
     for thread in threads:
         logging.info("[+] Waiting jobs to finish")
         thread.join()
     if config['compress_collection']:
         import lib.collection as lc
-        logging.info("Compressing collection")
+        logging.info("[+] Compressing collection")
         lc.compress(config['outdir'], dir_timestamp)
 
 def parse_args():
