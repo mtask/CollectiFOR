@@ -66,7 +66,7 @@ def _zeek(pcap_file, outdir):
 
     try:
         logging.info(f"[+] Running Zeek: {' '.join(cmd)}")
-        with chrdir(outdir):
+        with chdir(outdir):
             subprocess.run(cmd, check=True)
     except FileNotFoundError as e:
         logging.error(f"Zeek not found: {repr(e)}")
