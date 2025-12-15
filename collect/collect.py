@@ -105,7 +105,7 @@ def main(args):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Triage collection"
+        description="CollectiFOR | quick triage collection"
     )
     parser.add_argument(
         "-c", "--config",

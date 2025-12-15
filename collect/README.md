@@ -29,7 +29,7 @@ Check the collection path from the last log message to stdout. For example:
 
 If `compress_collection` is set to `false` in config.yaml then the collection's result path is directory instead of tar.gz file.
 
-Copy collection to analysis machine and continue with [analysis](https://github.com/mtask/PyTriage/tree/main/analyze).
+Copy collection to analysis machine and continue with [analysis](https://github.com/mtask/CollectiFOR/tree/main/analyze).
 
 **Example Output Directory Structure:**
 

@@ -24,6 +24,8 @@ See `./config.yaml`.
   - File permissions issues
   - Logs anomalies
 
+Other than YARA and pattern matching, which rely on external data sources, other modules are more like a PoC features.
+YARA and pattern modules basically are as good as your rule and pattern sources.
 
 ## Modules
 
@@ -54,7 +56,27 @@ Enable YARA module by giving `--yara` option and patterns module by giving `--pa
 
 ### Other analysis
 
-Other analysis is enabled by giving `--analysis` option.
+Other analysis is enabled by giving `--analysis` option. As mentioned these are mainly sort of PoC modules.
+
+You can use tools like plaso to do further analysis against the collection. Or Zeek to do further network analysis against the captured PCAP. The repository contains the following helper scripts:
+
+* **plaso.sh**: run log2timeline and psort inside docker container. Requires `log2timeline/plaso` docker image.
+
+The script specifies `--user 0` for docker run commands to ensure proper file access with the collection data. The collection data is mounted as read-only inside the container. 
+
+```
+sudo ./plaso.sh <path to collection dir or tar.gz> <path to output dir>
+```
+
+The output directory is created if it does not exist. 
+
+* **zeek.sh**: Run zeek inside docker container. Requires zeek/zeek docker image.
+
+```
+sudo ./zeek.sh <path to collection dir or tar.gz> <path to output dir>
+```
+
+The script assumes that there is the usual one pcap under `<collection>/capture/`. This requires that the collection was executed with `--capture` and had network module enabled.
 
 ## Report
 

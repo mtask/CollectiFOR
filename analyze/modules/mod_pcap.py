@@ -49,35 +49,12 @@ def _normalize_flow(pkt, proto_layer):
 
     return src_ip, src_port, dst_ip, dst_port, proto
 
-# -----------------------------
-# Run zeek analysis
-# -----------------------------
-
-def _zeek(pcap_file, outdir):
-    outdir = Path(outdir) / "zeek"
-    outdir.mkdir(parents=True, exist_ok=True)
-
-    cmd = [
-        "zeek",
-        "-r", str(pcap_file),
-        "-C",                            # ignore checksum errors
-        f"LogAscii::use_json=T",         # output logs as JSON
-    ]
-
-    try:
-        logging.info(f"[+] Running Zeek: {' '.join(cmd)}")
-        with chdir(outdir):
-            subprocess.run(cmd, check=True)
-    except FileNotFoundError as e:
-        logging.error(f"Zeek not found: {repr(e)}")
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Zeek failed: {repr(e)}")
 
 # -----------------------------
 # Main analysis function
 # -----------------------------
 
-def analyze(rootdir, outdir, enable_zeek=False):
+def analyze(rootdir, outdir):
     """
     Analyze all PCAPs in capture/ directory for:
       - DNS anomalies (high-entropy domains)
@@ -93,11 +70,6 @@ def analyze(rootdir, outdir, enable_zeek=False):
     COMMON_TCP_UDP_PORTS = {22, 53, 80, 443, 25, 110, 123, 143, 3389, 445, 139}
 
     for pcap_file in capture_dir.glob("*.pcap"):
-        # Run zeek first if enabled
-        if enable_zeek:
-            zeek_files = _zeek(pcap_file, outdir)
-        else:
-            zeek_files = None
         try:
             conn_times = defaultdict(list)
 

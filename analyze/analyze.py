@@ -71,7 +71,7 @@ def main(args):
         print(json.dumps(persistence_result, indent=2))
         # PCAP
         logging.info("Running pcap module")
-        pcap_result = mpcap.analyze(target_path, config['reportdir'], config['modules']['pcap']['enable_zeek'])
+        pcap_result = mpcap.analyze(target_path, config['reportdir'])
         print(json.dumps(pcap_result, indent=2))
         # Logs
         logging.info("Running logs module")
@@ -86,7 +86,7 @@ def main(args):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="PyTriage"
+        description="analyze.py"
     )
     parser.add_argument(
         "-c", "--config",
