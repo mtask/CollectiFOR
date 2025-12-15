@@ -6,7 +6,10 @@ import sys
 import subprocess
 import hashlib
 import shutil
+import signal
+import tempfile
 from datetime import datetime, timezone
+from pathlib import Path
 
 
 # ------------------------
@@ -230,3 +233,126 @@ def memory(outdir, config):
     else:
         logging.error(f"Unsupported capture method: {config.get('capture_method')}")
         sys.exit(1)
+
+
+# ------------------------
+# disk acquisition wrapper
+# ------------------------
+
+
+
+def disk(outdir, config, resume=True):
+    """
+    Capture a disk locally or remotely via sudo dd, compressed, with progress,
+    cancel-safe, resume support, and checksum verification.
+
+    Args:
+        outdir (str): Local output directory
+        config (dict): Must include
+            - 'disk': disk path, e.g., "/dev/sda"
+            - 'host': "" / "localhost" for local capture, or "user@host" for remote
+        resume (bool): Resume from existing partial file
+
+    Returns:
+        Tuple[str, str]: (path_to_image_file, sha256_checksum)
+    """
+    # --- Verify dependencies ---
+    for cmd in ["pv", "gzip", "dd"]:
+        if shutil.which(cmd) is None:
+            raise RuntimeError(f"The '{cmd}' command is required but not found.")
+
+    outdir = Path(outdir) / "capture"
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    device = config["disk"]
+    host = config.get("host", "")
+    filename = device.strip("/").replace("/", "_") + ".img.gz"
+    outfile = outdir / filename
+    checksum_file = outdir / (filename + ".sha256")
+
+    # --- Determine resume offset ---
+    offset_bytes = 0
+    if resume and outfile.exists():
+        offset_bytes = outfile.stat().st_size
+        logging.info(f"Resuming from {offset_bytes} bytes")
+
+    # --- Build command ---
+    bs = 64 * 1024
+    dd_cmd = ["dd", f"if={device}", f"bs={bs}", "conv=noerror,sync"]
+    if offset_bytes > 0:
+        skip_blocks = offset_bytes // bs
+        dd_cmd.append(f"skip={skip_blocks}")
+
+    gzip_cmd = ["gzip", "-1", "-"]
+
+    pv_cmd = ["pv", "-p", "-t", "-e", "-r"]
+
+    # --- Local vs Remote ---
+    if host in ("", "localhost", "127.0.0.1"):
+        # Local capture
+        dd_proc = subprocess.Popen(
+            dd_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+    else:
+        test = subprocess.run(
+            ["ssh", host, "true"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+        if test.returncode != 0:
+            raise RuntimeError(f"SSH authentication failed for {host}")
+        # Remote capture via SSH
+        ssh_cmd = ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null", host, f"sudo {' '.join(dd_cmd)} | gzip -1 -"]
+        logging.info(f"Running SSH: {' '.join(ssh_cmd)}")
+        dd_proc = subprocess.Popen(
+            ssh_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=False
+        )
+
+    # --- Pipe through pv and write to file ---
+    mode = "ab" if offset_bytes > 0 else "wb"
+    with open(outfile, mode) as f:
+        try:
+            pv_proc = subprocess.Popen(
+                pv_cmd,
+                stdin=dd_proc.stdout,
+                stdout=f,
+                stderr=None   # direct progress to terminal
+            )
+            dd_proc.stdout.close()  # allow SIGPIPE propagation
+
+            # Cancel-safe
+            def signal_handler(sig, frame):
+                logging.info("\nCancelling...")
+                pv_proc.terminate()
+                dd_proc.terminate()
+            signal.signal(signal.SIGINT, signal_handler)
+
+            pv_proc.wait()
+            dd_proc.wait()
+
+        except Exception as e:
+            logging.error("Error during capture:", e)
+            pv_proc.terminate()
+            dd_proc.terminate()
+            raise
+
+    # --- Compute checksum ---
+    logging.info("Computing checksum...")
+    sha256 = hashlib.sha256()
+    with open(outfile, "rb") as f:
+        for chunk in iter(lambda: f.read(1024*1024), b""):
+            sha256.update(chunk)
+    checksum = sha256.hexdigest()
+
+    with open(checksum_file, "w") as f:
+        f.write(checksum + "\n")
+
+    logging.info(f"Capture complete: {outfile}")
+    logging.info(f"SHA256: {checksum}")
+    return str(outfile), checksum

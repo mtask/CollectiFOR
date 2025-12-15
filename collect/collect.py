@@ -21,9 +21,12 @@ def load_config(path):
 def validate_config(args, config):
     if not args.capture and not args.collect:
         print("No --collect or --capture specified. Nothing to do.")
-        sys.exit(0)
+        sys.exit(1)
     if args.capture and not args.interfaces and config['modules']['capture']['enable_network']:
         print("-if / --interfaces is required when using --capture and network capturing is enabled in configuration")
+        sys.exit(1)
+    if args.capture and (not args.disk or not args.disk_host) and config['modules']['capture']['enable_disk']:
+        print("-d / --disk and -dh / --disk-host are required when using --capture and disk capturing is enabled in configuration")
         sys.exit(1)
 
 def run_collect_modules(enabled_collect_modules, outdir, config, threads=[]):
@@ -50,16 +53,21 @@ def run_collect_modules(enabled_collect_modules, outdir, config, threads=[]):
             mod(outdir, config[current_module])
     return threads
 
-def run_capture_modules(enabled_capture_modules, outdir, config, interfaces="", threads=[]):
+def run_capture_modules(enabled_capture_modules, outdir, config, interfaces="", threads=[], disk="", host=""):
     logging.info("[+] Running capture modules")
     import modules.mod_capture as mcap
     for cm in enabled_capture_modules:
         current_module = cm.replace('enable_', '')
         logging.info(f"[+] Running module {current_module}")
-        config[current_module]['interfaces'] = interfaces.strip().split(',')
-        mod = getattr(mcap, current_module)
         if not config[current_module]:
             config[current_module] = {}
+        if interfaces:
+            config[current_module]['interfaces'] = interfaces.strip().split(',')
+        if disk:
+            config[current_module]['disk'] = disk
+        if host:
+            config[current_module]['host'] = host
+        mod = getattr(mcap, current_module)
         if config[current_module].get('own_thread', False):
             capture_thread = threading.Thread(
                 target=mod,
@@ -87,7 +95,7 @@ def main(args):
             k: v for k, v in config['modules']['capture'].items()
             if k.startswith("enable_") and v
         }
-        threads = threads + run_capture_modules(enabled_capture_modules, outdir, config_mod_capture, interfaces=args.interfaces)
+        threads = threads + run_capture_modules(enabled_capture_modules, outdir, config_mod_capture, interfaces=args.interfaces, disk=args.disk, host=args.disk_host)
     if args.collect:
         enabled_collect_modules = {
             k: v for k, v in config['modules']['collect'].items()
@@ -129,6 +137,18 @@ def parse_args():
         "-if", "--interfaces",
         required=False,
         help="Interfaces for capture module. Multiple interfaces can be seperated with comma"
+    )
+
+    parser.add_argument(
+        "-dh", "--disk-host",
+        required=False,
+        help='Target host for disk capture. <str>@<str> assumes live capture over ssh. "localhost", "127.0.0.1", or "" assumes local disk.'
+    )
+
+    parser.add_argument(
+        "-d", "--disk",
+        required=False,
+        help="Disk to capture. E.g. /dev/sda"
     )
 
     args = parser.parse_args()

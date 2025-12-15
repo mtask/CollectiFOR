@@ -60,15 +60,22 @@ Other analysis is enabled by giving `--analysis` option. As mentioned these are 
 
 You can use tools like plaso to do further analysis against the collection. Or Zeek to do further network analysis against the captured PCAP. The repository contains the following helper scripts:
 
-* **plaso.sh**: run log2timeline and psort inside docker container. Requires `log2timeline/plaso` docker image.
-
-The script specifies `--user 0` for docker run commands to ensure proper file access with the collection data. The collection data is mounted as read-only inside the container. 
+* **plaso.sh**: run `log2timeline/plaso` docker image and mount collection inside. Spawns inside the container to run Plaso tools.
 
 ```
 sudo ./plaso.sh <path to collection dir or tar.gz> <path to output dir>
 ```
 
-The output directory is created if it does not exist. 
+The script specifies `--user 0` for docker run commands to ensure proper file access with the collection data. The collection data is mounted as read-only inside the container. The output directory is created if it does not exist. 
+
+When the container's bash prompt opens you can run `log2timeline.py` etc.:
+
+```
+root@bb0a5da10423:/out# log2timeline.py /data/files_and_dirs
+# Example to get some browser usage data if included in collection
+root@bb0a5da10423:/out# psort.py --analysis unique_domains_visited -o null <database name>.plaso
+root@bb0a5da10423:/out# psort.py --analysis browser_search -o null <database name>.plaso
+```
 
 * **zeek.sh**: Run zeek inside docker container. Requires zeek/zeek docker image.
 

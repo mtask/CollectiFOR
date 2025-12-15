@@ -110,8 +110,7 @@ modules:
       - /home/*/.zsh_history
       - /home/*/.local/share/Trash/
       - /home/*/snap/chromium/common/chromium/*/Cache/
-      - /home/*/snap/firefox/common/.mozilla/firefox/*/storage/*/
-      - /home/*/snap/./firefox/common/.cache/
+      - /home/*/snap/firefox/common/.mozilla/firefox/*.default/
       - /home/*/.mozilla/firefox/*.default/
       - /home/*/snap/firefox/common/.cache/mozilla/firefox/*/
       - /home/*/snap/thunderbird/common/.thunderbird/

@@ -5,12 +5,16 @@ compress_collection: true
 modules:
   # Capture e.g. network traffic to pcap
   capture:
+    # Capture network traffic
     enable_network: true
     # seconds
     network:
       own_thread: true
       timeout: 60
-    # Capture network traffic
+    # Capture disk image locally or remote
+    enable_disk: false
+    disk:
+    # Capture volati
     # Capture volatile memory
     enable_memory: false
     memory:

@@ -1,16 +1,19 @@
 # Store collection results here
-outdir: /tmp/out
+outdir: /tmp/out3
 # Compress collection directory when finished to tar.gz
 compress_collection: false
 modules:
   # Capture e.g. network traffic to pcap
   capture:
-    enable_network: true
+    # Capture network traffic
+    enable_network: false
     # seconds
     network:
       own_thread: true
       timeout: 60
-    # Capture network traffic
+    # Capture disk image locally or remote
+    enable_disk: true
+    disk:
     # Capture volatile memory
     enable_memory: false
     memory:

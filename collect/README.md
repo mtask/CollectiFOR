@@ -211,6 +211,32 @@ head -n 1 file_permissions.txt
 /etc/gshadow- 640 -rw-r----- root:shadow 1172 1764100568.0
 ```
 
+### Capture module | disk
+
+Capture disk image from a locally attached disk or remotely via SSH.
+
+```yaml
+  capture:
+    enable_disk: true
+    disk:
+  ...
+```
+
+
+* **SSH:**
+
+```
+./dist/collect -c config.yaml --capture -d "/dev/vda" -dh "user@ip"
+```
+
+* **Local:**
+
+```
+./dist/collect -c config.yaml --capture -d "/dev/sda" -dh "localhost"
+```
+
+Module requires `pv` on the local system and `dd` on remote system. Note that with remote ssh usage the module requires root login or passwordless sudo and it skips host key verification.
+
 ### Capture module | network
 
 Capture network traffic for the given time perioid. Uses scapy module for the capture and capture interfaces are specified with command line argument `-if / --interfaces <if1,if2,if3>`.

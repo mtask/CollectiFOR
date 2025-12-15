@@ -1,7 +1,7 @@
 # CollectiFOR | DFIR Triage Tool
 
 A Python-based digital forensics and incident response (DFIR) triage tool to collect and analyze system and network artifacts from Linux based target machines.
-Supports file collection, memory acquisition, network capture, checksum calculation, and analysis of indicators of compromise.
+Supports file collection, disk acquisition, memory acquisition, network capture, checksum calculation, and analysis of indicators of compromise.
 
 ---
 
@@ -11,6 +11,7 @@ Supports file collection, memory acquisition, network capture, checksum calculat
 - File and directory collection
 - File permission and checksum inventory
 - Network capture (PCAP) using Scapy
+- Disk acquisition (remote via SSH or local)
 - Memory acquisition via LiME (Linux Memory Extractor)
 - Command output capture (system commands for triage)
 
