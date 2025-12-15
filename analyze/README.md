@@ -86,6 +86,14 @@ sudo ./zeek.sh <path to collection dir or tar.gz> <path to output dir>
 
 The script assumes that there is the usual one pcap under `<collection>/capture/`. This requires that the collection was executed with `--capture` and had network module enabled.
 
-## Report
+* **hindsight**:
+
+Chrome/Chromium internet history forensics with [Hindsight](https://github.com/obsidianforensics/hindsight)
+
+```
+python3 venv/bin/hindsight.py -i /tmp/out/20251216_010107/files_and_dirs/home/user/snap/chromium/common/chromium/Default/ -o report/test
+```
+
+## Reporting
 
 TBD

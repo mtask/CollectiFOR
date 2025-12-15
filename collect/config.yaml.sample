@@ -63,10 +63,8 @@ modules:
       - id
       - groups
       - getent passwd
-      - getent shadow                     # requires root
+      - getent shadow
       - getent group
-      - crontab -l                        # current user
-      - sudo crontab -l -u root           # root crontab
       # Network and connections
       - netstat -tulnpa
       - ss -tulnpa
@@ -79,6 +77,8 @@ modules:
       - ufw status verbose
       - firewall-cmd --state
       - firewall-cmd --list-all
+      - ip neigh
+      - arp -n
       - sshd -T
       # Package / installed software
       - dpkg -l                           # Debian/Ubuntu
@@ -98,9 +98,6 @@ modules:
       - dmesg
       - lsmod
       - sysctl -a
-      # Network routes / ARP / firewall
-      - ip neigh
-      - arp -n
       # Docker / containers
       - docker ps -a                       # containers
       - "docker ps -a | awk '{print $1}'|grep -v CONTAINER |xargs -n1 docker inspect"
