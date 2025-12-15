@@ -67,6 +67,7 @@ sudo ./plaso.sh <path to collection dir or tar.gz> <path to output dir>
 ```
 
 The script specifies `--user 0` for docker run commands to ensure proper file access with the collection data. The collection data is mounted as read-only inside the container. The output directory is created if it does not exist. 
+If the capture includes disk image, and you want create super timeline from it, then it needs to be extracted (gunzip) outside the contaider due to read-only mounting.
 
 When the container's bash prompt opens you can run `log2timeline.py` etc.:
 

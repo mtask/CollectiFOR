@@ -1,4 +1,6 @@
-## Building and using collect.py
+## Building
+
+Check [releases](https://github.com/mtask/CollectiFOR/releases) for prebuilt `collect` binary.
 
 * Simple PyInstaller example:
 
@@ -11,14 +13,17 @@ pyinstaller --onefile --paths=. collect.py
 
 After building ship `./dist/collect` and `config.yaml` to target machine and run collection.
 
-```bash
-sudo ./collect -c config.yaml --collect --capture -if eth0,eth1
-```
+## Usage
+
+1. Download `collect` binary.
+2. Configure `config.yaml.sample` to match your needs.
+3. Run `collect` with the required options based on your configuration.
+4. Copy collection directory or tar.gz (output format depends on configuration)
 
 **Options:**
 
 ```
-usage: collect.py [-h] -c CONFIG [--collect] [--capture] [-if INTERFACES] [-dh DISK_HOST] [-d DISK]
+usage: collect [-h] -c CONFIG [--collect] [--capture] [-if INTERFACES] [-dh DISK_HOST] [-d DISK]
 
 CollectiFOR | quick triage collection
 
@@ -35,7 +40,14 @@ options:
   -d DISK, --disk DISK  Disk to capture. E.g. /dev/sda
 ```
 
-Check the collection path from the last log message to stdout. For example:
+**Example:**
+
+
+```bash
+sudo ./collect -c config.yaml.sample --collect --capture -if eth0,eth1
+```
+
+Check the collection output path from the last log message. For example:
 
 ```
 2025-12-07 22:04:07,548 [INFO] Collection finished: /tmp/out/hostname_20251207_220252.tar.gz
@@ -63,6 +75,7 @@ Copy collection to analysis machine and continue with [analysis](https://github.
 └── files_and_dirs/
 ```
 
+Before actual usage you need to configure the configuration file.
 
 ## Modules
 

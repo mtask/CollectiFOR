@@ -1,13 +1,13 @@
 # CollectiFOR | DFIR Triage Tool
 
-A Python-based digital forensics and incident response (DFIR) triage tool to collect and analyze system and network artifacts from Linux based target machines.
-Supports file collection, disk acquisition, memory acquisition, network capture, checksum calculation, and analysis of indicators of compromise.
+CollectiFOR is a digital forensics and incident response (DFIR) triage tool to collect and analyze system and network artifacts from Linux based target machines.
+Supports file collection, disk acquisition, memory acquisition, network capture, checksum calculation, and analysis of indicators of compromise. It main feature is the `collect` module which is used for data acquisition.
 
 ---
 
 ## Features
 
-**Collect Mode (`collect/collect.py`):**
+**Collect (`collect/collect.py`):**
 - File and directory collection
 - File permission and checksum inventory
 - Network capture (PCAP) using Scapy
@@ -15,7 +15,7 @@ Supports file collection, disk acquisition, memory acquisition, network capture,
 - Memory acquisition via LiME (Linux Memory Extractor)
 - Command output capture (system commands for triage)
 
-**Analyze Mode (`analyze/analyze.py`):**
+**Analyze (`analyze/analyze.py`):**
 - Pattern matching against patterns/IoCs
 - YARA rule scanning
 - File permission risk analysis (SUID, SGID, world-writable)
@@ -26,7 +26,7 @@ Supports file collection, disk acquisition, memory acquisition, network capture,
 - Logs analysis (auth failures, sudo failures, desktop/tty logins)
 - Filesystem integrity checks (checksums, SUID binaries, unexpected permissions)
 
-Other than YARA and pattern matching, which rely on external data sources, other modules are more like a PoC features.
+Other than YARA and pattern matching  are more like a PoC features in the analysis tools. The `analyze` directory also has some extra helper scripts to do further analysis with other external tools.
 
 ---
 
