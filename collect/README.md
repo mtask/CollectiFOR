@@ -1,9 +1,13 @@
 ## Building and using collect.py
 
+* Simple PyInstaller example:
+
 ```bash
 pip3 install pyinstaller
 pyinstaller --onefile --paths=. collect.py
 ```
+
+* Alternatively use `build.sh` script that provides better support for different Linux distributioons. It uses https://github.com/pypa/manylinux and requires docker.
 
 After building ship `./dist/collect` and `config.yaml` to target machine and run collection.
 
@@ -13,6 +17,7 @@ sudo ./collect -c config.yaml --collect --capture -if eth0,eth1
 
 **Options:**
 - `--config`: Path to YAML configuration file.
+- `--collect` Run collect modules that are enabled in config.
 - `--capture`: Enable network and/or memory capture (can be configured in config file)
 - `--interfaces`: Comma-separated list of interfaces for packet capture.
 
@@ -45,13 +50,170 @@ Copy collection to analysis machine and continue with [analysis](https://github.
 ```
 
 
-## YAML configuration
+## Modules
 
-Check `config.yaml.sample` for full example.
+Check `config.yaml.sample` for full example. There are two main module structures, collect and capture. In the configuration file those appear like this:
+
+```
+modules:
+  capture:
+  collect:
+```
+
+Under those each module is enabled or disabled with keys like `enable_<module_name>`. For example: `enable_commands: true` which would enable collect module `commands`. In the configuration file this would appear like this:
+
+```
+modules:
+  ...
+  collect:
+    enable_commands: true
+```
+
+In addition to this all modules might have additional configurations under keys `(collect|capture).<module name>.<configuration>`.
+
+
+### Collect module | commands
+
+
+Commands module collects outputs (stdout/stderr) for the commands specified in the configuration file.
+
+```
+modules:
+  ...
+  collect:
+    enable_commands: true
+    commands:
+      list:
+      - ps auxwwwef
+      - aa-status
+```
+
+Set commands to execute under the `list` key. In collection the outputs are stored under `commands` directory like this:
+
+```
+commands/
+total 1288
+-rw-r----- 1 root root   3848 Dec 15 13:57 stdout.apt-cache.txt
+-rw-r----- 1 root root  18263 Dec 15 13:57 stdout.auditctl.txt
+-rw-r----- 1 root root    860 Dec 15 13:57 stdout.aureport.txt
+```
+
+Stdout of the executed command is stored under `stdout.<command>.txt` and stderr under `stderr.<command>.txt`. If the same command is executed with different options all of those outputs are stored in the same file.
+Each command is seperated with line `#command: <full command>`. Here's an example from `stdout.docker.txt`:
+
+```
+#command:docker ps -a
+CONTAINER ID   IMAGE                             COMMAND                  CREATED        STATUS                      PORTS     NAMES
+...
+#command:docker ps -a | awk '{print $1}'|grep -v CONTAINER |xargs -n1 docker inspect
+[
+    {
+        "Id": "ef6cc07
+...
+```
+
+### Collect module | luks
+
+The luks module is basically a helper module to run `cryptsetup luksDump <luks device>`. It identifies which devices are potential luks devices before running `cryptsetup`. It stored the output according to the logic of the commands module.
+
+```
+$ cat commands/stdout.cryptsetup.txt
+#command:cryptsetup luksDump /dev/nvme0n1p3
+LUKS header information
+Version:       	2
+...
+```
+
+### Collect module | checksums
+
+
+Checksums module collects checksums for the file paths specified in the configuration file.
+
+```
+modules:
+  ...
+  collect:
+    enable_checksums: true
+    checksums:
+      list:
+      - /etc/
+      - /path/to/some/file.txt
+
+```
+
+Directories are always recursive. Md5, sha1, and sha256 outputs are stored in seperate text files inside the collection:
+
+```
+# ls  checksums/
+md5.txt  sha1.txt  sha256.txt
+```
+
+### Collect module | files_and_dirs
+
+Files\_and\_dirs module collects copies of file structures for the file paths specified in the configuration file.
+
+```
+modules:
+  ...
+  collect:
+    enable_files_and_dirs: true
+    files_and_dirs:
+      list:
+      - /etc/
+```
+
+The original directory tree is stored. Directories are always recursive.
+Meaning that when, for example, `/etc/passwd` is copied by specifying it directly or just `/etc/` it will appear like this inside the collection:
+
+```
+files_and_dirs/etc/passwd
+```
+
+### Collect module | listeners
+
+Listeners module collects information about network listening processes. Data gathered by other modules can be used to collect all the same information, but this quickly collects the data inside a single file. 
+Collected details are stored in file `listeners.json` inside the collection.
+
+```
+cat listeners.json 
+{
+  "tcp": [
+    {
+      "pid": 1239,
+      "protocol": "tcp",
+      "port": 53,
+      "process": "systemd-resolve",
+      "exec": "/usr/lib/systemd/systemd-resolved",
+      "systemd": "/usr/lib/systemd/system/systemd-resolved.service",
+      "related_paths": [
+        "/usr/lib/systemd/systemd-resolved"
+      ]
+```
+
+### Collect module | file_permissions
+
+File\_permissions module collects file permissions of the file paths specified in the configuration file.
+
+```
+modules:
+  ...
+  collect:
+    enable_file_permissions: true
+    file_permissions:
+      list:
+      - /etc/
+```
+
+Directories are always recursive. Results are stored in file `file_permissions.txt ` inside the collection.
+
+```
+head -n 1 file_permissions.txt 
+/etc/gshadow- 640 -rw-r----- root:shadow 1172 1764100568.0
+```
 
 ### Capture module | network
 
-Capture network traffic for 60 seconds. Uses scapy module for the capture and capture interfaces are specified with command line argument `-if / --interfaces <if1,if2,if3>`.
+Capture network traffic for the given time perioid. Uses scapy module for the capture and capture interfaces are specified with command line argument `-if / --interfaces <if1,if2,if3>`.
 
 ```yaml
   capture:
@@ -62,7 +224,12 @@ Capture network traffic for 60 seconds. Uses scapy module for the capture and ca
   ...
 ```
 
-Pcap and extracted text file version are stored under "capture" directory inside the collection.
+Pcap and extracted text file version are stored under "capture" directory inside the collection. Simple text extraction is mainly done due to quicker pattern based analysis e.g. against IP-based IoCs.
+
+```
+ls capture/eth0.pcap*
+capture/eth0.pcap  capture/eth0.pcap.txt
+```
 
 ### Capture module | memory
 
@@ -82,7 +249,6 @@ Example to enable memory capture and use lime module found in path `memory/lime-
 ```
 
 Memory capture is stored under "capture" directory inside the collection.
-
 
 ## Running modules in own threads
 

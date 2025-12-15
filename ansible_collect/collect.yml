@@ -16,6 +16,12 @@
     debug:
       msg: "{{ interfaces_string }}"
 
+  - name: Check if the remote host has rsync installed
+    command: command -v rsync
+    failed_when: false
+    register: _rsync
+    become: yes
+
   - name: Copy collect binary to remote machine -> /root/collect
     copy:
       src: '{{ collect_binary }}'
@@ -24,6 +30,20 @@
       group: root
       mode: 0700
     become: yes
+    when: _rsync.rc != 0
+
+  - name: Syncronize collect binary to remote machine -> /root/collect
+    block:
+    - name: Syncronize collect binary temporarily to remote machine -> /tmp/collect
+      ansible.posix.synchronize:
+        src: '{{ collect_binary }}'
+        dest: /tmp/collect
+        rsync_opts:
+          - '--rsh="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"'
+    - name: Move /tmp/collect -> /root/collect
+      shell: 'mv /tmp/collect /root/collect && chown root:root /root/collect && chmod 700 /root/collect'
+      become: yes
+    when: _rsync.rc == 0
 
   - name: Copy config.yaml.j2 to remote machine -> /root/config.yaml
     template:
@@ -52,10 +72,40 @@
       dest: "{{ playbook_dir }}/fetched_collections/"
       flat: yes
     become: yes
+    when: _rsync.rc != 0
 
   - name: Remove collection from the remote host
     file:
       state: absent
       path: "{{ collect_tar }}"
     become: yes
+    when: _rsync.rc != 0
+
+  - name: 'Syncronize collection {{ collect_tar }} -> ./fetched_collections'
+    block:
+    - name: 'Move {{ collect_tar }} to /tmp/{{ collect_tar|basename }}'
+      command: "mv {{ collect_tar }} /tmp/{{ collect_tar|basename }}"
+      become: yes
+    - name: "Ensure ansible_user has access to {{ collect_tar }}"
+      file:
+        state: touch
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        path: "/tmp/{{ collect_tar|basename }}"
+      become: yes
+    - name: Syncronize collect binary temporarily to remote machine -> /tmp/collect
+      ansible.posix.synchronize:
+        mode: pull
+        src: '/tmp/{{ collect_tar|basename }}'
+        dest: '{{ playbook_dir }}/fetched_collections/'
+        rsync_opts:
+          - '--rsh="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"'
+
+    - name: 'Remove /tmp/{{ collect_tar|basename }}'
+      file:
+        state: absent
+        path: '/tmp/{{ collect_tar|basename }}'
+      become: yes
+    when: _rsync.rc == 0
+
 
