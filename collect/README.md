@@ -7,7 +7,7 @@ pip3 install pyinstaller
 pyinstaller --onefile --paths=. collect.py
 ```
 
-* Alternatively use `build.sh` script that provides better support for different Linux distributioons. It uses https://github.com/pypa/manylinux and requires docker.
+* Alternatively use `build.sh` script that provides better support for different Linux distributions. It uses https://github.com/pypa/manylinux and requires docker.
 
 After building ship `./dist/collect` and `config.yaml` to target machine and run collection.
 
@@ -16,10 +16,24 @@ sudo ./collect -c config.yaml --collect --capture -if eth0,eth1
 ```
 
 **Options:**
-- `--config`: Path to YAML configuration file.
-- `--collect` Run collect modules that are enabled in config.
-- `--capture`: Enable network and/or memory capture (can be configured in config file)
-- `--interfaces`: Comma-separated list of interfaces for packet capture.
+
+```
+usage: collect.py [-h] -c CONFIG [--collect] [--capture] [-if INTERFACES] [-dh DISK_HOST] [-d DISK]
+
+CollectiFOR | quick triage collection
+
+options:
+  -h, --help            show this help message and exit
+  -c CONFIG, --config CONFIG
+                        Path to the YAML configuration file
+  --collect             Enable collect module
+  --capture             Enable capture module
+  -if INTERFACES, --interfaces INTERFACES
+                        Interfaces for capture module. Multiple interfaces can be seperated with comma
+  -dh DISK_HOST, --disk-host DISK_HOST
+                        Target host for disk capture. <str>@<str> assumes live capture over ssh. "localhost", "127.0.0.1", or "" assumes local disk.
+  -d DISK, --disk DISK  Disk to capture. E.g. /dev/sda
+```
 
 Check the collection path from the last log message to stdout. For example:
 
@@ -235,7 +249,7 @@ Capture disk image from a locally attached disk or remotely via SSH.
 ./dist/collect -c config.yaml --capture -d "/dev/sda" -dh "localhost"
 ```
 
-Module requires `pv` on the local system and `dd` on remote system. Note that with remote ssh usage the module requires root login or passwordless sudo and it skips host key verification.
+Module requires `pv` on the local system and `dd` on remote system. Note that with remote ssh usage the module requires ssh key authentication, root login or passwordless sudo, and it skips host key verification.
 
 ### Capture module | network
 
