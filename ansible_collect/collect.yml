@@ -93,7 +93,7 @@
         group: "{{ ansible_user }}"
         path: "/tmp/{{ collect_tar|basename }}"
       become: yes
-    - name: Syncronize collect binary temporarily to remote machine -> /tmp/collect
+    - name: 'Syncronize /tmp/{{ collect_tar|basename }} -> {{ playbook_dir }}/fetched_collections/'
       ansible.posix.synchronize:
         mode: pull
         src: '/tmp/{{ collect_tar|basename }}'
