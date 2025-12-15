@@ -1,26 +1,27 @@
 # Store collection results here
 outdir: /tmp/out
-# Compress collection directory when finished to tar.gz
+# Compress collection directory when finished to tar.gz or keep it as directory
 compress_collection: true
 modules:
   # Capture e.g. network traffic to pcap
   capture:
     # Capture network traffic
-    enable_network: true
-    # seconds
-    network:
-      own_thread: true
-      timeout: 60
-    # Capture disk image locally or remote
+    enable_network: false
+    # Capture disk image locally or remote. Target disk and host are specified with cli options. Check collect -h.
     enable_disk: false
-    disk:
-    # Capture volati
+    # Target interface(s) are specified with cli options. Check collect -h.
     # Capture volatile memory
     enable_memory: false
+    # You can ignore settings for modules that you did not enable. For example: enable_network: --module settings--> network:
+    network:
+      own_thread: true
+      # Seconds
+      timeout: 60
+    disk:
     memory:
       capture_method: lime
       lime:
-        # Module not included
+        # Module not included. You need to build the lime module and provide path to it here.
         path: memory/lime-6.14.0-36-generic.ko
         # Format: lime/raw
         format: lime
@@ -37,9 +38,10 @@ modules:
     enable_file_permissions: true
     # Collect details about network listening processes
     enable_listeners: true
-    # Luks
+    # Luks - no additional configuration.
     luks:
     # Command outputs
+    # Commands do not need to work/exist on the target. Collection handles non-existent commands cleanly.
     commands:
       list:
       - ps auxwwwef
@@ -108,6 +110,8 @@ modules:
       - kubectl get pods --all-namespaces
     # Files and directories to collect
     # Full copies are taken to collection
+    # Wildcard expansion is supported
+    # Paths do not need to exists on the target system. Non-existent paths are just ignored.
     files_and_dirs:
       list:
       - /proc/version
@@ -140,9 +144,10 @@ modules:
       # Temp files (possible malware drops)
       #- /tmp
       #- /var/tmp
+    # Collects checksums for the given file paths
+    # Directories are always recursive
     checksums:
       list:
-      # Directories are always recursive
       - /etc/
       - /usr/bin
       - /usr/local/bin
@@ -154,7 +159,10 @@ modules:
       #- /usr/lib64
       #- /usr/lib
       #- /var/lib
+    # Collect file permissions for the given paths
+    # Directories are always recursive
     file_permissions:
       list:
       - /etc/
+    # Collect information about network processes - no addittional configuration
     listeners:
