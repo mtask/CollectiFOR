@@ -6,10 +6,6 @@ from scapy.all import (
     Ether, ICMP, DNS, DNSQR
 )
 
-class ChecksumParser:
-    def __init__(self, db):
-        self.db = db
-
 class CommandsParser:
     def __init__(self, db):
         self.db = db
@@ -104,10 +100,10 @@ class ChecksumParser:
         with open(filepath) as f:
             for line in f:
                 line = line.strip()
-                if not line or "-" not in line:
+                if not line or " - " not in line:
                     continue
                 try:
-                    path, checksum = map(str.strip, line.split("-", 1))
+                    path, checksum = line.rsplit(" - ", 1)
                     entries.append({
                         "filepath": path,
                         "checksum": checksum,
