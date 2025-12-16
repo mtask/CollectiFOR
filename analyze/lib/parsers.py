@@ -1,7 +1,10 @@
 import os
 import logging
 from datetime import datetime
-from scapy.all import rdpcap, IP, IPv6, TCP, UDP, ARP, Ether
+from scapy.all import (
+    rdpcap, IP, IPv6, TCP, UDP, ARP,
+    Ether, ICMP, DNS, DNSQR
+)
 
 class ChecksumParser:
     def __init__(self, db):
@@ -184,22 +187,19 @@ class PcapParser:
         capture_dir = os.path.join(collection_dir, self.SUBDIR)
 
         if not os.path.isdir(capture_dir):
-            logging.error(f'[-] "capture" directory not found')
+            logging.error('[-] "capture" directory not found')
             return
 
-        pcaps = [
-            f for f in os.listdir(capture_dir)
-            if f.endswith(".pcap")
-        ]
+        pcaps = [f for f in os.listdir(capture_dir) if f.endswith(".pcap")]
 
         if not pcaps:
             logging.error("[-] No pcap files found")
             return
 
-        for pcap_file in pcaps:
+        for pcap in pcaps:
             self.parse_file(
-                os.path.join(capture_dir, pcap_file),
-                interface=os.path.splitext(pcap_file)[0]
+                os.path.join(capture_dir, pcap),
+                interface=os.path.splitext(pcap)[0]
             )
 
     def parse_file(self, pcap_path, interface):
@@ -212,23 +212,30 @@ class PcapParser:
         rows = []
 
         for idx, pkt in enumerate(packets, start=1):
+            ts = datetime.fromtimestamp(float(pkt.time))
+
             row = {
                 "interface": interface,
                 "packet_number": idx,
+                "timestamp": ts,
                 "protocol": "raw",
                 "src": None,
                 "src_port": None,
                 "dst": None,
                 "dst_port": None,
+                "icmp_type": None,
+                "icmp_code": None,
+                "dns_qname": None,
+                "dns_qtype": None,
                 "raw_content": pkt.summary(),
             }
 
-            # Ethernet
+            # ---- Ethernet ----
             if pkt.haslayer(Ether):
                 row["src"] = pkt[Ether].src
                 row["dst"] = pkt[Ether].dst
 
-            # IP / IPv6
+            # ---- IP / IPv6 ----
             if pkt.haslayer(IP):
                 row["protocol"] = "ip"
                 row["src"] = pkt[IP].src
@@ -239,7 +246,7 @@ class PcapParser:
                 row["src"] = pkt[IPv6].src
                 row["dst"] = pkt[IPv6].dst
 
-            # TCP / UDP
+            # ---- TCP / UDP ----
             if pkt.haslayer(TCP):
                 row["protocol"] = "tcp"
                 row["src_port"] = pkt[TCP].sport
@@ -250,12 +257,62 @@ class PcapParser:
                 row["src_port"] = pkt[UDP].sport
                 row["dst_port"] = pkt[UDP].dport
 
-            # ARP
-            elif pkt.haslayer(ARP):
-                row["protocol"] = "arp"
-                row["src"] = pkt[ARP].psrc
-                row["dst"] = pkt[ARP].pdst
+            # ---- ICMP ----
+            if pkt.haslayer(ICMP):
+                row["protocol"] = "icmp"
+                row["icmp_type"] = pkt[ICMP].type
+                row["icmp_code"] = pkt[ICMP].code
+
+            # ---- DNS ----
+            if pkt.haslayer(DNS) and pkt.haslayer(DNSQR):
+                row["protocol"] = "dns"
+                row["dns_qname"] = pkt[DNSQR].qname.decode(errors="ignore").rstrip(".")
+                row["dns_qtype"] = pkt[DNSQR].qtype
 
             rows.append(row)
 
+            # ---- Flow update ----
+            if row["src"] and row["dst"]:
+                self.db.upsert_flow({
+                    "protocol": row["protocol"],
+                    "src": row["src"],
+                    "src_port": row["src_port"],
+                    "dst": row["dst"],
+                    "dst_port": row["dst_port"],
+                    "timestamp": ts,
+                })
+
         self.db.add_pcap_packets(rows)
+
+class FilesAndDirsParser:
+    SUBDIR = "files_and_dirs"
+
+    def __init__(self, db):
+        self.db = db
+
+    def parse_dir(self, collection_dir):
+        base_dir = os.path.join(collection_dir, self.SUBDIR)
+
+        if not os.path.isdir(base_dir):
+            logging.error('[-] "files_and_dirs" directory not found')
+            return
+
+        collection_realpath = os.path.realpath(collection_dir)
+        entries = []
+
+        for root, dirs, files in os.walk(base_dir):
+            for name in files + dirs:
+                full_path = os.path.join(root, name)
+
+                # Compute relative path starting AFTER files_and_dirs
+                rel = os.path.relpath(full_path, base_dir)
+                normalized_path = "/" + rel.replace(os.sep, "/")
+
+                entries.append({
+                    "collection_path": collection_realpath,
+                    "path": normalized_path,
+                })
+
+        if entries:
+            self.db.add_file_entries(entries)
+            logging.info(f"[+] Indexed {len(entries)} files/directories")

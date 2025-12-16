@@ -34,6 +34,7 @@ class Checksum(Base):
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
 
+
 class PcapPacket(Base):
     __tablename__ = "pcap_packets"
 
@@ -41,17 +42,53 @@ class PcapPacket(Base):
     interface = Column(String, nullable=False)
     packet_number = Column(Integer, nullable=False)
 
+    timestamp = Column(DateTime, nullable=False)   # NEW
+
     protocol = Column(String, nullable=False)
     src = Column(String)
     src_port = Column(Integer)
     dst = Column(String)
     dst_port = Column(Integer)
 
+    icmp_type = Column(Integer)
+    icmp_code = Column(Integer)
+
+    dns_qname = Column(String)
+    dns_qtype = Column(String)
+
     raw_content = Column(Text)
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
+class NetworkFlow(Base):
+    __tablename__ = "network_flows"
+
+    id = Column(Integer, primary_key=True)
+
+    protocol = Column(String, nullable=False)
+    src = Column(String, nullable=False)
+    src_port = Column(Integer)
+    dst = Column(String, nullable=False)
+    dst_port = Column(Integer)
+
+    first_seen = Column(DateTime, nullable=False)
+    last_seen = Column(DateTime, nullable=False)
+
+    packet_count = Column(Integer, default=0)
+
+    inserted_at = Column(DateTime, default=datetime.utcnow)
+
+class FileEntry(Base):
+    __tablename__ = "files_and_dirs"
+
+    id = Column(Integer, primary_key=True)
+
+    collection_path = Column(String, nullable=False)
+    path = Column(String, nullable=False)
+
+    inserted_at = Column(DateTime, default=datetime.utcnow)
+
 class DB:
-    def __init__(self, db_file="commands.db"):
+    def __init__(self, db_file):
         self.engine = create_engine(f"sqlite:///{db_file}", echo=False, future=True)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
@@ -100,6 +137,7 @@ class DB:
         session.commit()
         session.close()
 
+
     def add_pcap_packets(self, packets):
         session = self.Session()
         try:
@@ -108,3 +146,43 @@ class DB:
             session.commit()
         finally:
             session.close()
+
+    def upsert_flow(self, flow):
+        session = self.Session()
+        try:
+            existing = session.query(NetworkFlow).filter_by(
+                protocol=flow["protocol"],
+                src=flow["src"],
+                src_port=flow["src_port"],
+                dst=flow["dst"],
+                dst_port=flow["dst_port"],
+            ).first()
+
+            if existing:
+                existing.last_seen = flow["timestamp"]
+                existing.packet_count += 1
+            else:
+                session.add(NetworkFlow(
+                    protocol=flow["protocol"],
+                    src=flow["src"],
+                    src_port=flow["src_port"],
+                    dst=flow["dst"],
+                    dst_port=flow["dst_port"],
+                    first_seen=flow["timestamp"],
+                    last_seen=flow["timestamp"],
+                    packet_count=1,
+                ))
+
+            session.commit()
+        finally:
+            session.close()
+
+    def add_file_entries(self, entries):
+        session = self.Session()
+        try:
+            for entry in entries:
+                session.add(FileEntry(**entry))
+            session.commit()
+        finally:
+            session.close()
+

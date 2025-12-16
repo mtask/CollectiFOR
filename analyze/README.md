@@ -94,6 +94,39 @@ Chrome/Chromium internet history forensics with [Hindsight](https://github.com/o
 python3 venv/bin/hindsight.py -i /tmp/out/20251216_010107/files_and_dirs/home/user/snap/chromium/common/chromium/Default/ -o report/test
 ```
 
+## TBD
+
+### Top talkers
+
+```sql
+SELECT src, COUNT(*) FROM pcap_packets
+GROUP BY src ORDER BY COUNT(*) DESC;
+```
+
+### DNS queries
+
+```sql
+SELECT dns_qname, COUNT(*) FROM pcap_packets
+WHERE protocol='dns'
+GROUP BY dns_qname;
+```
+
+### Flows
+
+```sql
+SELECT src, dst, packet_count
+FROM network_flows
+ORDER BY packet_count DESC;
+```
+
+### ICMP activity
+
+```sql
+SELECT icmp_type, COUNT(*) FROM pcap_packets
+WHERE protocol='icmp'
+GROUP BY icmp_type;
+```
+
 ## Reporting
 
 TBD
