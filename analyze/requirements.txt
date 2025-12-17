@@ -4,8 +4,6 @@ ansible-core==2.20.0
 blinker==1.9.0
 bottle==0.13.4
 brotli==1.2.0
-ccl_chromium_reader @ git+https://github.com/cclgroupltd/ccl_chromium_reader.git@552516720761397c4d482908b6b8b08130b313a1
-ccl_simplesnappy @ git+https://github.com/cclgroupltd/ccl_simplesnappy.git@3d085230baa8c46cf2090ebba29bf6e8eab31087
 cffi==2.0.0
 click==8.3.1
 cryptography==46.0.3

@@ -88,6 +88,22 @@ class FileEntry(Base):
 
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
+class ListenerEntry(Base):
+    __tablename__ = "listeners"
+
+    id = Column(Integer, primary_key=True)
+
+    pid = Column(Integer)
+    protocol = Column(String, nullable=False)
+    port = Column(Integer)
+    bind = Column(String, nullable=False)
+    exec = Column(String, nullable=False)
+    process = Column(String, nullable=False)
+    systemd = Column(String, default="")
+    related_paths = Column(String, default="")
+
+    inserted_at = Column(DateTime, default=datetime.utcnow)
+
 class Finding(Base):
     __tablename__ = "findings"
 
@@ -113,6 +129,9 @@ class DB:
         self.engine = create_engine(f"sqlite:///{db_file}", echo=False, future=True)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
+    #############
+    # init data #
+    #############
 
     def add_command_outputs(self, commands_dict):
         session = self.Session()
@@ -206,6 +225,19 @@ class DB:
             session.commit()
         finally:
             session.close()
+
+    def add_listener_entries(self, entries):
+        session = self.Session()
+        try:
+            for entry in entries:
+                session.add(ListenerEntry(**entry))
+            session.commit()
+        finally:
+            session.close()
+
+    ############
+    # Analysis #
+    ############
 
     def add_finding_entries(self, findings):
         """

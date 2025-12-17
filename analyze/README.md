@@ -103,7 +103,9 @@ Below table shows which data is currently ingested to CollectiFOR database in in
 | capture/*.pcap       | PcapParser         | pcap_packets     |
 | capture/*.pcap       | PcapParser         | network_flows    |
 | file_permissions.txt | PermissionsParser  | file_permissions |
-| listeners.json       | N/A                | N/A              |
+| listeners.json       | ListenersParser    | listeners        |
+
+All parsers skip ingestion gracefully if the related collection data is not found because not all collections include content from every module.
 
 # Analysis modules
 
@@ -171,7 +173,7 @@ There are some helper scripts included in the repository and some sample command
 
 ## Grep patterns
 
-CollectiFOR's pattern parser is basically just a wrapper for grep. You can do quick pattern match just run grep like this.
+CollectiFOR's pattern parser is basically just a wrapper for grep. You can do similar quick pattern matching just by running grep like this.
 
 ```bash
 grep -r -f patterns/custom/test.txt /collections/host_20251217_141749/20251217_141749/
@@ -280,7 +282,7 @@ checksums         file_permissions  findings          pcap_packets
 command_output    files_and_dirs    network_flows
 ```
 
-All analysis results goes to findings table. Other tables are used by initialization (`--init`) parsers.
+All analysis results are inserted to findings table. Other tables are used by initialization (`--init`) parsers.
 
 ## Table schemas
 

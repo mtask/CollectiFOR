@@ -357,6 +357,7 @@ def _get_listeners():
     pid_re = re.compile(r'pid=(\d+)')
     proc_re = re.compile(r'\("([^"]+)"')
     port_re = re.compile(r':(\d+)$')
+    addr_re = re.compile(r'(.*):\d+$')
 
     # Cache systemd lookups (huge speed win)
     systemd_cache = {}
@@ -368,10 +369,11 @@ def _get_listeners():
 
         protocol = parts[0]
         local_addr = parts[4]
-
+        bind_match = addr_re.search(local_addr)
         port_match = port_re.search(local_addr)
-        if not port_match:
+        if not port_match or not bind_match:
             continue
+        bind = bind_match.group(1)
         port = int(port_match.group(1))
 
         pid_match = pid_re.search(line)
@@ -406,6 +408,7 @@ def _get_listeners():
         entry = {
             "pid": pid,
             "protocol": protocol,
+            "bind": bind,
             "port": port,
             "process": process,
             "exec": exec_path,

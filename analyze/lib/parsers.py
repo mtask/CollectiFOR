@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from datetime import datetime
 from scapy.all import (
@@ -316,3 +317,34 @@ class FilesAndDirsParser:
         if entries:
             self.db.add_file_entries(entries)
             logging.info(f"[+] Indexed {len(entries)} files/directories")
+
+class ListenersParser:
+
+    def __init__(self, db):
+        self.db = db
+
+    def parse_dir(self, collection_dir):
+        listeners = os.path.join(collection_dir, 'listeners.json')
+
+        if not os.path.isfile(listeners):
+            logging.error('[-] "listeners.json" not found')
+            return
+
+        try:
+            with open(listeners, 'r') as f:
+                lst = json.load(f)
+        except Exception as e:
+            logging.erro(f"[-] Failed to load listeners.json: {repr(e)}")
+        entries = []
+        if lst:
+            for l in lst.get('udp', []):
+                entry = l.copy()
+                entry['related_paths'] = ' | '.join(l['related_paths'])
+                entries.append(entry)
+            for l in lst.get('tcp', []):
+                entry = l.copy()
+                entry['related_paths'] = ' | '.join(l['related_paths'])
+                entries.append(entry)
+        if entries:
+            self.db.add_listener_entries(entries)
+            logging.info(f"[+] Indexed {len(entries)} network listener process details")

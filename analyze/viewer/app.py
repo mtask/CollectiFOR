@@ -14,6 +14,7 @@ from lib.db import (
     NetworkFlow,
     Finding,
     FileEntry,
+    ListenerEntry,
 )
 
 app = Flask(__name__)
@@ -39,6 +40,23 @@ def get_session():
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/listeners")
+def listeners():
+    session = get_session()
+    try:
+        entries = (
+            session.query(ListenerEntry)
+            .order_by(ListenerEntry.protocol, ListenerEntry.port)
+            .all()
+        )
+    finally:
+        session.close()
+
+    return render_template(
+        "listeners.html",
+        entries=entries,
+    )
 
 @app.route("/files/", defaults={"dir_path": ""})
 @app.route("/files/<path:dir_path>")

@@ -12,6 +12,7 @@ from lib.parsers import (
     PermissionsParser,
     PcapParser,
     FilesAndDirsParser,
+    ListenersParser,
 )
 from viewer.app import run_viewer
 
@@ -24,6 +25,7 @@ PARSERS = [
     PermissionsParser,
     PcapParser,
     FilesAndDirsParser,
+    ListenersParser,
 ]
 
 # -----------------------------

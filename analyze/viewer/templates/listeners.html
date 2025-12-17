@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Listening Services</h2>
+
+<p>
+  This page shows network listeners detected on the system at collection time.
+</p>
+
+{% if entries %}
+<table class="table table-sm table-striped">
+  <thead>
+    <tr>
+      <th>Protocol</th>
+      <th>Port</th>
+      <th>Bind</th>
+      <th>PID</th>
+      <th>Process</th>
+      <th>Executable</th>
+      <th>systemd</th>
+      <th>Related Paths</th>
+    </tr>
+  </thead>
+  <tbody>
+{% for e in entries %}
+    <tr>
+      <td>{{ e.protocol }}</td>
+      <td>{{ e.port }}</td>
+      <td class="mono">{{ e.bind }}</td>
+      <td>{{ e.pid }}</td>
+      <td>{{ e.process }}</td>
+      <td class="mono">{{ e.exec }}</td>
+      <td class="mono">{{ e.systemd }}</td>
+      <td class="mono">
+{% if e.related_paths %}
+{{ '\n'.join(e.related_paths.split(' | ')) }}
+{% else %}
+          —
+{% endif %}
+      </td>
+    </tr>
+{% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No listener entries found.</p>
+{% endif %}
+
+{% endblock %}
