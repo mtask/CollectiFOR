@@ -1,3 +1,4 @@
+![](imgs/collectifor.png)
 # CollectiFOR | DFIR Triage Tool
 
 CollectiFOR is a digital forensics and incident response (DFIR) triage tool to collect and analyze system and network artifacts from Linux based target machines.
