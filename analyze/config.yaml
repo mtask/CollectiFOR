@@ -1,4 +1,0 @@
-# Store HTML report under this path
-reportdir: report
-# Modules are enabled/disabled based on commandline switches. 
-# This config file only includes additional configuration.
