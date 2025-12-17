@@ -303,10 +303,14 @@ class FilesAndDirsParser:
                 # Compute relative path starting AFTER files_and_dirs
                 rel = os.path.relpath(full_path, base_dir)
                 normalized_path = "/" + rel.replace(os.sep, "/")
-
+                if os.path.isfile(full_path):
+                    f_type = "file"
+                if os.path.isdir(full_path):
+                    f_type = "dir"
                 entries.append({
                     "collection_path": collection_realpath,
                     "path": normalized_path,
+                    "type": f_type
                 })
 
         if entries:

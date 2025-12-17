@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Files Browser</h2>
+
+<!-- Search form -->
+<form method="get" class="mb-3">
+    <input type="text" name="q" placeholder="Search files..." value="{{ search_query|default('') }}">
+    <button type="submit">Search</button>
+</form>
+
+{% if search_query %}
+  <p>Showing search results for: <strong>{{ search_query }}</strong></p>
+  {% if files %}
+    <ul>
+      {% for f in files %}
+        <li>
+          {{ f.path }}
+          <a href="{{ url_for('view_file', path=f.path) }}">View</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No files matched your search.</p>
+  {% endif %}
+{% else %}
+  <!-- Breadcrumbs -->
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('files') }}">/</a></li>
+      {% if current_dir %}
+        {% set parts = current_dir.strip('/').split('/') %}
+        {% set path_acc = "" %}
+        {% for part in parts %}
+          {% set path_acc = path_acc + "/" + part %}
+          <li class="breadcrumb-item">
+            <a href="{{ url_for('files', dir_path=path_acc.lstrip('/')) }}">{{ part }}</a>
+          </li>
+        {% endfor %}
+      {% endif %}
+    </ol>
+  </nav>
+
+  <!-- Directories -->
+  <h3>Directories</h3>
+  {% if dirs %}
+    <ul>
+      {% for d in dirs %}
+        <li>
+          <a href="{{ url_for('files', dir_path=d.path.lstrip('/')) }}">{{ d.path.split('/')[-1] }}/</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No directories in this folder.</p>
+  {% endif %}
+
+  <!-- Files -->
+  <h3>Files</h3>
+  {% if files %}
+    <ul>
+      {% for f in files %}
+        <li>
+          {{ f.path.split('/')[-1] }}
+          <a href="{{ url_for('view_file', path=f.path) }}">View</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No files in this folder.</p>
+  {% endif %}
+{% endif %}
+
+{% endblock %}

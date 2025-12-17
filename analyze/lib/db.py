@@ -84,6 +84,7 @@ class FileEntry(Base):
 
     collection_path = Column(String, nullable=False)
     path = Column(String, nullable=False)
+    type = Column(String, nullable=False)
 
     inserted_at = Column(DateTime, default=datetime.utcnow)
 

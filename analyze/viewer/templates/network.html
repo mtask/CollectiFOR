@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Network Search</h2>
+
+<form method="get">
+    <input type="text" name="q" value="{{ q }}" placeholder="IP, port, protocol" size="40">
+    <button type="submit">Search</button>
+</form>
+
+{% if q %}
+
+<h3>Flows</h3>
+{% if flows %}
+<table>
+<tr>
+  <th>Protocol</th>
+  <th>Source</th>
+  <th>Destination</th>
+  <th>Packets</th>
+  <th>First Seen</th>
+  <th>Last Seen</th>
+</tr>
+{% for f in flows %}
+<tr>
+  <td>{{ f.protocol }}</td>
+  <td>{{ f.src }}:{{ f.src_port }}</td>
+  <td>{{ f.dst }}:{{ f.dst_port }}</td>
+  <td>{{ f.packet_count }}</td>
+  <td>{{ f.first_seen }}</td>
+  <td>{{ f.last_seen }}</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+<p>No flows found.</p>
+{% endif %}
+
+<h3>Packets</h3>
+{% if packets %}
+<table>
+<tr>
+  <th>#</th>
+  <th>Time</th>
+  <th>Proto</th>
+  <th>Src</th>
+  <th>Dst</th>
+  <th>Raw</th>
+</tr>
+{% for p in packets %}
+<tr>
+  <td>{{ p.packet_number }}</td>
+  <td>{{ p.timestamp }}</td>
+  <td>{{ p.protocol }}</td>
+  <td>{{ p.src }}:{{ p.src_port }}</td>
+  <td>{{ p.dst }}:{{ p.dst_port }}</td>
+  <td class="mono">{{ p.raw_content }}</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+<p>No packets found.</p>
+{% endif %}
+
+{% endif %}
+{% endblock %}

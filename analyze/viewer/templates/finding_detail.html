@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{{ finding.type }} – {{ finding.rule }}</h2>
+
+<p><strong>Message:</strong> {{ finding.message }}</p>
+<p><strong>Artifact:</strong> {{ finding.artifact }}</p>
+<p><strong>Source:</strong> {{ finding.source_file }}</p>
+
+<h3>Metadata</h3>
+<table>
+{% for key, value in finding.meta.items() %}
+<tr>
+  <td><strong>{{ key }}</strong></td>
+  <td>{{ value }}</td>
+</tr>
+{% endfor %}
+</table>
+{% endblock %}

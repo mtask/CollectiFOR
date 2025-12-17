@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Checksum Search</h2>
+
+<form method="get">
+    <input type="text" name="value" value="{{ value }}" placeholder="Checksum or filepath" size="60">
+    <button type="submit">Search</button>
+</form>
+
+{% if results %}
+<table>
+    <tr>
+        <th>Filepath</th>
+        <th>Algorithm</th>
+        <th>Checksum</th>
+        <th>Inserted</th>
+    </tr>
+    {% for c in results %}
+    <tr>
+        <td class="mono">{{ c.filepath }}</td>
+        <td>{{ c.algorithm }}</td>
+        <td class="mono">{{ c.checksum }}</td>
+        <td>{{ c.inserted_at }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% elif value %}
+<p>No results found.</p>
+{% endif %}
+{% endblock %}

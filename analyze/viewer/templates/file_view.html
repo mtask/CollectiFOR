@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>File Viewer</h2>
+
+<p><strong>Path:</strong> {{ path }}</p>
+
+<pre class="mono" style="max-height: 70vh; overflow: auto; border: 1px solid #ccc; padding: 10px; background: #f8f8f8;">
+{{ content }}
+</pre>
+
+<p>
+  <a href="{{ url_for('files', dir_path=parent_dir.lstrip('/')) }}">← Back to Files</a>
+</p>
+{% endblock %}

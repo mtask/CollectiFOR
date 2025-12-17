@@ -13,6 +13,7 @@ from lib.parsers import (
     PcapParser,
     FilesAndDirsParser,
 )
+from viewer.app import run_viewer
 
 # -----------------------------
 # Parser registry
@@ -130,6 +131,12 @@ def main():
         help="Enable and run all analysis modules. Yara module requires --yara RULE_DIR and pattern module --pattern PATTERN_DIR"
     )
 
+    parser.add_argument(
+        "--viewer",
+        action="store_true",
+        help="Launch local analysis viewer"
+    )
+
     args = parser.parse_args()
 
     # -----------------------------
@@ -157,6 +164,13 @@ def main():
             sys.exit(1)
     else:
         collection_dir = collection_path
+
+    # -----------------------------
+    # Viewer
+    # -----------------------------
+    if args.viewer:
+        run_viewer(collection_dir, db_file=args.db)
+        return
 
     if not os.path.isdir(collection_dir):
         logging.error(f"Invalid collection directory: {collection_dir}")
