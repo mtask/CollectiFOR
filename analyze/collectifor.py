@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import sys
+import json
 
 from lib.collection import decompress
 from lib.db import DB
@@ -23,6 +24,38 @@ PARSERS = [
     PcapParser,
     FilesAndDirsParser,
 ]
+
+# -----------------------------
+# Analysis
+# -----------------------------
+
+def analysis(args, collection_path):
+    findings = []
+    if args.pattern:
+        logging.info("[RUN] Pattern module")
+        import modules.mod_pattern as mp
+        findings = findings + mp.search(args.pattern, collection_path)
+    if args.yara:
+        logging.info("[RUN] YARA module")
+        import modules.mod_yara as my
+        findings = findings + my.search(args.yara, collection_path)
+    if args.logs or args.analysis:
+        import modules.mod_logs as ml
+        logging.info("[RUN] Logs module")
+        findings = findings + ml.analyze(collection_path)
+    if args.file_permissions or args.analysis:
+        import modules.mod_file_permissions as mf
+        logging.info("[RUN] File permissions module")
+        findings = findings + mf.analyze(collection_path)
+    if args.persistence or args.analysis:
+        import modules.mod_persistence as mp
+        logging.info("[RUN] Persistence module")
+        findings = findings + mp.analyze(collection_path)
+    if args.pcap or args.analysis:
+        import modules.mod_pcap as mpcap
+        logging.info("[RUN] PCAP module")
+        findings = findings + mpcap.analyze(collection_path)
+    return findings
 
 # -----------------------------
 # Main
@@ -47,6 +80,54 @@ def main():
         "-v", "--verbose",
         action="store_true",
         help="Enable verbose logging",
+    )
+
+    parser.add_argument(
+        "-y", "--yara",
+        metavar="RULE_DIR",
+        help="Enable yara analysis module by providing path to your yara rules top-level directory."
+    )
+
+    parser.add_argument(
+        "-p", "--pattern",
+        metavar="PATTERN_DIR",
+        help="Enable pattern analysis module by providing path your pattern files top-level directory."
+    )
+
+    parser.add_argument(
+        "-l", "--logs",
+        action='store_true',
+        help="Enable logs analysis module"
+    )
+
+    parser.add_argument(
+        "-fp", "--file-permissions",
+        action='store_true',
+        help="Enable file permissions analysis module"
+    )
+
+    parser.add_argument(
+        "-pe", "--persistence",
+        action='store_true',
+        help="Enable persistence analysis module"
+    )
+
+    parser.add_argument(
+        "-pc", "--pcap",
+        action='store_true',
+        help="Enable PCAP analysis module"
+    )
+
+    parser.add_argument(
+        "--init",
+        action='store_true',
+        help="Initialize collection (Run only once against same collection)"
+    )
+
+    parser.add_argument(
+        "--analysis",
+        action='store_true',
+        help="Enable and run all analysis modules. Yara module requires --yara RULE_DIR and pattern module --pattern PATTERN_DIR"
     )
 
     args = parser.parse_args()
@@ -91,17 +172,24 @@ def main():
     # -----------------------------
     # Run parsers
     # -----------------------------
-    for ParserCls in PARSERS:
-        logging.info(f"[RUN ] {ParserCls.__name__}")
-        try:
-            parser = ParserCls(db)
-            parser.parse_dir(collection_dir)
-        except Exception:
-            # Parsers should not crash the whole run
-            logging.exception(f"[FAIL] {ParserCls.__name__}")
+    if args.init:
+        logging.info("[+] Running initialize parsers")
+        for ParserCls in PARSERS:
+            logging.info(f"[RUN] {ParserCls.__name__}")
+            try:
+                parser = ParserCls(db)
+                parser.parse_dir(collection_dir)
+            except Exception:
+                # Parsers should not crash the whole run
+                logging.exception(f"[FAIL] {ParserCls.__name__}")
 
-    logging.info("All parsers completed")
-
+        logging.info("[+] All parsers completed")
+    logging.info("[+] Running enabled analysis modules")
+    findings = analysis(args, collection_dir)
+    if findings:
+        logging.info(f"Adding {len(findings)} findings to database.")
+        db.add_finding_entries(findings)
+    logging.info("[+] All modules completed")
 
 if __name__ == "__main__":
     main()

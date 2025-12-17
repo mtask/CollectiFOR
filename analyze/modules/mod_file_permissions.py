@@ -1,5 +1,6 @@
 # modules/mod_file_permissions.py
 from pathlib import Path
+from lib.finding import new_finding
 
 # -----------------------------
 # Helper functions
@@ -78,15 +79,17 @@ def analyze(rootdir):
                 reasons.append("SUID/SGID (string)")
 
             if reasons:
-                results.append({
-                    "path": path,
-                    "mode": mode_num,
-                    "perms": perms,
-                    "owner": owner,
-                    "group": group,
-                    "size": size,
-                    "timestamp": timestamp,
-                    "reason": ", ".join(reasons)
-                })
+                finding = new_finding()
+                finding['type'] = 'file permissions'
+                finding['artifact'] = path
+                finding['message'] = ", ".join(reasons)
+                finding['meta'] = {
+                                      "mode": mode_num,
+                                      "perms": perms,
+                                      "owner": owner,
+                                      "group": group,
+                                      "size": size,
+                                      "timestamp": timestamp,
+                                  }
 
     return results

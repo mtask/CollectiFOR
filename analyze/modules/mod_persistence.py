@@ -2,7 +2,7 @@ import os
 import re
 import json
 from pathlib import Path
-
+from lib.finding import new_finding
 
 # ---------------------------------------------------------
 # Helpers
@@ -75,41 +75,34 @@ def check_systemd(rootdir):
             for exec_cmd in exec_matches:
                 exec_cmd = exec_cmd.strip()
 
-                entry = {
-                    "artifact": _rel(svc, rootdir),
-                    "indicator": "",
-                    "severity": "",
-                    "description": "",
-                    "execstart": exec_cmd,
-                    "service_name": svc_name
-                }
-
+                finding = new_finding()
+                finding['type'] = "persistence"
+                finding['artifact'] = _rel(svc, rootdir)
+                finding['meta']['execstart'] = exec_cmd
+                finding['meta']['service_name'] = svc_name
                 # Suspicious entropy service name
                 if _high_entropy(svc_name):
-                    entry.update({
+                    finding.update({
                         "indicator": "High entropy service name",
-                        "severity": "high",
-                        "description": "Service name resembles randomly generated malware loader."
+                        "message": "Service name resembles randomly generated malware loader."
                     })
-                    results.append(entry)
+                    results.append(finding)
 
                 # ExecStart writable path
                 if _is_writable(exec_cmd):
-                    entry.update({
+                    finding.update({
                         "indicator": "Executable in writable directory",
-                        "severity": "high",
-                        "description": f"ExecStart uses a writable path: {exec_cmd}"
+                        "message": f"ExecStart uses a writable path: {exec_cmd}"
                     })
-                    results.append(entry)
+                    results.append(finding)
 
                 # Suspicious command
                 if _cmd_suspicious(exec_cmd):
-                    entry.update({
+                    finding.update({
                         "indicator": "Suspicious ExecStart command",
-                        "severity": "high",
-                        "description": "ExecStart contains potentially malicious command patterns."
+                        "message": "ExecStart contains potentially malicious command patterns."
                     })
-                    results.append(entry)
+                    results.append(finding)
 
     return results
 
@@ -154,38 +147,32 @@ def check_cron(rootdir):
 
                 cmd = parts[5]
 
-                entry = {
-                    "artifact": _rel(cronfile, rootdir),
-                    "command": cmd,
-                    "indicator": "",
-                    "severity": "",
-                    "description": ""
-                }
+                finding = new_finding()
+                finding['type'] = "persistence"
+                finding['artifact'] = _rel(cronfile, rootdir)
+                finding['meta']['command'] = cmd
 
                 if _is_writable(cmd):
-                    entry.update({
+                    finding.update({
                         "indicator": "Writable-path cron job",
-                        "severity": "high",
-                        "description": f"Cron executes script from writable path: {cmd}"
+                        "message": f"Cron executes script from writable path: {cmd}"
                     })
-                    results.append(entry)
+                    results.append(finding)
 
                 if _cmd_suspicious(cmd):
-                    entry.update({
+                    finding.update({
                         "indicator": "Suspicious cron job command",
-                        "severity": "high",
-                        "description": "Cron job contains suspicious patterns."
+                        "message": "Cron job contains suspicious patterns."
                     })
-                    results.append(entry)
+                    results.append(finding)
 
                 # Every minute cron job → often persistence
                 if parts[0] == "*" and parts[1] == "*":
-                    entry.update({
+                    finding.update({
                         "indicator": "High-frequency cron job",
-                        "severity": "medium",
-                        "description": "Executes every minute – common persistence trick."
+                        "message": "Executes every minute – common persistence trick."
                     })
-                    results.append(entry)
+                    results.append(finding)
 
     return results
 
@@ -232,22 +219,22 @@ def check_shell_profiles(rootdir):
                     continue
 
                 if _cmd_suspicious(line_strip):
-                    results.append({
-                        "artifact": _rel(f, rootdir),
-                        "indicator": "Suspicious profile command",
-                        "severity": "high",
-                        "description": "Potential persistence via shell profile modification.",
-                        "line": line_strip
-                    })
+                    finding = new_finding()
+                    finding['type'] = "persistence"
+                    finding['artifact'] = _rel(f, rootdir)
+                    finding['indicator'] = "Suspicious profile command"
+                    finding['message'] = "Potential persistence via shell profile modification."
+                    finding['meta']['line'] = line_strip
+                    results.append(finding)
 
                 if "alias" in line_strip and "=" in line_strip:
-                    results.append({
-                        "artifact": _rel(f, rootdir),
-                        "indicator": "Suspicious alias",
-                        "severity": "medium",
-                        "description": "Shell alias may override system binaries.",
-                        "line": line_strip
-                    })
+                    finding = new_finding()
+                    finding['type'] = "persistence"
+                    finding['artifact'] = _rel(f, rootdir)
+                    finding['indicator'] = "Suspicious alias"
+                    finding['message'] = "Shell alias may override system binaries."
+                    finding['meta']['line'] = line_strip
+                    results.append(finding)
 
     return results
 
@@ -273,23 +260,23 @@ def check_ssh(rootdir):
                 continue
 
             if f.name == "authorized_keys":
-                results.append({
-                    "artifact": _rel(f, rootdir),
-                    "indicator": "Authorized key persistence",
-                    "severity": "medium",
-                    "description": "SSH authorized_keys allows persistent access."
-                })
+                finding = new_finding()
+                finding['type'] = "persistence"
+                finding['artifact'] = _rel(f, rootdir)
+                finding['indicator'] = "Authorized key persistence"
+                finding['message'] = "SSH authorized_keys allows persistent access."
+                results.append(finding)
 
             if f.name.endswith("config"):
                 try:
                     txt = f.read_text(errors="ignore")
                     if "ProxyCommand" in txt or "Match" in txt:
-                        results.append({
-                            "artifact": _rel(f, rootdir),
-                            "indicator": "Suspicious SSH config",
-                            "severity": "high",
-                            "description": "SSH client config might enable tunneling or covert channels."
-                        })
+                        finding = new_finding()
+                        finding['type'] = "persistence"
+                        finding['artifact'] = _rel(f, rootdir)
+                        finding['indicator'] = "Suspicious SSH config"
+                        finding['message'] = "SSH client config might enable tunneling or covert channels."
+                        results.append(finding)
                 except:
                     pass
 

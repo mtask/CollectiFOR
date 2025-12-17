@@ -1,8 +1,9 @@
 # modules/mod_logs.py
-from pathlib import Path
 import re
 import logging
 import gzip
+from pathlib import Path
+from lib.finding import new_finding
 
 def _open_log(path):
     """Open normal or gzipped log file in text mode"""
@@ -61,56 +62,66 @@ def analyze(rootdir):
             # Sudo failures
             match = sudo_fail_re.search(line)
             if match:
-                results.append({
-                    "artifact": str(log_file),
-                    "indicator": "Sudo authentication failure",
-                    "description": f"Sudo authentication failed for user {match['user']} on tty {match['tty']}",
-                    "line": line,
-                    "user": match['user'],
-                    "logname": match['logname'],
-                    "tty": match['tty'],
-                    "uid": match['uid'],
-                    "euid": match['euid'],
-                    "rhost": match['rhost']
-                })
+                finding = new_finding()
+                finding['type'] = 'logs'
+                finding['message'] = f"Sudo authentication failed for user {match['user']} on tty {match['tty']}"
+                finding['artifact'] = str(log_file)
+                finding['indicator'] = "Sudo authentication failure"
+                finding['meta'] = {
+                                      "line": line,
+                                      "user": match['user'],
+                                      "logname": match['logname'],
+                                      "tty": match['tty'],
+                                      "uid": match['uid'],
+                                      "euid": match['euid'],
+                                      "rhost": match['rhost']
+                                  }
+                results.append(finding)
                 continue
 
             # Desktop login failures
             match = desktop_fail_re.search(line)
             if match:
-                results.append({
-                    "artifact": str(log_file),
-                    "indicator": "Desktop authentication failure",
-                    "description": f"Failed desktop login for user {match['user']}",
-                    "line": line,
-                    "user": match['user']
-                })
+                finding = new_finding()
+                finding['type'] = 'logs'
+                finding['message'] = f"Failed desktop login for user {match['user']}"
+                finding['artifact'] = str(log_file)
+                finding['indicator'] = "Desktop authentication failure"
+                finding['meta'] = {
+                                      "line": line,
+                                      "user": match['user']
+                                  }
+                results.append(finding)
                 continue
 
             # SSH failures
             match = ssh_failed_re.search(line)
             if match:
-                results.append({
-                    "artifact": str(log_file),
-                    "indicator": "SSH authentication failure",
-                    "description": f"Failed SSH login for user {match['user']} from {match['ip']}",
-                    "line": line,
-                    "user": match['user'],
-                    "ip": match['ip']
-                })
+                finding = new_finding()
+                finding['type'] = 'logs'
+                finding['message'] = f"Failed SSH login for user {match['user']} from {match['ip']}"
+                finding['artifact'] = str(log_file)
+                finding['indicator'] = "SSH authentication failure"
+                finding['meta'] = {
+                                      "line": line,
+                                      "user": match['user'],
+                                      "ip": match['ip']
+                                  }
+                results.append(finding)
                 continue
 
             # SSH successes
             match = ssh_success_re.search(line)
             if match:
-                results.append({
-                    "artifact": str(log_file),
-                    "indicator": "SSH login success",
-                    "description": f"Successful SSH login for user {match['user']} from {match['ip']}",
-                    "line": line,
-                    "user": match['user'],
-                    "ip": match['ip']
-                })
-                continue
-
+                finding = new_finding()
+                finding['type'] = 'logs'
+                finding['message'] = f"Successful SSH login for user {match['user']} from {match['ip']}"
+                finding['artifact'] = str(log_file)
+                finding['indicator'] = "SSH login success"
+                finding['meta'] = {
+                                      "line": line,
+                                      "user": match['user'],
+                                      "ip": match['ip']
+                                  }
+                results.append(finding)
     return results

@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 Base = declarative_base()
@@ -86,6 +86,26 @@ class FileEntry(Base):
     path = Column(String, nullable=False)
 
     inserted_at = Column(DateTime, default=datetime.utcnow)
+
+class Finding(Base):
+    __tablename__ = "findings"
+
+    id = Column(Integer, primary_key=True)
+
+    type = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    rule = Column(String)
+    source_file = Column(String)
+    tags = Column(String)
+
+    meta = Column(JSON)  # stored as JSON
+
+    namespace = Column(String)
+    artifact = Column(String)
+    indicator = Column(String)
+
+    inserted_at = Column(DateTime, default=datetime.utcnow)
+
 
 class DB:
     def __init__(self, db_file):
@@ -186,3 +206,24 @@ class DB:
         finally:
             session.close()
 
+    def add_finding_entries(self, findings):
+        """
+        findings: list[dict]
+        """
+        session = self.Session()
+        try:
+            for entry in findings:
+                session.add(Finding(
+                    type=entry.get("type", ""),
+                    message=entry.get("message", ""),
+                    rule=entry.get("rule", ""),
+                    source_file=entry.get("source_file", ""),
+                    tags=entry.get("tags", ""),
+                    meta=entry.get("meta", {}) or {},
+                    namespace=entry.get("namespace", ""),
+                    artifact=entry.get("artifact", ""),
+                    indicator=entry.get("indicator", ""),
+                ))
+            session.commit()
+        finally:
+            session.close()

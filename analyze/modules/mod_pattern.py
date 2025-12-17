@@ -1,9 +1,11 @@
 import subprocess
 import os
+import json
 import glob
 import re
 from urllib.parse import urlparse
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from lib.finding import new_finding
 from pathlib import Path
 
 def search(patterns_dir, target, recursive=True, max_threads=4):
@@ -15,16 +17,16 @@ def search(patterns_dir, target, recursive=True, max_threads=4):
 
     def worker(pattern_file):
         results = match(pattern_file, target, recursive=recursive)
-        return pattern_file, results  # return tuple
+        return results
 
-    merged = {}   # final merged results
+    merged = []   # final merged results
 
     with ThreadPoolExecutor(max_workers=max_threads) as executor:
         futures = {executor.submit(worker, pf): pf for pf in pattern_files}
 
         for future in as_completed(futures):
-            pattern_file, results = future.result()
-            merged[pattern_file] = results
+            results = future.result()
+            merged = merged + results
     return merged
 
 
@@ -33,14 +35,14 @@ def match(pattern_source, target, recursive=True):
     """
     Use system grep (fgrep -F) to search patterns much faster than Python.
     Returns:
-        dict: { filepath: [matches...] }
+        list: [findings...]
     """
 
     # Ensure patterns file exists
     if not os.path.isfile(pattern_source):
         raise FileNotFoundError(f"Pattern file '{pattern_source}' not found")
 
-    results = {}
+    findings = []
 
     # ------------------------------------------------------------------
     # Build base grep command
@@ -85,14 +87,18 @@ def match(pattern_source, target, recursive=True):
     # ------------------------------------------------------------------
 
     for line in proc.stdout.splitlines():
+        finding = new_finding()
         # Recursive grep prefix
         if ":" in line and recursive:
             filepath, match = line.split(":", 1)
         else:
             filepath = target
             match = line
-
-        results.setdefault(filepath, []).append(match)
-
-    return results
+        finding['type'] = 'pattern'
+        finding['message'] = f'Pattern "{match}" matched in file {filepath}'
+        finding['indicator'] = str(match)
+        finding['source_file'] = str(pattern_source)
+        finding['artifact'] = str(filepath)
+        findings.append(finding)
+    return findings
 

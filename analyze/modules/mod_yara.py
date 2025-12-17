@@ -1,13 +1,14 @@
 # modules/mod_yara.py
 import os
+import json
 import re
 import yara
 import magic
 import hashlib
 import pwd
 import logging
+from lib.finding import new_finding
 from pathlib import Path
-
 
 # ===============================================================
 # Helpers
@@ -98,7 +99,7 @@ def _compile_rule_set(rule_files):
 # ===============================================================
 
 def _run_yara(rules, file_list, externals_needed):
-    all_matches = []
+    findings = []
 
     for filepath, externals in file_list:
         # Populate EXTERNAL variables dynamically
@@ -113,6 +114,17 @@ def _run_yara(rules, file_list, externals_needed):
             continue
 
         for m in matches:
+            finding = new_finding()
+            finding['type'] = 'yara'
+            finding['message'] = f'Rule "{m.rule}" matched in file "{filepath}"'
+            finding['rule'] = m.rule
+            finding['namespace'] = m.namespace
+            finding['tags'] = ', '.join(m.tags)
+            finding['strings'] = str(m.strings)
+            finding['meta'] = dict(m.meta)
+            finding['artifact'] = filepath
+            findings.append(finding)
+            """
             all_matches.append({
                 "rule":      m.rule,
                 "namespace": m.namespace,
@@ -121,8 +133,9 @@ def _run_yara(rules, file_list, externals_needed):
                 "strings":   str(m.strings),
                 "filepath":  filepath
             })
+            """
 
-    return all_matches
+    return findings
 
 
 # ===============================================================

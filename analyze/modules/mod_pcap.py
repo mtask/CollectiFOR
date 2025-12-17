@@ -6,6 +6,7 @@ import logging
 import subprocess
 from collections import defaultdict
 from contextlib import chdir
+from lib.finding import new_finding
 
 # -----------------------------
 # Helpers
@@ -54,7 +55,7 @@ def _normalize_flow(pkt, proto_layer):
 # Main analysis function
 # -----------------------------
 
-def analyze(rootdir, outdir):
+def analyze(rootdir):
     """
     Analyze all PCAPs in capture/ directory for:
       - DNS anomalies (high-entropy domains)
@@ -65,6 +66,7 @@ def analyze(rootdir, outdir):
     results = []
     capture_dir = Path(rootdir) / "capture"
     if not capture_dir.exists():
+        logging.warning('[-] "capture" directory was not found inside the collection')
         return results
 
     COMMON_TCP_UDP_PORTS = {22, 53, 80, 443, 25, 110, 123, 143, 3389, 445, 139}
@@ -97,18 +99,20 @@ def analyze(rootdir, outdir):
                         proto = "UDP"
                         qname = pkt[DNS].qd.qname.decode(errors="ignore").rstrip(".")
                         if _high_entropy_domain(qname):
-                            results.append({
-                                "pcap_file": pcap_file.name,
-                                "type": "dns",
-                                "indicator": "High-entropy domain",
-                                "src_ip": src_ip,
-                                "src_port": src_port,
-                                "dst_ip": dst_ip,
-                                "dst_port": dst_port,
-                                "protocol": proto,
-                                "query": qname,
-                                "description": "DNS query appears algorithmically generated (high entropy)."
-                            })
+                            finding = new_finding()
+                            finding['type'] = "dns"
+                            finding['message'] = "DNS query appears algorithmically generated (high entropy)."
+                            finding['indicator'] = "High-entropy domain"
+                            finding['artifact'] = pcap_file.name
+                            finding['meta'] = {
+                                                  "src_ip": src_ip,
+                                                  "src_port": src_port,
+                                                  "dst_ip": dst_ip,
+                                                  "dst_port": dst_port,
+                                                  "protocol": proto,
+                                                  "query": qname,
+                                              }
+                            results.append(finding)
 
                     # -------------------
                     # TCP/UDP unusual ports
@@ -117,17 +121,19 @@ def analyze(rootdir, outdir):
                         proto_layer = TCP if TCP in pkt else UDP
                         src_ip, src_port, dst_ip, dst_port, proto = _normalize_flow(pkt, proto_layer)
                         if dst_port not in COMMON_TCP_UDP_PORTS:
-                            results.append({
-                                "pcap_file": pcap_file.name,
-                                "type": "unusual_port",
-                                "src_ip": src_ip,
-                                "dst_ip": dst_ip,
-                                "src_port": src_port,
-                                "dst_port": dst_port,
-                                "protocol": proto,
-                                "indicator": "Unusual port usage",
-                                "description": f"Connection using unusual port {dst_port}."
-                            })
+                            finding = new_finding()
+                            finding['type'] = "unusual_port"
+                            finding['message'] = f"Connection using unusual port {dst_port}."
+                            finding['indicator'] = "Unusual port usage"
+                            finding['artifact'] = pcap_file.name
+                            finding['meta'] = {
+                                                  "src_ip": src_ip,
+                                                  "src_port": src_port,
+                                                  "dst_ip": dst_ip,
+                                                  "dst_port": dst_port,
+                                                  "protocol": proto
+                                              }
+                            results.append(finding)
 
         except Exception:
             continue
@@ -143,16 +149,17 @@ def analyze(rootdir, outdir):
                 continue
             avg_delta = sum(deltas)/len(deltas)
             if all(abs(d - avg_delta)/avg_delta < 0.2 for d in deltas):
-                results.append({
-                    "pcap_file": pcap_file.name,
-                    "type": "beaconing",
-                    "dst_ip": dst_ip,
-                    "period": round(avg_delta),
-                    "count": len(times),
-                    "protocol": "TCP/UDP",
-                    "indicator": "Beaconing",
-                    "description": f"Repeated connection to same host every ~{round(avg_delta)}s."
-                })
-
+                finding = new_finding()
+                finding['type'] = "beaconing"
+                finding['message'] =  f"Repeated connection to same host every ~{round(avg_delta)}s."
+                finding['indicator'] = "Beaconing"
+                finding['artifact'] = pcap_file.name
+                finding['meta'] = {
+                                      "dst_ip": dst_ip,
+                                      "protocol": "TCP/UDP",
+                                      "period": round(avg_delta),
+                                      "count": len(times)
+                                  }
+                results.append(finding)
     return results
 
