@@ -221,4 +221,4 @@ def run_viewer(collection_dir, db_file="collectifor.db", host="127.0.0.1", port=
     print(f"[+] Collection: {COLLECTION_DIR}")
     print(f"[+] URL: http://{host}:{port}")
 
-    app.run(host=host, port=port, debug=debug)
+    app.run(host=host, port=port, debug=debug, use_reloader=False)
