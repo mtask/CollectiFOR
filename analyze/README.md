@@ -53,6 +53,13 @@ To initialize without:
 * any analysis -> remove `--yara DIR`, `--pattern DIR` and `--analysis` from the command.
 * launching the viewer --> remove `--viewere`
 
+**NOTE:** Running initialization twice or more times against the same database will mean duplicate data.
+
+
+## Viewer
+
+CollectiFOR viewer is Flask based application that provides some simple visibility to collected data and analysis results
+
 ## Collection-Parser-Database mapping
 
 This shows which data is currently add to CollectiFOR database in initialization.
@@ -68,9 +75,60 @@ This shows which data is currently add to CollectiFOR database in initialization
 | file_permissions.txt | PermissionsParser  | file_permissions |
 | listeners.json       | N/A                | N/A              |
 
+## Analysis modules
+
+Using `--analysis` option with `collectifor.py` enables all analysis modules. YARA and pattern modules do, however, require additional arugments (`--yara` / `--pattern` DIR). 
+Other modules also have their own cli options to enable only specific modules instead of all.
+
+**NOTE:** Running same analysis module twice or more times against the same database can mean duplicate findings.
+
+In CollectiFOR database all analysis results are stored in "findings" table. Modules marked as `alpha / PoC` in the below listing are mostly in PoC concept state and have very simplistic analysis.
+YARA and Pattern modules use existing source content (YARA rules, IoC listings, etc), so those do not have similar own analysis logic and should yield good results with good rule/pattern sources.
+
+### Module | YARA
+
+* Enable: `--yara RULES_DIR`
+
+RULES_DIR contains YARA rule files with extension `.yar`. Can contain sub-directories, so you can hava structure like:
+
+```
+RULES_DIR
+  myrules/*.yar
+  rule_provider_Z/*.yar
+```
+
+### Module | Pattern
+
+* Enable: `--pattern PATTERN_DIR`
+
+Files in PATTERN_DIR are passed to `grep` as pattern file which means that there should be one "greppable" pattern per line in each file.
+Can also contain sub-directories.
+
+### Module | File permissions (alpha / PoC)
+
+* Enable: `--file-permissions`
+
+Does some simple analysis against the `file_permissions.txt` content if the collection has one.
+
+### Module | persistence (alpha / PoC)
+
+* Enable: `--persistence`
+
+Does some simple analysis against the `files_and_dirs` content if the collection has one.
+
+### Module | Logs (alpha / PoC)
+
+* Enable: `--logs`
+
+Does some simple analysis against the `files_and_dirs/var/log` file contents if logs are included in the collection.
+
+### Module | PCAP (alpha / PoC)
+
+* Enable: `--pcap`
+
+Does some simple analysis against the PCAP content if the collection has one.
 
 ## Other analysis
-
 
 You can use tools like plaso to do further analysis against the collection. Or Zeek to do further network analysis against the captured PCAP. The repository contains the following helper scripts:
 

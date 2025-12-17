@@ -23,15 +23,6 @@ sudo ./collect -c ./config.yaml --collect --capture -if eth0
 python3 collectifor.py --init --analysis --yara yara/ --pattern patterns/ --viewer /collections/host_20251217_141749.tar.gz 
 ```
 
-**Arguments**:
-
-* `--init`: -> Initialize collection SQLite database. Default path is.
-* `--analysis` -> Run analysis modules
-* `--yara yara/` -> YARA rules directory for the analysis
-* `--pattern patterns/` -> Pattern files directory for the analysis
-* `--viewer` -> Launch collectiFOR viewer after initialization and analysis
-* `/collections/host_20251217_141749.tar.gz` -> Path to collection. Can be collection tar.gz or collection directory if already decompressed.
-
 6. Open 127.0.0.1:5000 in your browser and view collection and analysis data
 
 ![viewer](imgs/viewer.png)
