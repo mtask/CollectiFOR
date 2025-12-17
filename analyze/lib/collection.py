@@ -43,6 +43,7 @@ def decompress(src_path):
                 raise Exception(f"Blocked unsafe path in tar: {member.name}")
         tar.extractall(path)
 
+    logging.info(f"Extracting collection {src_path} to {out_dir}")
     with tarfile.open(src_path, "r:gz") as tar:
         safe_extract(tar, out_dir)
 

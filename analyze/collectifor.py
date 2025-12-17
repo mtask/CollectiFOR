@@ -179,6 +179,11 @@ def main():
     # -----------------------------
     # Database
     # -----------------------------
+    if args.init and os.path.isfile(args.db):
+        ans = input(f"{args.db} already exists. Do you want to continue with initialization?[y/n] (default: n)")
+        if ans.lower() != "y":
+            logging.info("[-] Exiting without changes")
+            sys.exit(0)
     db = DB(args.db)
 
     # -----------------------------

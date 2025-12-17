@@ -72,13 +72,13 @@ def match(pattern_source, target, recursive=True):
 
     # grep exit code 1 = “no matches found” → return empty dict
     if proc.returncode == 1:
-        return {}
+        return []
 
     if proc.returncode not in (0, 1):
         if "Permission denied" in str(proc.stderr):
-            print(f"All files could not be accessed with the current privileges")
+            logging.warning(f"All files could not be accessed with the current privileges")
         else:
-            print(f"grep error: {repr(proc.stderr)}")
+            logging.error(f"grep error: {repr(proc.stderr)}")
 
     # ------------------------------------------------------------------
     # Parse grep output:
