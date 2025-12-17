@@ -216,9 +216,9 @@ command_output    files_and_dirs    network_flows
 
 All analysis results goes to findings table. Other tables are used by initialization (`--init`) parsers.
 
-### Tables' schemas
+### Table schemas
 
-```
+```sql
 sqlite> .schema checksums
 CREATE TABLE checksums (
 	id INTEGER NOT NULL, 
