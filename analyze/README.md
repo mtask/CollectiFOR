@@ -28,7 +28,7 @@ options:
 
 ### Initialization, analysis and viewer
 
-All the analysis and viewing related functionalities are launched with the `collectifor.py` script. Here's all-in-one example command to run everything with a frest collection tar.gz.
+All the analysis and viewing related functionalities are launched with the `collectifor.py` script. Here's all-in-one example command to run everything with a fresh collection tar.gz.
 
 ```bash
 # Might require sudo/root depending on your collection's permissions
