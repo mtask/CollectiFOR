@@ -58,7 +58,37 @@ To initialize without:
 
 ## Viewer
 
-CollectiFOR viewer is Flask based application that provides some simple visibility to collected data and analysis results
+CollectiFOR viewer is Flask based application that provides some simple visibility to collected data and analysis results. 
+Like shown in the all-in-one example you can launch viewer as part of the database initialization and/or analysis. With ready database you can just re-run viewer like this:
+
+```
+python3 collectifor.py --viewer /collections/host_20251217_141749.tar.gz 
+```
+
+Remember to specify `--db <db file>` if you had non-default database path during the initialization.
+
+Here's a list of viewer's functionalities:
+
+* Network data search against ingested data from collection's PCAP file.
+
+![](imgs/network.png)
+
+* Findings. Results from `--analysis`/`--yara` /`--pattern`.
+
+![](imgs/findings.png)
+
+* String search against the ingested data.
+
+![](imgs/search.png)
+
+* Checksum data search. Can be search by checksum or by string.
+
+![](imgs/checksum.png)
+
+* Simple file navigator based on collection's `files_and_dirs`. Allows to view files as well. This is main useage of the actual collection data in viewer in addition to initialized database.
+
+![](imgs/files.png)
+
 
 ## Collection-Parser-Database mapping
 
@@ -84,6 +114,12 @@ Other modules also have their own cli options to enable only specific modules in
 
 In CollectiFOR database all analysis results are stored in "findings" table. Modules marked as `alpha / PoC` in the below listing are mostly in PoC concept state and have very simplistic analysis.
 YARA and Pattern modules use existing source content (YARA rules, IoC listings, etc), so those do not have similar own analysis logic and should yield good results with good rule/pattern sources.
+
+You can skipp all the PoC analysis modules like this if you still want to run YARA and/or PATTERN analysis.
+
+```
+python3 collectifor.py --init --yara yara/ --pattern patterns/ --viewer /collections/host_20251217_141749.tar.gz 
+```
 
 ### Module | YARA
 
