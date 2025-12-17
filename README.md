@@ -3,43 +3,42 @@
 CollectiFOR is a digital forensics and incident response (DFIR) triage tool to collect and analyze system and network artifacts from Linux based target machines.
 Supports file collection, disk acquisition, memory acquisition, network capture, checksum calculation, and analysis of indicators of compromise. It main feature is the `collect` module which is used for data acquisition.
 
+## Quick how-to
+
+1. Modify collect/config.yaml.sample to match your data collection needs.
+2. Copy `collect` binary and config file to target machine(s).
+3. Run collection on the target machine:
+
+```bash
+sudo ./collect -c ./config.yaml --collect --capture -if eth0
+```
+
+4. Move collection directory or tar.gz file to analysis machine
+5. Run collectiFOR
+
+
+
+```bash
+# Might require sudo/root depending on your collection's permissions
+python3 collectifor.py --init --analysis --yara yara/ --pattern patterns/ --viewer /collections/host_20251217_141749.tar.gz 
+```
+
+**Arguments**:
+
+* `--init`: -> Initialize collection SQLite database. Default path is.
+* `--analysis` -> Run analysis modules
+* `--yara yara/` -> YARA rules directory for the analysis
+* `--pattern patterns/` -> Pattern files directory for the analysis
+* `--viewer` -> Launch collectiFOR viewer after initialization and analysis
+* `/collections/host_20251217_141749.tar.gz` -> Path to collection. Can be collection tar.gz or collection directory if already decompressed.
+
+6. Open 127.0.0.1:5000 in your browser and view collection and analysis data
+
+![viewer](imgs/viewer.png)
+
 ---
 
 ## Features
-
-**Collect (`collect/collect.py`):**
-- File and directory collection
-- File permission and checksum inventory
-- Network capture (PCAP) using Scapy
-- Disk acquisition (remote via SSH or local)
-- Memory acquisition via LiME (Linux Memory Extractor)
-- Command output capture (system commands for triage)
-
-**Analyze (`analyze/analyze.py`):**
-- Pattern matching against patterns/IoCs
-- YARA rule scanning
-- File permission risk analysis (SUID, SGID, world-writable)
-- PCAP analysis for:
-  - DNS anomalies (high-entropy domains)
-  - Beaconing detection (periodic connections)
-  - Unusual port usage
-- Logs analysis (auth failures, sudo failures, desktop/tty logins)
-- Filesystem integrity checks (checksums, SUID binaries, unexpected permissions)
-
-Other than YARA and pattern matching  are more like a PoC features in the analysis tools. The `analyze` directory also has some extra helper scripts to do further analysis with other external tools.
-
----
-
-## Requirements
-
-- Collection: `collect/requirements.txt`
-- Analysis/Scan: `analyze/requirements.txt`
-- Optional (for memory acquisition):
-  - LiME kernel module
-
----
-
-## Usage
 
 ### Collect Mode
 
@@ -55,3 +54,10 @@ Other than YARA and pattern matching  are more like a PoC features in the analys
 - See [analyze/README.md](https://github.com/mtask/CollectiFOR/tree/main/analyze/README.md)
 
 ---
+
+## Requirements
+
+- Collection: `collect/requirements.txt`
+- Analysis/Scan: `analyze/requirements.txt`
+- Optional (for memory acquisition):
+  - LiME kernel module

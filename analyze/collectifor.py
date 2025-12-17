@@ -168,10 +168,6 @@ def main():
     # -----------------------------
     # Viewer
     # -----------------------------
-    if args.viewer:
-        run_viewer(collection_dir, db_file=args.db)
-        return
-
     if not os.path.isdir(collection_dir):
         logging.error(f"Invalid collection directory: {collection_dir}")
         sys.exit(1)
@@ -204,6 +200,10 @@ def main():
         logging.info(f"Adding {len(findings)} findings to database.")
         db.add_finding_entries(findings)
     logging.info("[+] All modules completed")
+    if args.viewer:
+        logging.info("[+] Running viewer")
+        run_viewer(collection_dir, db_file=args.db)
+        return
 
 if __name__ == "__main__":
     main()
