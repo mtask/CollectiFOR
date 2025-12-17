@@ -1,4 +1,4 @@
-## Usage
+# Usage
 
 ```
 usage: collectifor.py [-h] [-d DB] [-v] [-y RULE_DIR] [-p PATTERN_DIR] [-l] [-fp] [-pe] [-pc] [--init] [--analysis] [--viewer] collection
@@ -26,7 +26,7 @@ options:
   --viewer              Launch local analysis viewer
 ```
 
-### Initialization, analysis and viewer
+## Launch initialization, analysis and viewer
 
 All the analysis and viewing related functionalities are launched with the `collectifor.py` script. Here's all-in-one example command to run everything with a fresh collection tar.gz.
 
@@ -85,14 +85,14 @@ Here's a list of viewer's functionalities:
 
 ![](imgs/checksum.png)
 
-* Simple file navigator based on collection's `files_and_dirs`. Allows to view files as well. This is main useage of the actual collection data in viewer in addition to initialized database.
+* Simple file navigator based on collection's `files_and_dirs`. Allows to view files as well. This is main usage of the actual collection data in viewer in addition to initialized database.
 
 ![](imgs/files.png)
 
 
-## Collection-Parser-Database mapping
+# Collection-Parser-Database mapping
 
-This shows which data is currently add to CollectiFOR database in initialization.
+Below table shows which data is currently ingested to CollectiFOR database in initialization.
 
 
 | Collection           | Parser             | DB table         |
@@ -105,7 +105,7 @@ This shows which data is currently add to CollectiFOR database in initialization
 | file_permissions.txt | PermissionsParser  | file_permissions |
 | listeners.json       | N/A                | N/A              |
 
-## Analysis modules
+# Analysis modules
 
 Using `--analysis` option with `collectifor.py` enables all analysis modules. YARA and pattern modules do, however, require additional arugments (`--yara` / `--pattern` DIR). 
 Other modules also have their own cli options to enable only specific modules instead of all.
@@ -121,7 +121,7 @@ You can skipp all the PoC analysis modules like this if you still want to run YA
 python3 collectifor.py --init --yara yara/ --pattern patterns/ --viewer /collections/host_20251217_141749.tar.gz 
 ```
 
-### Module | YARA
+## Module | YARA
 
 * Enable: `--yara RULES_DIR`
 
@@ -133,40 +133,54 @@ RULES_DIR
   rule_provider_Z/*.yar
 ```
 
-### Module | Pattern
+## Module | Pattern
 
 * Enable: `--pattern PATTERN_DIR`
 
 Files in PATTERN_DIR are passed to `grep` as pattern file which means that there should be one "greppable" pattern per line in each file.
 Can also contain sub-directories.
 
-### Module | File permissions (alpha / PoC)
+## Module | File permissions (alpha / PoC)
 
 * Enable: `--file-permissions`
 
 Does some simple analysis against the `file_permissions.txt` content if the collection has one.
 
-### Module | persistence (alpha / PoC)
+## Module | persistence (alpha / PoC)
 
 * Enable: `--persistence`
 
 Does some simple analysis against the `files_and_dirs` content if the collection has one.
 
-### Module | Logs (alpha / PoC)
+## Module | Logs (alpha / PoC)
 
 * Enable: `--logs`
 
 Does some simple analysis against the `files_and_dirs/var/log` file contents if logs are included in the collection.
 
-### Module | PCAP (alpha / PoC)
+## Module | PCAP (alpha / PoC)
 
 * Enable: `--pcap`
 
 Does some simple analysis against the PCAP content if the collection has one.
 
-## Other analysis
+# Other analysis
 
-You can use tools like plaso to do further analysis against the collection. Or Zeek to do further network analysis against the captured PCAP. The repository contains the following helper scripts:
+There's no reason to user other tools with the collection for additional analysis. You can use tools like plaso to do further analysis against the collection. Or Zeek to do further network analysis against the captured PCAP. The repository contains the following helper scripts:
+There are some helper scripts included in the repository and some sample commands and queries in this README.
+
+## Grep patterns
+
+CollectiFOR's pattern parser is basically just a wrapper for grep. You can do quick pattern match just run grep like this.
+
+```bash
+grep -r -f patterns/custom/test.txt /collections/host_20251217_141749/20251217_141749/
+# OR with all pattern files
+find patterns/ -name "*.txt" -exec grep -rf {} /collections/host_20251217_141749/20251217_141749/ \;
+```
+
+## Helper scripts
+
 
 * **plaso.sh**: run `log2timeline/plaso` docker image and mount collection inside. Spawns inside the container to run Plaso tools.
 
@@ -202,11 +216,63 @@ Chrome/Chromium internet history forensics with [Hindsight](https://github.com/o
 python3 venv/bin/hindsight.py -i /tmp/out/20251216_010107/files_and_dirs/home/user/snap/chromium/common/chromium/Default/ -o report/test
 ```
 
-## Database structure
+
+## Query CollectiFOR database
+
+Here is some sample queries to query data directly from CollectiFOR database after initialization.
+
+## Checksums
+
+### Find filepaths matching checksum
+
+```sql
+SELECT filepath,checksum FROM checksums WHERE checksum = '99013dfc1af34a64a8ca13c29301ffe2';
+```
+### Find checksums matching part of the filepath
+
+```sql
+SELECT filepath,checksum FROM checksums WHERE filepath LIKE '%bin/%';
+```
+
+## Commands
+
+### Get command output
+
+```
+SELECT output FROM command_output WHERE commandline = 'docker images';
+```
+
+## network
+
+### Top talkers
+
+```sql
+SELECT src, COUNT(*) FROM pcap_packets GROUP BY src ORDER BY COUNT(*) DESC;
+```
+
+### DNS queries
+
+```sql
+SELECT dns_qname, COUNT(*) FROM pcap_packets WHERE protocol='dns' GROUP BY dns_qname;
+```
+
+### Flows
+
+```sql
+SELECT src, dst, packet_count FROM network_flows ORDER BY packet_count DESC;
+```
+
+### ICMP activity
+
+```sql
+SELECT icmp_type, COUNT(*) FROM pcap_packets WHERE protocol='icmp' GROUP BY icmp_type;
+```
+
+# Database structure
 
 Here is the current CollectiFOR database structure.
 
-### Tables
+## Tables
 
 ```
 sqlite> .tables
@@ -216,7 +282,7 @@ command_output    files_and_dirs    network_flows
 
 All analysis results goes to findings table. Other tables are used by initialization (`--init`) parsers.
 
-### Table schemas
+## Table schemas
 
 ```sql
 sqlite> .schema checksums
@@ -307,30 +373,4 @@ CREATE TABLE network_flows (
 	inserted_at DATETIME, 
 	PRIMARY KEY (id)
 );
-```
-
-## Sample DB queries
-
-### Top talkers
-
-```sql
-SELECT src, COUNT(*) FROM pcap_packets GROUP BY src ORDER BY COUNT(*) DESC;
-```
-
-### DNS queries
-
-```sql
-SELECT dns_qname, COUNT(*) FROM pcap_packets WHERE protocol='dns' GROUP BY dns_qname;
-```
-
-### Flows
-
-```sql
-SELECT src, dst, packet_count FROM network_flows ORDER BY packet_count DESC;
-```
-
-### ICMP activity
-
-```sql
-SELECT icmp_type, COUNT(*) FROM pcap_packets WHERE protocol='icmp' GROUP BY icmp_type;
 ```
