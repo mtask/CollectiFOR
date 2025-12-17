@@ -11,7 +11,8 @@ dist
 build
 collect.spec
 ansible_collect/fetched_collections/*.tar.gz
-ansible_collect/fetched_collections/2*
+ansible_collect/fetched_collections/*2*
 analyze/report/plaso/
 analyze/report/zeek/
 *.db
+hosts.ini

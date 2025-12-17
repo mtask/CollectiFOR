@@ -108,4 +108,18 @@
       become: yes
     when: _rsync.rc == 0
 
+  - name: 'Remove /root/collect'
+    file:
+      state: absent
+      path: '/root/collect'
+    become: yes
+    tags: cleanup
+
+  - name: 'Remove /root/config.yaml'
+    file:
+      state: absent
+      path: '/root/config.yaml'
+    become: yes
+    tags: cleanup
+
 
