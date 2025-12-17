@@ -89,6 +89,14 @@ Here's a list of viewer's functionalities:
 
 ![](imgs/files.png)
 
+* View and search for command outputs
+
+![](imgs/commands.png)
+
+* Details about network listening processes
+
+![](imgs/listeners.png)
+
 
 # Collection-Parser-Database mapping
 

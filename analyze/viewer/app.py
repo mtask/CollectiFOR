@@ -154,6 +154,33 @@ def search():
 
     return render_template("search.html", q=q, results=results)
 
+@app.route("/commands")
+def commands():
+    session = get_session()
+
+    # Optional filter: command name (e.g. "lsmod", "docker", "ps")
+    q = request.args.get("q", "").strip()
+
+    query = session.query(CommandOutput)
+
+    if q:
+        # Match both stdout.<cmd> and stderr.<cmd>
+        query = query.filter(
+            CommandOutput.category.ilike(f"%{q}%")
+        )
+
+    entries = query.order_by(
+        CommandOutput.category,
+        CommandOutput.inserted_at
+    ).all()
+
+    session.close()
+
+    return render_template(
+        "commands.html",
+        entries=entries,
+        search_query=q,
+    )
 
 @app.route("/checksums")
 def checksum_search():
