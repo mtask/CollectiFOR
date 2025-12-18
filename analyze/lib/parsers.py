@@ -47,6 +47,8 @@ class CommandsParser:
 
             if line.startswith('#command:') or last_line:
                 if in_command:
+                    if last_line and not line.startswith('#command:'):
+                        temp_output.append(line)
                     current['output'] = '\n'.join(temp_output)
                     result.append(current)
                     current = {}
@@ -56,6 +58,13 @@ class CommandsParser:
                     current['commandline'] = line.replace('#command:', '')
                     in_command = True
                     continue
+
+                if last_line and line.startswith('#command:'):
+                    current = {}
+                    current['commandline'] = line.replace('#command:', '')
+                    current['output'] = ''
+                    result.append(current)
+                    break
 
             if in_command:
                 temp_output.append(line)

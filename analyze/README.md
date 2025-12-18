@@ -191,41 +191,7 @@ find patterns/ -name "*.txt" -exec grep -rf {} /collections/host_20251217_141749
 
 ## Helper scripts
 
-
-* **plaso.sh**: run `log2timeline/plaso` docker image and mount collection inside. Spawns inside the container to run Plaso tools.
-
-```
-sudo ./plaso.sh <path to collection dir or tar.gz> <path to output dir>
-```
-
-The script specifies `--user 0` for docker run commands to ensure proper file access with the collection data. The collection data is mounted as read-only inside the container. The output directory is created if it does not exist. 
-If the capture includes disk image, and you want create super timeline from it, then it needs to be extracted (gunzip) outside the contaider due to read-only mounting.
-
-When the container's bash prompt opens you can run `log2timeline.py` etc.:
-
-```
-root@bb0a5da10423:/out# log2timeline.py /data/files_and_dirs
-# Example to get some browser usage data if included in collection
-root@bb0a5da10423:/out# psort.py --analysis unique_domains_visited -o null <database name>.plaso
-root@bb0a5da10423:/out# psort.py --analysis browser_search -o null <database name>.plaso
-```
-
-* **zeek.sh**: Run zeek inside docker container. Requires zeek/zeek docker image.
-
-```
-sudo ./zeek.sh <path to collection dir or tar.gz> <path to output dir>
-```
-
-The script assumes that there is the usual one pcap under `<collection>/capture/`. This requires that the collection was executed with `--capture` and had network module enabled.
-
-* **hindsight**:
-
-Chrome/Chromium internet history forensics with [Hindsight](https://github.com/obsidianforensics/hindsight)
-
-```
-python3 venv/bin/hindsight.py -i /tmp/out/20251216_010107/files_and_dirs/home/user/snap/chromium/common/chromium/Default/ -o report/test
-```
-
+See `helpers/README.md`.
 
 ## Query CollectiFOR database
 

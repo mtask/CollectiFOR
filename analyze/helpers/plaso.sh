@@ -12,14 +12,10 @@ OUTDIR=$(realpath "$2")
 mkdir -p "$OUTDIR"
 
 if file "$COLLECTION" | grep -q "gzip compressed data"; then
-    parent_dir=$(dirname "$COLLECTION")
-    filename=$(basename "$COLLECTION")
-    top_dir=${filename#*_}
-    top_dir=${top_dir%.tar.gz}
-    extracted_dir="$parent_dir/$top_dir"
-    tar -xzf "$COLLECTION" -C "$parent_dir"
-    echo "Extracted directory: $extracted_dir"
-    DATA=$(realpath "$extracted_dir")
+   echo "Extracting collection..."
+   python3 -c "import lib.collection as lc;lc.decompress(\"$COLLECTION\")"
+   DATA=$(realpath "$(echo $COLLECTION|sed 's/.tar.gz//g')")
+   echo "Collection extracted -> $DATA"
 else
     DATA=$(realpath "$COLLECTION")
 fi
