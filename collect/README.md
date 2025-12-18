@@ -317,4 +317,5 @@ modules:
       own_thread: true
 ```
 
-The `own_thread` parameter defaults to `false` with all modules if not specified.
+The `own_thread` parameter defaults to `false` with all modules if not specified. Note that early KeyboardInterrupt is captured and threads are waited to finish.
+With early KeyboardInterrupt incompleted collection is removed after all threaded jobs are finished.
