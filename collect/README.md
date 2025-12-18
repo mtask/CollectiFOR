@@ -1,3 +1,9 @@
+# CollectiFOR | collect
+
+CollectiFOR's `collect` tool is used to collect and capture data from a target host.
+
+![](imgs/collect.png)
+
 ## Building
 
 Check [releases](https://github.com/mtask/CollectiFOR/releases) for prebuilt `collect` binary.
