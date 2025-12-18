@@ -1,4 +1,5 @@
-You may not always be able to drop arbitrary binary to a target machine. The `gen-collect-sh.py` allows you to generate an alternative `collect.sh` bash script based on the collect tool's YAML configuration.
+You may not always be able run the binary on a target machine or even the unbuilt `collect.py` script with its dependencies. 
+The `gen-collect-sh.py` allows you to generate an alternative `collect.sh` type bash scripts based on the collect tool's YAML configurations.
 
 **Usage:**
 

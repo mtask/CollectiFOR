@@ -1,16 +1,21 @@
 # CollectiFOR | collect
 
 CollectiFOR's `collect` tool is used to collect and capture data from a target host. It uses YAML based configuration file where you can alternate what data is collected based on different needs.
+Collect tool is python based program which is released as built binary.
 
 ![](imgs/collect.png)
 
-Collect tool is python based and basic idea is to use it as built binary for easy shipping. 
-If you can't run the binary or Python on the target machine there's also alternative option to generate collection bash script from the YAML configuration. See: [gen-collect-sh](https://github.com/mtask/CollectiFOR/tree/main/collect/gen-collect-sh).
-Generated script is quite rudimentary and lacks some functionalities in comparison with the actual collect tool, but its output still works with the CollectiFOR's analysis tools. 
+
+> [!TIP]
+> If you can't run the binary or Python on a target machine(s) there's also an alternative option to generate collection bash scripts from YAML configurations. 
+> See: [gen-collect-sh](https://github.com/mtask/CollectiFOR/tree/main/collect/gen-collect-sh).
+
+Generated bash scripts are quite rudimentary and lack some functionalities in comparison with the actual collect tool, but its output still works with CollectiFOR's analysis tools. 
 
 ## Building
 
-Check [releases](https://github.com/mtask/CollectiFOR/releases) for prebuilt `collect` binary.
+> [!TIP]
+> Check [releases](https://github.com/mtask/CollectiFOR/releases) for prebuilt `collect` binary.
 
 * Simple PyInstaller example:
 
@@ -19,9 +24,9 @@ pip3 install pyinstaller
 pyinstaller --onefile --paths=. collect.py
 ```
 
-* Alternatively use `build.sh` script that provides better support for different Linux distributions. It uses https://github.com/pypa/manylinux and requires docker.
+* Preferably use `build.sh` script which provides better support for different Linux distributions. It uses https://github.com/pypa/manylinux and requires docker.
 
-After building ship `./dist/collect` and `config.yaml` to target machine and run collection.
+After building, ship `./dist/collect` and `config.yaml` to target machine and run collection.
 
 ## Usage
 
@@ -278,8 +283,8 @@ Capture disk image from a locally attached disk (DD/E01) or remotely via SSH (DD
 ```yaml
   capture:
     enable_disk: true
-    capture_method: dd|e01
     disk:
+      capture_method: dd|e01
   ...
 ```
 
@@ -365,4 +370,7 @@ modules:
 ```
 
 The `own_thread` parameter defaults to `false` with all modules if not specified. Note that early KeyboardInterrupt is captured and threads are waited to finish.
-With early KeyboardInterrupt incompleted collection is removed after all threaded jobs are finished.
+With an early KeyboardInterrupt (ctrl+c), the incompleted collection is removed after all threads are finished.
+
+> [!WARNING]
+> The `collect` tool does not track in anyway which modules should or should not run in its own thread or which amount of threds is sensible configuration. Consider this when adding "own_thread" configurations.

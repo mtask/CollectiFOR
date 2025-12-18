@@ -51,7 +51,7 @@ To initialize without:
 * YARA rules -> remove `--yara DIR` from the command.
 * Pattern match -> remove `--pattern DIR` from the command.
 * any analysis -> remove `--yara DIR`, `--pattern DIR` and `--analysis` from the command.
-* launching the viewer --> remove `--viewere`
+* launching the viewer --> remove `--viewer`
 
 **NOTE:** Running initialization twice or more times against the same database will mean duplicate data.
 
