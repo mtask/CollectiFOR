@@ -5,7 +5,7 @@ CollectiFOR's `collect` tool is used to collect and capture data from a target h
 ![](imgs/collect.png)
 
 Collect tool is python based and basic idea is to use it as built binary for easy shipping. 
-If you can't run the binary or Python on the target machine there's also alternative option to generate collection bash script from the YAML configuration. See: `gen-collect-sh/README.md`.
+If you can't run the binary or Python on the target machine there's also alternative option to generate collection bash script from the YAML configuration. See: [gen-collect-sh](https://github.com/mtask/CollectiFOR/tree/main/collect/gen-collect-sh).
 Generated script is quite rudimentary and lacks some functionalities in comparison with the actual collect tool, but its output still works with the CollectiFOR's analysis tools. 
 
 ## Building
