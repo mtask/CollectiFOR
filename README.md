@@ -55,7 +55,7 @@ More screenshots of the viewer can be found [here](https://github.com/mtask/Coll
 
 ## Requirements
 
-- Collection: `collect/requirements.txt`
-- Analysis/Scan: `analyze/requirements.txt`
+- Collection: `collect/requirements.txt` (not relevant when using released binary)
+- Analysis/Viewer: `analyze/requirements.txt`
 - Optional (for memory acquisition):
   - LiME kernel module
