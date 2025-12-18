@@ -105,7 +105,9 @@ modules:
 In addition to this all modules might have additional configurations under keys `(collect|capture).<module name>.<configuration>`.
 
 
-### Collect module | commands
+<details>
+
+<summary>### Collect module | commands</summary>
 
 
 Commands module collects outputs (stdout/stderr) for the commands specified in the configuration file.
@@ -145,7 +147,11 @@ CONTAINER ID   IMAGE                             COMMAND                  CREATE
 ...
 ```
 
-### Collect module | luks
+</details>
+
+<details>
+
+<summary>### Collect module | luks</summary>
 
 The luks module is basically a helper module to run `cryptsetup luksDump <luks device>`. It identifies which devices are potential luks devices before running `cryptsetup`. It stored the output according to the logic of the commands module.
 
@@ -156,8 +162,11 @@ LUKS header information
 Version:       	2
 ...
 ```
+</details>
 
-### Collect module | checksums
+<details>
+
+<summary>### Collect module | checksums</summary>
 
 
 Checksums module collects checksums for the file paths specified in the configuration file.
@@ -181,7 +190,11 @@ Directories are always recursive. Md5, sha1, and sha256 outputs are stored in se
 md5.txt  sha1.txt  sha256.txt
 ```
 
-### Collect module | files_and_dirs
+</details>
+
+<details>
+
+<summary>### Collect module | files_and_dirs</summary>
 
 Files\_and\_dirs module collects copies of file structures for the file paths specified in the configuration file.
 
@@ -202,7 +215,11 @@ Meaning that when, for example, `/etc/passwd` is copied by specifying it directl
 files_and_dirs/etc/passwd
 ```
 
-### Collect module | listeners
+</details>
+
+<details>
+
+<summary>### Collect module | listeners</summary>
 
 Listeners module collects information about network listening processes. Data gathered by other modules can be used to collect all the same information, but this quickly collects the data inside a single file. 
 Collected details are stored in file `listeners.json` inside the collection.
@@ -222,8 +239,11 @@ cat listeners.json
         "/usr/lib/systemd/systemd-resolved"
       ]
 ```
+</details>
 
-### Collect module | file_permissions
+<details>
+
+<summary>### Collect module | file_permissions</summary>
 
 File\_permissions module collects file permissions of the file paths specified in the configuration file.
 
@@ -243,8 +263,11 @@ Directories are always recursive. Results are stored in file `file_permissions.t
 head -n 1 file_permissions.txt 
 /etc/gshadow- 640 -rw-r----- root:shadow 1172 1764100568.0
 ```
+</details>
 
-### Capture module | disk
+<details>
+
+<summary>### Capture module | disk</summary>
 
 Capture disk image from a locally attached disk (DD/E01) or remotely via SSH (DD).
 
@@ -276,8 +299,11 @@ Capture methods "dd" or "e01" are supported.
 ```
 
 Module requires `pv` on the local system and `dd` on remote system when capture method is "dd". With "e01" `ewfacquire` is required. 
+</details>
 
-### Capture module | network
+<details>
+
+<summary>### Capture module | network</summary>
 
 Capture network traffic for the given time perioid. Uses scapy module for the capture and capture interfaces are specified with command line argument `-if / --interfaces <if1,if2,if3>`.
 
@@ -296,8 +322,11 @@ Pcap and extracted text file version are stored under "capture" directory inside
 ls capture/eth0.pcap*
 capture/eth0.pcap  capture/eth0.pcap.txt
 ```
+</details>
 
-### Capture module | memory
+<details>
+
+<summary>### Capture module | memory</summary>
 
 Example to enable memory capture and use lime module found in path `memory/lime-6.14.0-36-generic.ko`
 
@@ -315,6 +344,7 @@ Example to enable memory capture and use lime module found in path `memory/lime-
 ```
 
 Memory capture is stored under "capture" directory inside the collection.
+</details>
 
 ## Running modules in own threads
 
