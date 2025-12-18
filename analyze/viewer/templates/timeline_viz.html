@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Timeline Visualization</title>
+
+    <!-- CSS for vis-timeline -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/vis-timeline@7.5.0/dist/vis-timeline-graph2d.min.css"
+    />
+    <style>
+        body {
+            margin: 20px;
+            font-family: sans-serif;
+            background: #f7f7f7;
+        }
+        h1 {
+            margin-bottom: 15px;
+        }
+        #timeline {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ddd;
+            background: white;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Timeline Visualization</h1>
+<div id="timeline"></div>
+
+<script type="module">
+  // Import vis-timeline components from esm.sh (browser‑friendly ES module build)
+  import { Timeline } from "https://cdn.jsdelivr.net/npm/vis-timeline@8.5.0/+esm";
+  import { DataSet } from "https://cdn.jsdelivr.net/npm/vis-data@8.0.3/+esm";
+
+  // Parse data passed from Flask
+  const items = new DataSet({{ events_json | safe }});
+
+  // Optional group by event_type
+  const groupsArr = [...new Set(items.get().map(i => i.group))];
+  const groups = groupsArr.map(g => ({ id: g, content: g }));
+
+  // Timeline options
+  const options = {
+      stack: true,
+      showCurrentTime: true,
+      zoomMin: 1000 * 60,               // 1 min
+      zoomMax: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
+      groupOrder: "content",
+      tooltip: { followMouse: true }
+  };
+
+  // Initialize
+  const container = document.getElementById("timeline");
+  new Timeline(container, items, groups, options);
+</script>
+
+</body>
+</html>
+

@@ -2,7 +2,9 @@ from flask import Flask, render_template, request, current_app
 from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
 from flask import abort
+from datetime import datetime
 import os
+import json
 import html
 
 # Import models ONLY (no DB class)
@@ -15,6 +17,7 @@ from lib.db import (
     Finding,
     FileEntry,
     ListenerEntry,
+    TimelineEvent,
 )
 
 app = Flask(__name__)
@@ -253,6 +256,90 @@ def finding_detail(finding_id):
     session.close()
     return render_template("finding_detail.html", finding=finding)
 
+
+@app.route("/timeline")
+def timeline():
+    session = get_session()
+
+    q = request.args.get("q", "").strip()
+    source = request.args.get("source", "").strip()
+    event_type = request.args.get("event_type", "").strip()
+    start_time = request.args.get("start", "").strip()
+    end_time = request.args.get("end", "").strip()
+
+    MIN_TIMESTAMP = datetime(1980, 1, 1)  # exclude 1970/Not-a-time events
+
+    query = session.query(TimelineEvent).filter(TimelineEvent.timestamp >= MIN_TIMESTAMP)
+
+    # Filters
+    if q:
+        query = query.filter(TimelineEvent.summary.contains(q))
+
+    if source:
+        source_list = source.split(',')
+        query = query.filter(TimelineEvent.source.in_(source_list))
+
+    if event_type:
+        type_list = event_type.split(',')
+        query = query.filter(TimelineEvent.event_type.in_(type_list))
+
+    if start_time:
+        try:
+            dt_start = datetime.fromisoformat(start_time)
+            query = query.filter(TimelineEvent.timestamp >= dt_start)
+        except ValueError:
+            pass
+
+    if end_time:
+        try:
+            dt_end = datetime.fromisoformat(end_time)
+            query = query.filter(TimelineEvent.timestamp <= dt_end)
+        except ValueError:
+            pass
+
+    limit = 2000
+    offset = int(request.args.get("offset", 0))
+    events = query.order_by(TimelineEvent.timestamp.asc()).offset(offset).limit(limit).all()
+
+    # Distinct EventTypes and Sources for filters
+    event_types = [et[0] for et in session.query(TimelineEvent.event_type).distinct().order_by(TimelineEvent.event_type)]
+    sources = [s[0] for s in session.query(TimelineEvent.source).distinct().order_by(TimelineEvent.source) if s[0]]
+
+    session.close()
+
+    return render_template(
+        "timeline.html",
+        events=events,
+        q=q,
+        source=source,
+        event_type=event_type,
+        start_time=start_time,
+        end_time=end_time,
+        event_types=event_types,
+        sources=sources,
+        limit=limit,
+        offset=offset
+    )
+
+
+@app.route("/timeline_viz")
+def timeline_viz():
+    session = get_session()
+    events = session.query(TimelineEvent).order_by(TimelineEvent.timestamp.asc()).limit(5000).all()
+
+    # Prepare events for vis-timeline
+    items = []
+    for e in events:
+        items.append({
+            "id": e.id,
+            "content": e.summary[:50],  # short label
+            "start": e.timestamp.isoformat(),
+            "title": e.summary,         # full tooltip
+            "group": e.event_type       # optional grouping by event type
+        })
+
+    session.close()
+    return render_template("timeline_viz.html", events_json=json.dumps(items))
 
 # ----------------------------------------------------------------------
 # Entry point for collectifor.py

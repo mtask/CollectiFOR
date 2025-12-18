@@ -123,6 +123,25 @@ class Finding(Base):
 
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
+class TimelineEvent(Base):
+    __tablename__ = "timeline_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Primary timeline timestamp (UTC)
+    timestamp = Column(DateTime, nullable=False, index=True)
+
+    # Plaso classification
+    source = Column(String, nullable=False)
+    event_type = Column(String, nullable=False)
+
+    # Human-readable summary
+    summary = Column(Text, nullable=False)
+
+    # Everything else (parser, hashes, paths, etc.)
+    meta = Column(JSON, default={})
+
+    inserted_at = Column(DateTime, default=datetime.utcnow)
 
 class DB:
     def __init__(self, db_file):
@@ -257,6 +276,18 @@ class DB:
                     artifact=entry.get("artifact", ""),
                     indicator=entry.get("indicator", ""),
                 ))
+            session.commit()
+        finally:
+            session.close()
+
+    def add_timeline_events(self, events):
+        """
+        events: list[dict] matching TimelineEvent fields
+        """
+        session = self.Session()
+        try:
+            for ev in events:
+                session.add(TimelineEvent(**ev))
             session.commit()
         finally:
             session.close()
