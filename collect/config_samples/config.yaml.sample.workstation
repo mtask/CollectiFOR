@@ -5,7 +5,11 @@ compress_collection: true
 modules:
   # Capture e.g. network traffic to pcap
   capture:
-    enable_network: false
+    enable_network: true
+    network:
+      own_thread: true
+      # Seconds
+      timeout: 60
     enable_memory: false
     enable_disk: false
   collect:
@@ -36,7 +40,6 @@ modules:
       # Auditd
       - auditctl -l
       - auditctl -s
-      - aureport -i --summary -ts recent
       # Users and login history
       - who
       - w

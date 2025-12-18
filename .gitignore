@@ -16,3 +16,4 @@ analyze/report/plaso/
 analyze/report/zeek/
 *.db
 hosts.ini
+collect/config.yaml

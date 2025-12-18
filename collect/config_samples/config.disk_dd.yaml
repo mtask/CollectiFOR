@@ -1,0 +1,31 @@
+# Store collection results here
+outdir: /tmp/out_disk
+# Compress collection directory when finished to tar.gz or keep it as directory
+compress_collection: false
+modules:
+  capture:
+    # Capture disk image locally or remote. Target disk and host are specified with cli options. Check collect -h.
+    enable_disk: true
+    enable_network: false
+    enable_memory: false
+    network:
+    disk:
+      capture_method: dd
+    memory:
+  collect:
+    enable_commands: false
+    enable_files_and_dirs: false
+    enable_checksums: false
+    enable_luks: false
+    enable_file_permissions: false
+    enable_listeners: false
+    luks:
+    commands:
+      list: []
+    files_and_dirs:
+      list: []
+    checksums:
+      list: []
+    file_permissions:
+      list: []
+    listeners:

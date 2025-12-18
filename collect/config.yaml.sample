@@ -18,6 +18,7 @@ modules:
       # Seconds
       timeout: 60
     disk:
+      capture_method: dd
     memory:
       capture_method: lime
       lime:

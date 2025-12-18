@@ -232,23 +232,40 @@ def memory(outdir, config):
 # disk acquisition wrapper
 # ------------------------
 
+def disk(outdir, config):
+    # dd / e01
+    method = config.get('capture_method', 'dd')
+    if method == "dd":
+        logging.info("[+] Using DD disk imaging")
+        _disk_dd(outdir, config)
+    elif method == "e01":
+        logging.info("[+] Using E01 disk imaging")
+        if config['host'] not in ("", "localhost", "127.0.0.1"):
+            logging.error(f"[-] Only local capture supported with E01. Current host {config['host']} implies remote capture. Change capture method to \"dd\" in configuration")
+            return
+        _disk_e01(outdir, config)
 
-
-def disk(outdir, config, resume=True):
+def _disk_dd(outdir, config):
     """
-    Capture a disk locally or remotely via sudo dd, compressed, with progress,
-    cancel-safe, resume support, and checksum verification.
+    Capture a disk locally or remotely via sudo dd, compressed with gzip,
+    with progress display and checksum verification.
 
     Args:
         outdir (str): Local output directory
         config (dict): Must include
             - 'disk': disk path, e.g., "/dev/sda"
             - 'host': "" / "localhost" for local capture, or "user@host" for remote
-        resume (bool): Resume from existing partial file
 
     Returns:
         Tuple[str, str]: (path_to_image_file, sha256_checksum)
     """
+    import hashlib
+    import logging
+    import shutil
+    import signal
+    import subprocess
+    from pathlib import Path
+
     # --- Verify dependencies ---
     for cmd in ["pv", "gzip", "dd"]:
         if shutil.which(cmd) is None:
@@ -263,83 +280,100 @@ def disk(outdir, config, resume=True):
     outfile = outdir / filename
     checksum_file = outdir / (filename + ".sha256")
 
-    # --- Determine resume offset ---
-    offset_bytes = 0
-    if resume and outfile.exists():
-        offset_bytes = outfile.stat().st_size
-        logging.info(f"Resuming from {offset_bytes} bytes")
-
-    # --- Build command ---
     bs = 64 * 1024
-    dd_cmd = ["dd", f"if={device}", f"bs={bs}", "conv=noerror,sync"]
-    if offset_bytes > 0:
-        skip_blocks = offset_bytes // bs
-        dd_cmd.append(f"skip={skip_blocks}")
+
+    dd_cmd = [
+        "dd",
+        f"if={device}",
+        f"bs={bs}",
+        "conv=noerror,sync"
+    ]
 
     gzip_cmd = ["gzip", "-1", "-"]
-
     pv_cmd = ["pv", "-p", "-t", "-e", "-r"]
+
+    processes = []
 
     # --- Local vs Remote ---
     if host in ("", "localhost", "127.0.0.1"):
-        # Local capture
+        # Local: dd | gzip | pv > file
         dd_proc = subprocess.Popen(
             dd_cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
+        processes.append(dd_proc)
+
+        gzip_proc = subprocess.Popen(
+            gzip_cmd,
+            stdin=dd_proc.stdout,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        dd_proc.stdout.close()
+        processes.append(gzip_proc)
+
+        pv_stdin = gzip_proc.stdout
+
     else:
+        # Remote: ssh "dd | gzip" | pv > file
         test = subprocess.run(
             ["ssh", host, "true"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
-
         if test.returncode != 0:
             raise RuntimeError(f"SSH authentication failed for {host}")
-        # Remote capture via SSH
-        ssh_cmd = ["ssh", "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null", host, f"sudo {' '.join(dd_cmd)} | gzip -1 -"]
+
+        remote_cmd = f"sudo {' '.join(dd_cmd)} | gzip -1 -"
+        ssh_cmd = [
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            host,
+            remote_cmd
+        ]
+
         logging.info(f"Running SSH: {' '.join(ssh_cmd)}")
+
         dd_proc = subprocess.Popen(
             ssh_cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=False
+            stderr=subprocess.PIPE
         )
+        processes.append(dd_proc)
 
-    # --- Pipe through pv and write to file ---
-    mode = "ab" if offset_bytes > 0 else "wb"
-    with open(outfile, mode) as f:
-        try:
-            pv_proc = subprocess.Popen(
-                pv_cmd,
-                stdin=dd_proc.stdout,
-                stdout=f,
-                stderr=None   # direct progress to terminal
-            )
-            dd_proc.stdout.close()  # allow SIGPIPE propagation
+        pv_stdin = dd_proc.stdout
 
-            # Cancel-safe
-            def signal_handler(sig, frame):
-                logging.info("\nCancelling...")
-                pv_proc.terminate()
-                dd_proc.terminate()
-            signal.signal(signal.SIGINT, signal_handler)
+    # --- Write to file with pv ---
+    with open(outfile, "wb") as f:
+        pv_proc = subprocess.Popen(
+            pv_cmd,
+            stdin=pv_stdin,
+            stdout=f,
+            stderr=None  # pv progress to terminal
+        )
+        processes.append(pv_proc)
 
-            pv_proc.wait()
-            dd_proc.wait()
+        # Cancel-safe handling
+        def signal_handler(sig, frame):
+            logging.info("\nCancelling...")
+            for p in processes:
+                p.terminate()
 
-        except Exception as e:
-            logging.error("Error during capture:", e)
-            pv_proc.terminate()
-            dd_proc.terminate()
-            raise
+        signal.signal(signal.SIGINT, signal_handler)
+
+        pv_proc.wait()
+
+    # Ensure all processes exit
+    for p in processes:
+        p.wait()
 
     # --- Compute checksum ---
     logging.info("Computing checksum...")
     sha256 = hashlib.sha256()
     with open(outfile, "rb") as f:
-        for chunk in iter(lambda: f.read(1024*1024), b""):
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
             sha256.update(chunk)
     checksum = sha256.hexdigest()
 
@@ -348,4 +382,47 @@ def disk(outdir, config, resume=True):
 
     logging.info(f"Capture complete: {outfile}")
     logging.info(f"SHA256: {checksum}")
+
     return str(outfile), checksum
+
+def _disk_e01(outdir, config):
+    """
+    Capture a local disk to E01 using old ewfacquire (2014-era),
+    interactively prompting for metadata.
+
+    Args:
+        outdir (str): Base output directory
+        disk (str): Block device to capture (e.g., "/dev/sda")
+
+    Returns:
+        str: Path to first E01 segment (based on target filename entered in prompt)
+    """
+    if shutil.which("ewfacquire") is None:
+        raise RuntimeError("ewfacquire not found")
+
+    outdir = Path(outdir) / "capture"
+    outdir.mkdir(parents=True, exist_ok=True)
+    device = config['disk']
+    filename = device.strip("/").replace("/", "_")
+    outfile = outdir / filename
+    logging.info(f"[*] Starting interactive E01 acquisition for device: {device}")
+    logging.info(f"[*] Output directory: {outdir}")
+    logging.info("[*] Ewfacquire will prompt for case number, examiner, description, etc.")
+
+    # --- Run ewfacquire interactively ---
+    cmd = ["ewfacquire", "-t" , outfile, device]
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdin=None,   # attach to terminal so user can input
+            stdout=None,
+            stderr=None
+        )
+        proc.wait()
+    except KeyboardInterrupt:
+        logging.warning("[!] Capture interrupted by user")
+        proc.terminate()
+        raise
+
+    logging.info("[+] E01 acquisition complete. Check the capture directory for .E01/.E02 files.")
+    return str(outdir)

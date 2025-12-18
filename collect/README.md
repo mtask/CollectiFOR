@@ -240,11 +240,12 @@ head -n 1 file_permissions.txt
 
 ### Capture module | disk
 
-Capture disk image from a locally attached disk or remotely via SSH.
+Capture disk image from a locally attached disk (DD/E01) or remotely via SSH (DD).
 
 ```yaml
   capture:
     enable_disk: true
+    capture_method: dd|e01
     disk:
   ...
 ```
@@ -252,17 +253,23 @@ Capture disk image from a locally attached disk or remotely via SSH.
 
 * **SSH:**
 
+Only capture method "dd" supported.
+
 ```
 ./dist/collect -c config.yaml --capture -d "/dev/vda" -dh "user@ip"
 ```
 
+Note that with remote ssh usage the module requires ssh key authentication, root login or passwordless sudo, and it skips host key verification.
+
 * **Local:**
+
+Capture methods "dd" or "e01" are supported.
 
 ```
 ./dist/collect -c config.yaml --capture -d "/dev/sda" -dh "localhost"
 ```
 
-Module requires `pv` on the local system and `dd` on remote system. Note that with remote ssh usage the module requires ssh key authentication, root login or passwordless sudo, and it skips host key verification.
+Module requires `pv` on the local system and `dd` on remote system when capture method is "dd". With "e01" `ewfacquire` is required. 
 
 ### Capture module | network
 

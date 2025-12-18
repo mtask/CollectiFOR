@@ -123,6 +123,8 @@ def main(args):
         import lib.collection as lc
         logging.info("[+] Compressing collection")
         lc.compress(config['outdir'], dir_timestamp)
+    else:
+        logging.info(f"Collection finished: {os.path.join(config['outdir'], dir_timestamp)}")
 
 def parse_args():
     parser = argparse.ArgumentParser(

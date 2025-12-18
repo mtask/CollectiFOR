@@ -1,0 +1,35 @@
+# Store collection results here
+outdir: /tmp/out_memory
+# Compress collection directory when finished to tar.gz or keep it as directory
+compress_collection: false
+modules:
+  capture:
+    enable_memory: true
+    memory:
+      capture_method: lime
+      lime:
+        # Module not included. You need to build the lime module and provide path to it here.
+        path: memory/lime-6.14.0-36-generic.ko
+        # Format: lime/raw
+        format: lime
+    enable_disk: false
+    enable_network: false
+    network:
+    disk:
+  collect:
+    enable_commands: false
+    enable_files_and_dirs: false
+    enable_checksums: false
+    enable_luks: false
+    enable_file_permissions: false
+    enable_listeners: false
+    luks:
+    commands:
+      list: []
+    files_and_dirs:
+      list: []
+    checksums:
+      list: []
+    file_permissions:
+      list: []
+    listeners:
