@@ -54,7 +54,12 @@ main() {
 
     IMAGE=$(realpath "$1")
     [[ ! -f "$IMAGE" ]] && { echo "[!] Image not found"; exit 1; }
-
+    if [[ "$IMAGE" == *.gz ]]; then
+    echo "[*] Extracting $IMAGE"
+        EXTRACTED="${IMAGE%.gz}"
+        gzip -dk "$IMAGE"   # -d = decompress, -k = keep original
+        IMAGE="$EXTRACTED"
+    fi
     mkdir -p "$MOUNT_BASE"
     : > "$STATE_FILE"
 

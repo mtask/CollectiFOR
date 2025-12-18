@@ -74,6 +74,34 @@ Features:
   - Tracks mounts for easy cleanup
 ```
 
+You can also use this together with `plaso.sh` if you don't need/want to give the full disk image to plaso.
+
+```shell
+_dev_sda.E01  _dev_sda.E02  _dev_sda.E03  _dev_sda.E04  
+# ./helpers/disk_e01.sh /tmp/out_disk/20251218_184907/capture/_dev_sda.E01 
+Image information:
+ ewfinfo 20140814
+
+Acquiry information
+[...SNIP..]
+[1] Partition 1: start=2048s, sectors=fat32
+[*] Enter partition numbers to mount (e.g., 1 2): 1
+[+] Mounted partition 1 at /mnt/forensic/_dev_sda.E01-p1
+[*] All selected partitions mounted
+[*] Run './helpers/disk_e01.sh --cleanup' when finished
+
+# helpers/plaso.sh /mnt/forensic/_dev_sda.E01-p1/ /tmp/plaso/
+[+] Mounting /mnt/forensic/_dev_sda.E01-p1 -> /data
+[+] Mounting /tmp/plaso -> /out
+[+] Running log2timeline/plaso
+root@d7396e2ea132:/out# ls -la /data/
+total 2132
+drwxr-x---  7 root root   16384 Jan  1  1970  .
+drwxr-xr-x  1 root root    4096 Dec 18 17:20  ..
+-rwxr-x---  1 root root     128 Apr  9  2021  autorun.inf
+drwxr-x---  5 root root   16384 Sep 21  2021  boot
+```
+
 # Other helpful commands and examples
 
 ## Browser data
