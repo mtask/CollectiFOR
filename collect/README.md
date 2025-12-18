@@ -107,7 +107,7 @@ In addition to this all modules might have additional configurations under keys 
 
 <details>
 
-<summary>### Collect module | commands</summary>
+<summary>#Collect module: commands</summary>
 
 
 Commands module collects outputs (stdout/stderr) for the commands specified in the configuration file.
@@ -151,7 +151,7 @@ CONTAINER ID   IMAGE                             COMMAND                  CREATE
 
 <details>
 
-<summary>### Collect module | luks</summary>
+<summary>#Collect module: luks</summary>
 
 The luks module is basically a helper module to run `cryptsetup luksDump <luks device>`. It identifies which devices are potential luks devices before running `cryptsetup`. It stored the output according to the logic of the commands module.
 
@@ -166,7 +166,7 @@ Version:       	2
 
 <details>
 
-<summary>### Collect module | checksums</summary>
+<summary>#Collect module: checksums</summary>
 
 
 Checksums module collects checksums for the file paths specified in the configuration file.
@@ -194,7 +194,7 @@ md5.txt  sha1.txt  sha256.txt
 
 <details>
 
-<summary>### Collect module | files_and_dirs</summary>
+<summary>#Collect module: files_and_dirs</summary>
 
 Files\_and\_dirs module collects copies of file structures for the file paths specified in the configuration file.
 
@@ -219,7 +219,7 @@ files_and_dirs/etc/passwd
 
 <details>
 
-<summary>### Collect module | listeners</summary>
+<summary>#Collect module: listeners</summary>
 
 Listeners module collects information about network listening processes. Data gathered by other modules can be used to collect all the same information, but this quickly collects the data inside a single file. 
 Collected details are stored in file `listeners.json` inside the collection.
@@ -243,7 +243,7 @@ cat listeners.json
 
 <details>
 
-<summary>### Collect module | file_permissions</summary>
+<summary>#Collect module: file_permissions</summary>
 
 File\_permissions module collects file permissions of the file paths specified in the configuration file.
 
@@ -267,7 +267,7 @@ head -n 1 file_permissions.txt
 
 <details>
 
-<summary>### Capture module | disk</summary>
+<summary># Capture module: disk</summary>
 
 Capture disk image from a locally attached disk (DD/E01) or remotely via SSH (DD).
 
@@ -303,7 +303,7 @@ Module requires `pv` on the local system and `dd` on remote system when capture 
 
 <details>
 
-<summary>### Capture module | network</summary>
+<summary># Capture module: network</summary>
 
 Capture network traffic for the given time perioid. Uses scapy module for the capture and capture interfaces are specified with command line argument `-if / --interfaces <if1,if2,if3>`.
 
@@ -326,7 +326,7 @@ capture/eth0.pcap  capture/eth0.pcap.txt
 
 <details>
 
-<summary>### Capture module | memory</summary>
+<summary># Capture module: memory</summary>
 
 Example to enable memory capture and use lime module found in path `memory/lime-6.14.0-36-generic.ko`
 
