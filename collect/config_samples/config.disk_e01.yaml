@@ -11,9 +11,6 @@ modules:
     network:
     disk:
       capture_method: e01
-      segment_file_size: 4GiB
-      # fast/best/none
-      compress: fast
     memory:
   collect:
     enable_commands: false

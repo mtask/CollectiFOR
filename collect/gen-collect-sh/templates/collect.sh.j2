@@ -1,0 +1,173 @@
+#!/bin/bash
+
+OUTDIR="{{ config['outdir'] }}/$(date +'%Y%m%d_%H%M%S')"
+mkdir -p $OUTDIR
+
+{% if capture['enable_memory'] %}
+##########
+# memory #
+##########
+echo '[RUN] memory'
+MEM_OUTDIR="$OUTDIR/capture"
+mkdir -p "$MEM_OUTDIR"
+outfile="$MEM_OUTDIR/$(date +'%Y%m%d_%H%M%S').lime"
+insmod {{ capture['memory']['lime']['path'] }} path="$outfile" format={{ capture['memory']['lime']['format'] }}
+rmmod lime
+{% endif %}
+{% if capture['enable_disk'] %}
+########
+# disk #
+########
+echo '[RUN] disk'
+DISK_OUTDIR="$OUTDIR/capture"
+mkdir -p "$DISK_OUTDIR"
+read -p "DISK: " disk
+read -p "HOST (default: localhost): " host
+{% if capture['disk']['capture_method'] == "dd" %}
+if [[ "$host" = *@* ]]
+then
+   echo "[*] sudo ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $host \"dd if=$disk bs=65536 conv=noerror,sync | gzip -1 -\" | pv -p -t -e -r > $DISK_OUTDIR/$(echo $disk|tr '/' '_').img.gz"
+   sudo ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $host "dd if=$disk bs=65536 conv=noerror,sync | gzip -1 -" | pv -p -t -e -r > $DISK_OUTDIR/$(echo $disk|tr '/' '_').img.gz
+else
+   echo "[*] dd if=$disk bs=65536 conv=noerror,sync | gzip -1 - | pv -p -t -e -r > $DISK_OUTDIR/$(echo $disk|tr '/' '_').img.gz"
+   dd if=$disk bs=65536 conv=noerror,sync | gzip -1 - | pv -p -t -e -r > $DISK_OUTDIR/$(echo $disk|tr '/' '_').img.gz
+fi
+{% elif capture['disk']['capture_method'] == "e01" %}
+if [[ "$host" = *@* ]]
+then
+    echo "[-] Remote capture not supported with E01 capture type"
+else
+    echo "[*] ewfacquire -t $DISK_OUTDIR/$(echo $disk|tr '/' '_')  $disk"
+    ewfacquire -t "$DISK_OUTDIR/$(echo $disk|tr '/' '_')"  $disk
+fi
+{% endif %}
+{% endif %}
+{% if capture['enable_network'] %}
+########
+# PCAP #
+########
+echo '[RUN] network'
+PCAP_OUTDIR="$OUTDIR/capture"
+mkdir -p "$PCAP_OUTDIR"
+timeout {{ capture['network']['timeout'] }} tcpdump -n -i any -w "$PCAP_OUTDIR/any.pcap"
+tcpdump -n -r  "$PCAP_OUTDIR/any.pcap" >  "$PCAP_OUTDIR/any.pcap.txt"
+{% endif %}
+{% if collect['enable_commands'] %}
+############
+# COMMANDS #
+############
+echo '[RUN] commands'
+CMD_OUTDIR="$OUTDIR/commands"
+mkdir -p "$CMD_OUTDIR"
+{% for cmd in collect['commands']['list'] %}
+{% set c = cmd.split(' ')[0] %}
+echo '[*] {{ cmd }}'
+echo '#command:{{ cmd }}'  >> $CMD_OUTDIR/stdout.{{c}}.txt
+echo '#command:{{ cmd }}'  >> $CMD_OUTDIR/stderr.{{c}}.txt
+{{ cmd|replace('\n', '') }} >> $CMD_OUTDIR/stdout.{{c}}.txt 2>> $CMD_OUTDIR/stderr.{{c}}.txt
+{% endfor %}
+{% endif %}
+{% if collect['enable_luks'] %}
+###################
+# COMMANDS - LUKS #
+###################
+echo '[RUN] luks'
+CMD_OUTDIR="$OUTDIR/commands"
+mkdir -p "$CMD_OUTDIR"
+lsblk -pn -o NAME | while read -r dev; do
+    dev=$(echo $dev |grep -Po '/.*')
+    if cryptsetup isLuks "$dev" 2>/dev/null; then
+        echo "#command:cryptsetup luksDump "$dev""  >> $CMD_OUTDIR/stdout.cryptsetup.txt
+        echo "#command:cryptsetup luksDump "$dev""  >> $CMD_OUTDIR/stderr.cryptsetup.txt
+        cryptsetup luksDump "$dev"  >> $CMD_OUTDIR/stdout.cryptsetup.txt 2>> $CMD_OUTDIR/stderr.cryptsetup.txt
+    fi
+done
+{% endif %}
+{% if collect['enable_files_and_dirs'] %}
+##################
+# Files and dirs #
+##################
+echo '[RUN] files_and_dirs'
+FD_OUTDIR="$OUTDIR/files_and_dirs"
+mkdir -p "$FD_OUTDIR"
+# Choose copy method
+if command -v rsync >/dev/null 2>&1; then
+    COPY_CMD="rsync"
+    echo "[*] Using rsync"
+else
+    COPY_CMD="cp"
+    echo "[*] Using cp"
+fi
+{% for f in collect['files_and_dirs']['list'] %}
+echo "[*] Processing {{ f }}"
+
+if [ "$COPY_CMD" = "rsync" ]; then
+    # -a : archive
+    # -R : preserve full path (like cp --parents)
+    # --ignore-missing-args : avoid errors on missing files
+    rsync -aR --ignore-missing-args {{ f }} "$FD_OUTDIR/" 2>/dev/null
+else
+    # find handles wildcards and missing files safely
+    find {{ f }} -type f -exec cp -a --parents {} "$FD_OUTDIR/" \; 2>/dev/null
+fi
+{% endfor %}
+{% endif %}
+{% if collect['enable_checksums'] %}
+#############
+# Checksums #
+#############
+echo '[RUN] checksums'
+C_OUTDIR="$OUTDIR/checksums"
+mkdir -p "$C_OUTDIR"
+{% for path in collect['checksums']['list'] %}
+echo "[*] Processing {{ path }}"
+# Expand wildcards safely
+for p in {{ path }}; do
+    [ -e "$p" ] || continue
+
+    find "$p" -type f 2>/dev/null | while IFS= read -r file; do
+        sha1sum   "$file" | awk '{print $1 " - " $2}' >> "$C_OUTDIR/sha1.txt"
+        sha256sum "$file" | awk '{print $1 " - " $2}' >> "$C_OUTDIR/sha256.txt"
+        md5sum    "$file" | awk '{print $1 " - " $2}' >> "$C_OUTDIR/md5.txt"
+    done
+done
+{% endfor %}
+{% endif %}
+{% if collect['enable_file_permissions'] %}
+####################
+# File permissions #
+####################
+echo '[RUN] file_permissions'
+C_OUTFILE="$OUTDIR/file_permissions.txt"
+{% for path in collect['file_permissions']['list'] %}
+echo "[*] Processing {{ path }}"
+# Expand wildcards safely and iterate results
+for p in {{ path }}; do
+    [ -e "$p" ] || continue
+
+    find "$p" -type f 2>/dev/null | while IFS= read -r file; do
+        numeric=$(stat -c "%a" "$file")
+        symbolic=$(stat -c "%A" "$file")
+        owner=$(stat -c "%U" "$file")
+        group=$(stat -c "%G" "$file")
+        size=$(stat -c "%s" "$file")
+        mtime=$(stat -c "%Y" "$file").0
+
+        echo "$file $numeric $symbolic $owner:$group $size $mtime" >>"$C_OUTFILE"
+    done
+done
+{% endfor %}
+{% endif %}
+{% if config['compress_collection'] %}
+echo "[*] Compressing collection directory"
+
+TAR_BASENAME="$(basename "$OUTDIR")"
+TAR_PATH="{{ config['outdir'] }}/$(hostname)_${TAR_BASENAME}.tar.gz"
+
+tar -C "$(dirname "$OUTDIR")" -czf "$TAR_PATH" "$TAR_BASENAME"
+
+echo "Collection finished: $TAR_PATH"
+rm -rf "$OUTDIR"
+{% else %}
+echo "Collection finished: $OUTDIR"
+{% endif %}

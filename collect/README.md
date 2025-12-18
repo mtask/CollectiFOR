@@ -1,8 +1,12 @@
 # CollectiFOR | collect
 
-CollectiFOR's `collect` tool is used to collect and capture data from a target host.
+CollectiFOR's `collect` tool is used to collect and capture data from a target host. It uses YAML based configuration file where you can alternate what data is collected based on different needs.
 
 ![](imgs/collect.png)
+
+Collect tool is python based and basic idea is to use it as built binary for easy shipping. 
+If you can't run the binary or Python on the target machine there's also alternative option to generate collection bash script from the YAML configuration. See: `gen-collect-sh/README.md`.
+Generated script is quite rudimentary and lacks some functionalities in comparison with the actual collect tool, but its output still works with the CollectiFOR's analysis tools. 
 
 ## Building
 

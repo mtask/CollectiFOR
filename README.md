@@ -2,7 +2,7 @@
 # CollectiFOR | DFIR Triage Tool
 
 CollectiFOR is a digital forensics and incident response (DFIR) triage tool to collect and analyze system and network artifacts from Linux based target machines.
-Supports file collection, disk acquisition, memory acquisition, network capture, checksum calculation, and analysis of indicators of compromise. It main feature is the `collect` module which is used for data acquisition.
+Supports file collection, disk acquisition, memory acquisition, network capture, checksum calculation, and analysis of indicators of compromise. It main feature is the `collect` tool which is used for data acquisition.
 
 ## Quick how-to
 
