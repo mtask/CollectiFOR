@@ -38,8 +38,6 @@ def network(outdir, config):
     outfile = os.path.join(outdir, f"{'_'.join(ifaces)}.pcap")
 
     logging.info(f"[+] Starting packet capture for {str(timeout)} seconds → {outfile}")
-    logging.info(f"[+] Stop early with Ctrl+c. Collect script will continue with next tasks.")
-
     writer = PcapWriter(outfile, append=False, sync=True)
 
     def handle_packet(pkt):
@@ -51,18 +49,13 @@ def network(outdir, config):
         store=False
     )
 
-    try:
-        sniffer.start()              # Capture starts instantly
-        sniffer.join(timeout)        # Wait for timeout OR Ctrl+C
-
-    except KeyboardInterrupt:
-        logging.info("[!] Ctrl+C pressed — stopping capture")
-    finally:
-        sniffer.stop()               # Guaranteed to kill sniffer thread
-        writer.flush()
-        writer.close()
-        logging.info("[+] Capture complete.")
-        _pcap_to_text(outfile)
+    sniffer.start()
+    sniffer.join(timeout)
+    sniffer.stop()
+    writer.flush()
+    writer.close()
+    logging.info("[+] Capture complete.")
+    _pcap_to_text(outfile)
 
 
 # ------------------------

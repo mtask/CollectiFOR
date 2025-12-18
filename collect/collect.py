@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import logging
+import shutil
 from datetime import datetime
 
 logging.basicConfig(
@@ -82,6 +83,15 @@ def run_capture_modules(enabled_capture_modules, outdir, config, interfaces="", 
             mod(outdir, config[current_module])
     return threads
 
+def early_cleanup(outdir, threads=[]):
+    logging.warning("[-] Execution interrupted. Waiting for finish.")
+    for thread in threads:
+        logging.info("[-] Waiting jobs to finish")
+        thread.join()
+    logging.warning(f"[-] Removing incompleted collection: {outdir}")
+    shutil.rmtree(outdir)
+    sys.exit(1)
+
 def main(args):
     config = load_config(args.config)
     validate_config(args, config)
@@ -89,23 +99,26 @@ def main(args):
     outdir = os.path.join(config['outdir'], dir_timestamp)
     os.makedirs(outdir, exist_ok=True)
     threads = []
-    if args.capture:
-        config_mod_capture = config['modules']['capture']
-        enabled_capture_modules = {
-            k: v for k, v in config['modules']['capture'].items()
-            if k.startswith("enable_") and v
-        }
-        threads = threads + run_capture_modules(enabled_capture_modules, outdir, config_mod_capture, interfaces=args.interfaces, disk=args.disk, host=args.disk_host)
-    if args.collect:
-        enabled_collect_modules = {
-            k: v for k, v in config['modules']['collect'].items()
-            if k.startswith("enable_") and v
-        }
-        config_mod_collect = config['modules']['collect']
-        threads = threads + run_collect_modules(enabled_collect_modules, outdir, config_mod_collect)
-    for thread in threads:
-        logging.info("[+] Waiting jobs to finish")
-        thread.join()
+    try:
+        if args.capture:
+            config_mod_capture = config['modules']['capture']
+            enabled_capture_modules = {
+                k: v for k, v in config['modules']['capture'].items()
+                if k.startswith("enable_") and v
+            }
+            threads = threads + run_capture_modules(enabled_capture_modules, outdir, config_mod_capture, interfaces=args.interfaces, disk=args.disk, host=args.disk_host)
+        if args.collect:
+            enabled_collect_modules = {
+                k: v for k, v in config['modules']['collect'].items()
+                if k.startswith("enable_") and v
+            }
+            config_mod_collect = config['modules']['collect']
+            threads = threads + run_collect_modules(enabled_collect_modules, outdir, config_mod_collect)
+        for thread in threads:
+            logging.info("[+] Waiting for a job to finish")
+            thread.join()
+    except KeyboardInterrupt:
+            early_cleanup(outdir, threads=threads)
     if config['compress_collection']:
         import lib.collection as lc
         logging.info("[+] Compressing collection")
