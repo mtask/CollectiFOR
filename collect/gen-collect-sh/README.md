@@ -28,3 +28,4 @@ collect_dd.sh  collect_e01.sh  collect_main.sh
 * Prompts for the disk and host in disk capture
 * Does not allow skipping capture or collect modules based on cli switches. All modules enabled in config are included in the generated script.
 * No multithreading support for different modules.
+* Does not generate `listeners.json` (listeners module), but same information can always be collected with `commands` module.
