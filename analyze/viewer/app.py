@@ -352,7 +352,6 @@ def timeline_event(event_id):
     event_dict = dict(zip(columns, row))
 
     # Directly parse JSON fields
-    print(event_dict)
     event_dict["extra"] = json.loads(event_dict["extra"])
     event_dict["date_time"] = json.loads(event_dict["date_time"])
     if isinstance(event_dict.get('inserted_at'), datetime):
@@ -364,6 +363,79 @@ def timeline_event(event_id):
         response=json.dumps(event_dict, indent=2),
         mimetype='application/json'
     )
+
+
+def get_bucket_from_span(span_seconds):
+    if span_seconds > 365*24*3600:      # multiple years
+        return 'YEAR'
+    elif span_seconds > 30*24*3600:     # multiple months
+        return 'MONTH'
+    elif span_seconds > 24*3600:        # multiple days
+        return 'DAY'
+    elif span_seconds > 3600:           # multiple hours
+        return 'HOUR'
+    else:
+        return 'MINUTE'
+
+@app.route('/timeline_chart')
+def timeline_chart():
+    return render_template('timeline_chart.html')
+
+@app.route('/timeline_chart/data')
+def timeline_chart_data():
+    start_time = request.args.get('start_time')
+    end_time = request.args.get('end_time')
+
+    conn = duckdb.connect(DUCKDB_FILE)
+
+    # Filters
+    filters = []
+    if start_time:
+        ts = int(datetime.strptime(start_time, "%d/%m/%Y %H:%M").timestamp()*1_000_000)
+        filters.append(f"timestamp >= {ts}")
+    if end_time:
+        ts = int(datetime.strptime(end_time, "%d/%m/%Y %H:%M").timestamp()*1_000_000)
+        filters.append(f"timestamp <= {ts}")
+    where_sql = f"WHERE {' AND '.join(filters)}" if filters else ""
+
+    # Min/Max timestamps
+    min_ts, max_ts = conn.execute(f"SELECT MIN(timestamp), MAX(timestamp) FROM timeline_events {where_sql}").fetchone()
+    if min_ts is None or max_ts is None:
+        return jsonify({"labels": [], "counts": []})
+
+    span_seconds = (max_ts - min_ts)/1_000_000
+    bucket = get_bucket_from_span(span_seconds)
+
+    # Fixed aggregation: divide by 1_000_000.0 to make float for TO_TIMESTAMP
+    data_sql = f"""
+        SELECT
+            DATE_TRUNC('{bucket}', TO_TIMESTAMP(timestamp / 1000000.0)) AS bucket,
+            COUNT(*) AS count
+        FROM timeline_events
+        {where_sql}
+        GROUP BY bucket
+        ORDER BY bucket
+    """
+    rows = conn.execute(data_sql).fetchall()
+
+    # Labels, counts
+    labels = []
+    counts = []
+    for r in rows:
+        dt = r[0]
+        if bucket == 'YEAR':
+            labels.append(dt.strftime("%Y"))
+        elif bucket == 'MONTH':
+            labels.append(dt.strftime("%b %Y"))
+        elif bucket == 'DAY':
+            labels.append(dt.strftime("%d %b %Y"))
+        elif bucket == 'HOUR':
+            labels.append(dt.strftime("%d %b %H:%M"))
+        else:
+            labels.append(dt.strftime("%d %b %H:%M"))
+        counts.append(r[1])
+
+    return jsonify({"labels": labels, "counts": counts})
 
 
 def run_viewer(collection_dir, db_file="collectifor.db", duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
