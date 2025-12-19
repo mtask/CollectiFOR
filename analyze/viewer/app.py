@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
 from flask import abort
 from datetime import datetime
+import pandas as pd
 import duckdb
 import os
 import json
@@ -291,11 +292,13 @@ def timeline_data():
     event_types = request.args.getlist("event_type[]")
     start = int(request.args.get("start", 0))
     length = int(request.args.get("length", 50))
+    search_value = request.args.get("search[value]", "").strip()
 
     conn = duckdb.connect(DUCKDB_FILE)
     sql = "SELECT timestamp, timestamp_desc, data_type, message FROM timeline_events WHERE 1=1"
     params = []
 
+    # Time filters
     if start_time:
         sql += " AND timestamp >= ?"
         ts_start = int(pd.Timestamp(start_time).timestamp() * 1_000_000)
@@ -306,25 +309,42 @@ def timeline_data():
         ts_end = int(pd.Timestamp(end_time).timestamp() * 1_000_000)
         params.append(ts_end)
 
+    # Source filter
     if sources:
         sql += " AND data_type IN ({})".format(",".join("?"*len(sources)))
         params.extend(sources)
 
+    # Event type filter
     if event_types:
         sql += " AND timestamp_desc IN ({})".format(",".join("?"*len(event_types)))
         params.extend(event_types)
 
+    # Global search
+    if search_value:
+        sql += " AND (message LIKE ? OR timestamp_desc LIKE ? OR data_type LIKE ?)"
+        pattern = f"%{search_value}%"
+        params.extend([pattern, pattern, pattern])
+
+    # Ordering + paging
     sql += " ORDER BY timestamp ASC LIMIT ? OFFSET ?"
     params.extend([length, start])
 
     df = conn.execute(sql, params).df()
     data = df.to_dict(orient='records')
 
-    # DataTables response
+    # Count total and filtered
+    total_count = conn.execute("SELECT COUNT(*) FROM timeline_events").fetchone()[0]
+
+    # Count filtered for DataTables
+    # A simple option is to use the same WHERE filters but without LIMIT/OFFSET
+    count_sql = "SELECT COUNT(*) FROM timeline_events WHERE 1=1"
+    count_params = params[:-2]  # all params except limit & offset
+    records_filtered = conn.execute(count_sql + sql[sql.find(" AND"):sql.find(" ORDER BY")], count_params).fetchone()[0]
+
     return jsonify({
-        "draw": request.args.get("draw", 1),
-        "recordsTotal": conn.execute("SELECT COUNT(*) FROM timeline_events").fetchone()[0],
-        "recordsFiltered": len(data),
+        "draw": int(request.args.get("draw", 1)),
+        "recordsTotal": total_count,
+        "recordsFiltered": records_filtered,
         "data": data
     })
 
