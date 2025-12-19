@@ -21,6 +21,7 @@
 read -p "Case: " CASE
 mkdir -p /cases/$CASE/plaso
 helpers/plaso.sh ../ansible_collect/fetched_collections/rl_20251217_200032/20251217_200032/ /cases/$CASE/plaso
+# drops you in docker container with Plaso tools
 log2timeline.py /data/files_and_dirs/var/log/
 ```
 Without specifying `--storage_file <output>.plaso` log2timeline will generate file with name pattern `<timestamp>-log.plaso`
@@ -31,6 +32,8 @@ Without specifying `--storage_file <output>.plaso` log2timeline will generate fi
 
 ```bash
 psort.py -o json_line -w x.timeline.jsonl <created-timeline>.plaso
+# exit from the container
+exit
 ```
 </details>
 
@@ -38,7 +41,7 @@ psort.py -o json_line -w x.timeline.jsonl <created-timeline>.plaso
 <summary> 4. Load JSONL to CollectiFOR</summary>
 
 ```bash
-python3 collectifor.py -tf /tmp/plaso/x.timeline.json
+python3 collectifor.py -tf x.timeline.jsonl
 ```
 </details>
 
