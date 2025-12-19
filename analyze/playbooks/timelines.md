@@ -53,6 +53,7 @@ TBD
 
 </details>
 
+<details>
 <summary> 2. Create timeline</summary>
 
 ```bash
@@ -62,5 +63,46 @@ helpers/plaso.sh ../ansible_collect/fetched_collections/rl_20251217_200032/20251
 log2timeline.py /data/files_and_dirs/var/log/
 psort.py -o json_line -w x.timeline.jsonl <created-timeline>.plaso
 ```
+
+</details>
+
+
+## Query timeline | DuckDB
+
+
+<details>
+<summary># Query by filehash and save results to CSV</summary>
+
+* SHA256 hash only:
+
+```sql
+COPY (
+    SELECT DISTINCT
+        json_extract_string(extra, '$.sha256_hash') AS sha256_hash
+    FROM timeline_events
+    WHERE json_extract_string(extra, '$.sha256_hash') IS NOT NULL
+) TO 'hashes.csv' (FORMAT CSV, HEADER, QUOTE '');
+```
+
+Results -\> `hashes.csv`
+
+* Filename and SHA256 hash:
+
+```sql
+COPY (
+    SELECT sha256_hash, filename
+    FROM (
+        SELECT
+            TRIM(BOTH '"' FROM extra['sha256_hash']::VARCHAR) AS sha256_hash,
+            TRIM(BOTH '"' FROM extra['filename']::VARCHAR) AS filename,
+            ROW_NUMBER() OVER (PARTITION BY extra['sha256_hash'] ORDER BY extra['filename']) AS rn
+        FROM timeline_events
+        WHERE extra['sha256_hash'] IS NOT NULL
+    ) t
+    WHERE rn = 1
+) TO 'hashes.csv' (FORMAT CSV, HEADER, QUOTE '');
+```
+
+Results -\> `hashes.csv`
 
 </details>

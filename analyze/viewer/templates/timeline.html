@@ -3,7 +3,8 @@
 {% block content %}
 <h2>Timeline Explorer</h2>
 
-<div class="row mb-3 align-items-end">
+<!-- Top row: calendar pickers -->
+<div class="row mb-3 justify-content-center">
     <div class="col-md-3">
         <label>Start Time</label>
         <input id="start-time" class="form-control" placeholder="dd/mm/yyyy HH:mm">
@@ -13,8 +14,11 @@
         <label>End Time</label>
         <input id="end-time" class="form-control" placeholder="dd/mm/yyyy HH:mm">
     </div>
+</div>
 
-    <div class="col-md-4">
+<!-- Bottom row: search + filter button -->
+<div class="row mb-3 justify-content-center align-items-end">
+    <div class="col-md-8">
         <label>DuckDB SQL Filter</label>
         <input
             type="text"
@@ -51,6 +55,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Event Details</h5>
+                <button class="btn btn-sm btn-outline-secondary me-2" id="copy-event-btn" title="Copy full event">📋</button>
                 <button class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
@@ -120,6 +125,10 @@ td.message .copy-btn {
 
 td.message.expanded .copy-btn {
     display: inline;
+}
+
+#copy-event-btn {
+    font-size: 0.9em;
 }
 </style>
 
@@ -219,6 +228,13 @@ $(document).ready(function() {
                 new bootstrap.Modal('#eventModal').show();
             });
     });
+
+    // Copy button in event modal
+    $('#copy-event-btn').on('click', function() {
+        const text = $('#event-json').text();
+        navigator.clipboard.writeText(text).then(() => showToast('Full event copied'));
+    });
+
 });
 </script>
 
