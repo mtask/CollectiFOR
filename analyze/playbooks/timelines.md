@@ -1,17 +1,21 @@
 
-## Plaso - JSON
+# Super Timelines | PLASO
+
+>[!TIP]
+> Add --hashers md5,sha1,sha256 to log2timeline.py commands to generate file hashes
+
+## Plaso -> JSONL -> Explore
 
 <details>
-<summary> 1. Run collect and fetch the collection
+<summary> 1. Run collect and fetch the collection</summary>
 
 ```bash
 ./collect -c config.yaml --collect ...
 ```
-</summary>
 </details>
 
 <details>
-<summary> 2. Use log2timeline to generate timeline
+<summary> 2. Use log2timeline to generate timeline</summary>
 
 ```bash
 CASE="x"
@@ -20,29 +24,33 @@ helpers/plaso.sh ../ansible_collect/fetched_collections/rl_20251217_200032/20251
 log2timeline.py /data/files_and_dirs/var/log/
 ```
 Without specifying `--storage_file <output>.plaso` log2timeline will generate file with name pattern `<timestamp>-log.plaso`
-</summary>
 </details>
 
 <details>
-<summary> 3. Create JSON lines output log
+<summary> 3. Create JSON lines output log</summary>
 ```bash
 psort.py -o json_line -w x.timeline.jsonl <created-timeline>.plaso
 ```
-</summary>
 </details>
 
-## Plaso - YARA
+<details>
+<summary> 4. Load JSONL to your collection</summary>
+```bash
+TBD
+```
+</details>
+
+## Plaso -> Timeline -> YARA check
 
 <details>
-<summary> 1. Run collect and fetch the collection
+<summary> 1. Run collect and fetch the collection</summary>
 
 ```bash
 ./collect -c config.yaml --collect ...
 ```
-</summary>
 </details>
 
-<summary> 2. Create timeline
+<summary> 2. Create timeline</summary>
 
 ```bash
 CASE="x"
@@ -51,5 +59,4 @@ helpers/plaso.sh ../ansible_collect/fetched_collections/rl_20251217_200032/20251
 log2timeline.py /data/files_and_dirs/var/log/
 psort.py -o json_line -w x.timeline.jsonl <created-timeline>.plaso
 ```
-</summary>
 </details>
