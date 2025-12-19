@@ -59,7 +59,7 @@
                 <button class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <pre id="event-json" class="mb-0"></pre>
+                <pre id="event-json" class="language-json mb-0"></pre>
             </div>
         </div>
     </div>
@@ -197,7 +197,7 @@ $(document).ready(function() {
             {
                 data: 'id',
                 orderable: false,
-                render: id => `<button class="btn btn-sm btn-secondary show-event" data-id="${id}">Show Event</button>`
+                render: id => `<button class="btn btn-sm btn-primary show-event" data-id="${id}">Show Event</button>`
             }
         ],
         order: [[0, 'asc']],
@@ -224,10 +224,17 @@ $(document).ready(function() {
         fetch(`/api/timeline_event/${id}`)
             .then(r => r.json())
             .then(data => {
-                $('#event-json').text(JSON.stringify(data, null, 2));
+                // Pretty-print JSON
+                const jsonText = JSON.stringify(data, null, 2);
+                $('#event-json').text(jsonText);
+
+                // Trigger Prism syntax highlighting
+                Prism.highlightElement(document.getElementById('event-json'));
+
                 new bootstrap.Modal('#eventModal').show();
             });
     });
+
 
     // Copy button in event modal
     $('#copy-event-btn').on('click', function() {
