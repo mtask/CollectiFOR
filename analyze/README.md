@@ -157,7 +157,7 @@ Here's a list of viewer's functionalities:
 
 
 <details>
-<summary>Timeline Explorer</summary>
+<summary>Timeline Chart</summary>
   
 View timeline data in chart (counts, no event details).
 ![](imgs/timeline_chart.png)
