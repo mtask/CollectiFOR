@@ -17,15 +17,91 @@
 </div>
 
 <!-- Bottom row: search + filter button -->
+<!-- Bottom row: search + helpers + filter button -->
 <div class="row mb-3 justify-content-center align-items-end">
-    <div class="col-md-8">
+    <div class="col-md-10">
         <label>DuckDB SQL Filter</label>
-        <input
-            type="text"
-            id="sql-filter"
-            class="form-control"
-            placeholder="e.g. message ILIKE '%error%' AND data_type='dns'"
-        >
+
+        <div class="input-group">
+            <input
+                type="text"
+                id="sql-filter"
+                class="form-control"
+                placeholder="e.g. message ILIKE '%error%' AND data_type='syslog:line'"
+                spellcheck="false"
+                autocorrect="off"
+                autocapitalize="off"
+            >
+
+            <!-- IMPORTANT: dropdown wrapped correctly -->
+            <button
+                class="btn btn-outline-secondary dropdown-toggle"
+                type="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+            >
+                Helpers
+            </button>
+
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="message ILIKE '%error%'">
+                        Message ILIKE
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="filename ILIKE '%log%'">
+                        Filename ILIKE
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="data_type = 'syslog:line'">
+                        Filter by data type
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="json_extract_string(extra, '$.sha256_hash') = 'HASH HERE'">
+                        SHA256 hash
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="json_extract_string(extra, '$.sha1_hash') = 'HASH HERE'">
+                        SHA1 hash
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="timestamp_desc = 'Content Modification Time'">
+                       Content Modification Time
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="timestamp_desc = 'Last Access Time'">
+                       Last Access Time
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="timestamp_desc = 'Metadata Modification Time'">
+                       Metadata Modification Time
+                    </a>
+                </li>
+            </ul>
+        </div>
     </div>
 
     <div class="col-md-2">
@@ -40,8 +116,8 @@
     <thead>
         <tr>
             <th>Timestamp</th>
-            <th>Event Type</th>
-            <th>Source</th>
+            <th>Timestamp Description</th>
+            <th>Data Type</th>
             <th>Message</th>
             <th>Event</th>
         </tr>
@@ -68,15 +144,29 @@
 <!-- Toast container -->
 <div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index:1055;"></div>
 
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <style>
+#sql-filter::selection {
+    background-color: #00FF00; /* invert selection colors */
+    color: #000000;
+}
+
+#sql-filter:focus {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.95rem;
+    background-color: #000000;  /* black background */
+    color: #00FF00;             /* bright green text */
+    caret-color: #00FF00;       /* green cursor */
+    border: 1px solid #00FF00;  /* optional border */
+    padding: 0.375rem 0.75rem;  /* same as Bootstrap input padding */
+    outline: none;            /* remove default focus outline */
+    box-shadow: 0 0 5px #00FF00; /* glow effect when focused */
+}
+
 td:last-child {
     text-align: center;
     white-space: nowrap;
@@ -240,6 +330,19 @@ $(document).ready(function() {
     $('#copy-event-btn').on('click', function() {
         const text = $('#event-json').text();
         navigator.clipboard.writeText(text).then(() => showToast('Full event copied'));
+    });
+
+
+    $('#apply-filter').on('click', () => table.ajax.reload());
+
+    $(document).on('click', '.filter-helper', function (e) {
+        e.preventDefault();
+        const snippet = $(this).data('snippet');
+        const input = $('#sql-filter');
+       // Replace entire input with snippet:
+       input.val(snippet);
+       // Focus the input:
+       input.focus();
     });
 
 });

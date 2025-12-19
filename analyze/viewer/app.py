@@ -309,16 +309,24 @@ def timeline_data():
         ORDER BY timestamp ASC
         LIMIT {length} OFFSET {start}
     """
-
-    data = conn.execute(data_sql).df().to_dict(orient="records")
+    try:
+        data = conn.execute(data_sql).df().to_dict(orient="records")
+    except Exception as e:
+        print(repr(e))
+        data = {}
 
     total_count = conn.execute(
         "SELECT COUNT(*) FROM timeline_events"
     ).fetchone()[0]
 
-    filtered_count = conn.execute(
-        f"SELECT COUNT(*) {base_sql}"
-    ).fetchone()[0]
+    try:
+        filtered_count = conn.execute(
+            f"SELECT COUNT(*) {base_sql}"
+        ).fetchone()[0]
+        print(repr(e))
+    except Exception as e:
+        print(repr(e))
+        filtered_count = 0
 
     return jsonify({
         "draw": int(request.args.get("draw", 1)),
