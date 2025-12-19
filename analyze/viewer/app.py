@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, current_app
+from flask import Flask, render_template, request, current_app, jsonify
 from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
 from flask import abort
@@ -7,7 +7,6 @@ import os
 import json
 import html
 
-# Import models ONLY (no DB class)
 from lib.db import (
     CommandOutput,
     Checksum,
@@ -17,6 +16,10 @@ from lib.db import (
     Finding,
     FileEntry,
     ListenerEntry,
+    TimelineEvent,
+)
+
+from lib.db_tl import (
     TimelineEvent,
 )
 
@@ -30,6 +33,14 @@ app = Flask(__name__)
 def get_session():
     engine = create_engine(
         f"sqlite:///{DB_FILE}",
+        future=True
+    )
+    Session = sessionmaker(bind=engine)
+    return Session()
+
+def get_tl_session():
+    engine = create_engine(
+        f"sqlite:///{DB_TL_FILE}",
         future=True
     )
     Session = sessionmaker(bind=engine)
@@ -259,7 +270,7 @@ def finding_detail(finding_id):
 
 @app.route("/timeline")
 def timeline():
-    session = get_session()
+    session = get_tl_session()
 
     q = request.args.get("q", "").strip()
     source = request.args.get("source", "").strip()
@@ -322,33 +333,60 @@ def timeline():
     )
 
 
+# -----------------------------------
+# Main visualization page
+# -----------------------------------
+
 @app.route("/timeline_viz")
 def timeline_viz():
-    session = get_session()
-    events = session.query(TimelineEvent).order_by(TimelineEvent.timestamp.asc()).limit(5000).all()
+    # Initial empty page; client loads events via AJAX
+    return render_template("timeline_viz.html")
 
-    # Prepare events for vis-timeline
-    items = []
+
+@app.route("/timeline_viz/events_json")
+def timeline_ajax():
+    session = get_tl_session()
+
+    start = request.args.get("start")
+    end = request.args.get("end")
+    limit = int(request.args.get("limit", 200))  # smaller batch
+
+    try:
+        dt_start = datetime.fromisoformat(start)
+        dt_end = datetime.fromisoformat(end)
+    except Exception:
+        return jsonify([])
+
+    events = session.query(TimelineEvent)\
+        .filter(TimelineEvent.timestamp >= dt_start)\
+        .filter(TimelineEvent.timestamp <= dt_end)\
+        .order_by(TimelineEvent.timestamp.asc())\
+        .limit(limit)\
+        .all()
+
+    result = []
     for e in events:
-        items.append({
+        result.append({
             "id": e.id,
-            "content": e.summary[:50],  # short label
-            "start": e.timestamp.isoformat(),
-            "title": e.summary,         # full tooltip
-            "group": e.event_type       # optional grouping by event type
+            "start": e.timestamp.isoformat(),  # vis-timeline requires 'start'
+            "content": e.summary,
+            "group": e.event_type,
+            "meta": e.meta
         })
-
     session.close()
-    return render_template("timeline_viz.html", events_json=json.dumps(items))
+    return jsonify(result)
+
+
 
 # ----------------------------------------------------------------------
 # Entry point for collectifor.py
 # ----------------------------------------------------------------------
 
-def run_viewer(collection_dir, db_file="collectifor.db", host="127.0.0.1", port=5000, debug=True):
-    global COLLECTION_DIR, DB_FILE
+def run_viewer(collection_dir, db_file="collectifor.db", db_tl_file="timeline.db", host="127.0.0.1", port=5000, debug=True):
+    global COLLECTION_DIR, DB_FILE, DB_TL_FILE
     COLLECTION_DIR = os.path.realpath(collection_dir)
     DB_FILE = db_file
+    DB_TL_FILE = db_tl_file
     print(f"[+] Viewer started")
     print(f"[+] Collection: {COLLECTION_DIR}")
     print(f"[+] URL: http://{host}:{port}")

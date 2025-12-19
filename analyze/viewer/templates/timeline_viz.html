@@ -4,25 +4,29 @@
     <meta charset="UTF-8">
     <title>Timeline Visualization</title>
 
-    <!-- CSS for vis-timeline -->
+    <!-- Vis-Timeline CSS -->
     <link
       rel="stylesheet"
-      href="https://unpkg.com/vis-timeline@7.5.0/dist/vis-timeline-graph2d.min.css"
+      href="https://unpkg.com/vis-timeline@8.5.0/dist/vis-timeline-graph2d.min.css"
     />
+
     <style>
         body {
-            margin: 20px;
+            margin: 0;
             font-family: sans-serif;
             background: #f7f7f7;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
         h1 {
-            margin-bottom: 15px;
+            margin: 10px 20px;
         }
         #timeline {
-            width: 100%;
-            height: 600px;
+            flex: 1 1 auto;
+            margin: 0 20px 20px 20px;
             border: 1px solid #ddd;
-            background: white;
+            background: #fff;
         }
     </style>
 </head>
@@ -32,32 +36,79 @@
 <div id="timeline"></div>
 
 <script type="module">
-  // Import vis-timeline components from esm.sh (browser‑friendly ES module build)
-  import { Timeline } from "https://cdn.jsdelivr.net/npm/vis-timeline@8.5.0/+esm";
-  import { DataSet } from "https://cdn.jsdelivr.net/npm/vis-data@8.0.3/+esm";
+import { Timeline } from "https://cdn.jsdelivr.net/npm/vis-timeline@8.5.0/+esm";
+import { DataSet } from "https://cdn.jsdelivr.net/npm/vis-data@8.0.3/+esm";
 
-  // Parse data passed from Flask
-  const items = new DataSet({{ events_json | safe }});
+let items = new DataSet([]);
 
-  // Optional group by event_type
-  const groupsArr = [...new Set(items.get().map(i => i.group))];
-  const groups = groupsArr.map(g => ({ id: g, content: g }));
+// Groups optional (by event_type)
+let groupsSet = new Set();
+let groups = [];
 
-  // Timeline options
-  const options = {
-      stack: true,
-      showCurrentTime: true,
-      zoomMin: 1000 * 60,               // 1 min
-      zoomMax: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
-      groupOrder: "content",
-      tooltip: { followMouse: true }
-  };
+const options = {
+    stack: true,
+    groupOrder: "content",
+    showCurrentTime: true,
+    zoomMin: 1000 * 60, // 1 minute
+    zoomMax: 1000 * 60 * 60 * 24 * 365 * 10, // 10 years
+    cluster: {
+        maxItems: 20
+    },
+    tooltip: { followMouse: true }
+};
 
-  // Initialize
-  const container = document.getElementById("timeline");
-  new Timeline(container, items, groups, options);
+const container = document.getElementById("timeline");
+const timeline = new Timeline(container, items, groups, options);
+
+// Track loaded ranges to avoid refetching
+let loadedRanges = [];
+
+function isRangeLoaded(start, end) {
+    return loadedRanges.some(r => start >= r.start && end <= r.end);
+}
+
+async function loadEvents(start, end) {
+    if (isRangeLoaded(start, end)) return;
+
+    try {
+        const url = `/timeline_viz/events_json?start=${start.toISOString()}&end=${end.toISOString()}&limit=500`;
+        const res = await fetch(url);
+        const data = await res.json();
+
+        // Prevent duplicate IDs
+        const existingIds = new Set(items.getIds());
+        const newData = data.filter(e => !existingIds.has(e.id));
+
+        // Add to items
+        items.add(newData);
+
+        // Update groups if event_type is new
+        newData.forEach(e => {
+            if (!groupsSet.has(e.event_type)) {
+                groupsSet.add(e.event_type);
+                groups.push({ id: e.event_type, content: e.event_type });
+                timeline.setGroups(groups);
+            }
+        });
+
+        loadedRanges.push({ start, end });
+    } catch (err) {
+        console.error("Error loading events:", err);
+    }
+}
+
+// Initial load: visible window
+timeline.on("rangechange", (props) => {
+    const start = props.start;
+    const end = props.end;
+    loadEvents(start, end);
+});
+
+// Initial visible range
+const now = new Date();
+timeline.setWindow(new Date(now.getTime() - 24*60*60*1000), new Date(now.getTime() + 24*60*60*1000));
+
 </script>
-
 </body>
 </html>
 
