@@ -18,7 +18,7 @@
 <summary> 2. Use log2timeline to generate timeline</summary>
 
 ```bash
-CASE="x"
+read -p "Case: " CASE
 mkdir -p /cases/$CASE/plaso
 helpers/plaso.sh ../ansible_collect/fetched_collections/rl_20251217_200032/20251217_200032/ /cases/$CASE/plaso
 log2timeline.py /data/files_and_dirs/var/log/
