@@ -15,6 +15,7 @@ ansible_collect/fetched_collections/*2*
 analyze/report/plaso/
 analyze/report/zeek/
 *.db
+*.duckdb
 hosts.ini
 collect/config.yaml
 collect.sh

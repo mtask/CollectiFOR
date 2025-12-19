@@ -1,11 +1,14 @@
-from flask import Flask, render_template, request, current_app
+from flask import Flask, render_template, request, current_app, jsonify
 from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
 from flask import abort
+from datetime import datetime
+import pandas as pd
+import duckdb
 import os
+import json
 import html
 
-# Import models ONLY (no DB class)
 from lib.db import (
     CommandOutput,
     Checksum,
@@ -17,6 +20,7 @@ from lib.db import (
     ListenerEntry,
 )
 
+
 app = Flask(__name__)
 
 
@@ -27,6 +31,14 @@ app = Flask(__name__)
 def get_session():
     engine = create_engine(
         f"sqlite:///{DB_FILE}",
+        future=True
+    )
+    Session = sessionmaker(bind=engine)
+    return Session()
+
+def get_tl_session():
+    engine = create_engine(
+        f"sqlite:///{DB_TL_FILE}",
         future=True
     )
     Session = sessionmaker(bind=engine)
@@ -116,9 +128,10 @@ def view_file():
     rel_path = request.args.get("path")
     if not rel_path:
         return "Missing file path", 400
-
     # Determine parent directory
     parent_dir = "/" + "/".join(rel_path.strip("/").split("/")[:-1])
+    if not COLLECTION_DIR:
+       return render_template("file_view.html", path=rel_path, content="Collection directory was not provided on the app launch. Content can't be shown. Relaunch CollectiFOR with --collection <collection>", parent_dir=parent_dir)
 
     file_path = os.path.join(COLLECTION_DIR, "files_and_dirs", rel_path.lstrip("/"))
 
@@ -254,14 +267,185 @@ def finding_detail(finding_id):
     return render_template("finding_detail.html", finding=finding)
 
 
-# ----------------------------------------------------------------------
-# Entry point for collectifor.py
-# ----------------------------------------------------------------------
 
-def run_viewer(collection_dir, db_file="collectifor.db", host="127.0.0.1", port=5000, debug=True):
-    global COLLECTION_DIR, DB_FILE
-    COLLECTION_DIR = os.path.realpath(collection_dir)
+# ------------------------
+# Timeline page
+# ------------------------
+@app.route("/timeline")
+def timeline():
+    return render_template("timeline.html")
+
+
+@app.route("/api/timeline_data")
+def timeline_data():
+    start_time = request.args.get("start_time")
+    end_time = request.args.get("end_time")
+    sql_filter = request.args.get("sql_filter", "").strip()
+
+    start = int(request.args.get("start", 0))
+    length = int(request.args.get("length", 50))
+
+    conn = duckdb.connect(DUCKDB_FILE)
+
+    base_sql = """
+        FROM timeline_events
+        WHERE 1=1
+    """
+
+    if start_time:
+        ts_start = int(start_time) * 1_000_000
+        base_sql += f" AND timestamp >= {ts_start}"
+
+    if end_time:
+        ts_end = int(end_time) * 1_000_000
+        base_sql += f" AND timestamp <= {ts_end}"
+
+    if sql_filter:
+        base_sql += f" AND ({sql_filter})"
+
+    data_sql = f"""
+        SELECT id, timestamp, timestamp_desc, data_type, message
+        {base_sql}
+        ORDER BY timestamp ASC
+        LIMIT {length} OFFSET {start}
+    """
+    try:
+        data = conn.execute(data_sql).df().to_dict(orient="records")
+    except Exception as e:
+        print(repr(e))
+        data = {}
+
+    total_count = conn.execute(
+        "SELECT COUNT(*) FROM timeline_events"
+    ).fetchone()[0]
+
+    try:
+        filtered_count = conn.execute(
+            f"SELECT COUNT(*) {base_sql}"
+        ).fetchone()[0]
+    except Exception as e:
+        print(repr(e))
+        filtered_count = 0
+
+    return jsonify({
+        "draw": int(request.args.get("draw", 1)),
+        "recordsTotal": total_count,
+        "recordsFiltered": filtered_count,
+        "data": data
+    })
+
+@app.route("/api/timeline_event/<int:event_id>")
+def timeline_event(event_id):
+    conn = duckdb.connect(DUCKDB_FILE)
+
+    result = conn.execute(
+        "SELECT * FROM timeline_events WHERE id = ?",
+        [event_id]
+    )
+
+    row = result.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Not found"}), 404
+
+    columns = [desc[0] for desc in result.description]
+    event_dict = dict(zip(columns, row))
+
+    # Directly parse JSON fields
+    event_dict["extra"] = json.loads(event_dict["extra"])
+    event_dict["date_time"] = json.loads(event_dict["date_time"])
+    if isinstance(event_dict.get('inserted_at'), datetime):
+        event_dict['inserted_at'] = event_dict['inserted_at'].isoformat()
+    conn.close()
+
+    # Return pretty JSON
+    return app.response_class(
+        response=json.dumps(event_dict, indent=2),
+        mimetype='application/json'
+    )
+
+
+def get_bucket_from_span(span_seconds):
+    if span_seconds > 365*24*3600:      # multiple years
+        return 'YEAR'
+    elif span_seconds > 30*24*3600:     # multiple months
+        return 'MONTH'
+    elif span_seconds > 24*3600:        # multiple days
+        return 'DAY'
+    elif span_seconds > 3600:           # multiple hours
+        return 'HOUR'
+    else:
+        return 'MINUTE'
+
+@app.route('/timeline_chart')
+def timeline_chart():
+    return render_template('timeline_chart.html')
+
+@app.route('/timeline_chart/data')
+def timeline_chart_data():
+    start_time = request.args.get('start_time')
+    end_time = request.args.get('end_time')
+
+    conn = duckdb.connect(DUCKDB_FILE)
+
+    # Filters
+    filters = []
+    if start_time:
+        ts = int(datetime.strptime(start_time, "%d/%m/%Y %H:%M").timestamp()*1_000_000)
+        filters.append(f"timestamp >= {ts}")
+    if end_time:
+        ts = int(datetime.strptime(end_time, "%d/%m/%Y %H:%M").timestamp()*1_000_000)
+        filters.append(f"timestamp <= {ts}")
+    where_sql = f"WHERE {' AND '.join(filters)}" if filters else ""
+
+    # Min/Max timestamps
+    min_ts, max_ts = conn.execute(f"SELECT MIN(timestamp), MAX(timestamp) FROM timeline_events {where_sql}").fetchone()
+    if min_ts is None or max_ts is None:
+        return jsonify({"labels": [], "counts": []})
+
+    span_seconds = (max_ts - min_ts)/1_000_000
+    bucket = get_bucket_from_span(span_seconds)
+
+    # Fixed aggregation: divide by 1_000_000.0 to make float for TO_TIMESTAMP
+    data_sql = f"""
+        SELECT
+            DATE_TRUNC('{bucket}', TO_TIMESTAMP(timestamp / 1000000.0)) AS bucket,
+            COUNT(*) AS count
+        FROM timeline_events
+        {where_sql}
+        GROUP BY bucket
+        ORDER BY bucket
+    """
+    rows = conn.execute(data_sql).fetchall()
+
+    # Labels, counts
+    labels = []
+    counts = []
+    for r in rows:
+        dt = r[0]
+        if bucket == 'YEAR':
+            labels.append(dt.strftime("%Y"))
+        elif bucket == 'MONTH':
+            labels.append(dt.strftime("%b %Y"))
+        elif bucket == 'DAY':
+            labels.append(dt.strftime("%d %b %Y"))
+        elif bucket == 'HOUR':
+            labels.append(dt.strftime("%d %b %H:%M"))
+        else:
+            labels.append(dt.strftime("%d %b %H:%M"))
+        counts.append(r[1])
+
+    return jsonify({"labels": labels, "counts": counts})
+
+
+def run_viewer(collection_dir, db_file="collectifor.db", duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
+    global COLLECTION_DIR, DB_FILE, DUCKDB_FILE
+    if collection_dir:
+        COLLECTION_DIR = os.path.realpath(collection_dir)
+    else:
+        COLLECTION_DIR = None
     DB_FILE = db_file
+    DUCKDB_FILE = duckdb_file
     print(f"[+] Viewer started")
     print(f"[+] Collection: {COLLECTION_DIR}")
     print(f"[+] URL: http://{host}:{port}")

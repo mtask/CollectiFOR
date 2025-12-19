@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Timeline Explorer</h2>
+
+<!-- Top row: calendar pickers -->
+<div class="row mb-3 justify-content-center">
+    <div class="col-md-3">
+        <label>Start Time</label>
+        <input id="start-time" class="form-control" placeholder="dd/mm/yyyy HH:mm">
+    </div>
+
+    <div class="col-md-3">
+        <label>End Time</label>
+        <input id="end-time" class="form-control" placeholder="dd/mm/yyyy HH:mm">
+    </div>
+</div>
+
+<!-- Bottom row: search + filter button -->
+<!-- Bottom row: search + helpers + filter button -->
+<div class="row mb-3 justify-content-center align-items-end">
+    <div class="col-md-10">
+        <label>DuckDB SQL Filter</label>
+
+        <div class="input-group">
+            <input
+                type="text"
+                id="sql-filter"
+                class="form-control"
+                placeholder="e.g. message ILIKE '%error%' AND data_type='syslog:line'"
+                spellcheck="false"
+                autocorrect="off"
+                autocapitalize="off"
+            >
+
+            <!-- IMPORTANT: dropdown wrapped correctly -->
+            <button
+                class="btn btn-outline-secondary dropdown-toggle"
+                type="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+            >
+                Helpers
+            </button>
+
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="message ILIKE '%error%'">
+                        Message ILIKE
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="filename ILIKE '%log%'">
+                        Filename ILIKE
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="data_type = 'syslog:line'">
+                        Filter by data type
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="json_extract_string(extra, '$.sha256_hash') = 'HASH HERE'">
+                        SHA256 hash
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="json_extract_string(extra, '$.sha1_hash') = 'HASH HERE'">
+                        SHA1 hash
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="timestamp_desc = 'Content Modification Time'">
+                       Content Modification Time
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="timestamp_desc = 'Last Access Time'">
+                       Last Access Time
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
+                       data-snippet="timestamp_desc = 'Metadata Modification Time'">
+                       Metadata Modification Time
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <button id="apply-filter" class="btn btn-primary w-100">
+            Filter
+        </button>
+    </div>
+</div>
+
+<div class="table-responsive">
+<table id="timeline-table" class="table table-striped table-bordered display nowrap" style="width:100%">
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Timestamp Description</th>
+            <th>Data Type</th>
+            <th>Message</th>
+            <th>Event</th>
+        </tr>
+    </thead>
+</table>
+</div>
+
+<!-- Event Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Event Details</h5>
+                <button class="btn btn-sm btn-outline-secondary me-2" id="copy-event-btn" title="Copy full event">📋</button>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="event-json" class="language-json mb-0"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index:1055;"></div>
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<style>
+#sql-filter::selection {
+    background-color: #00FF00; /* invert selection colors */
+    color: #000000;
+}
+
+#sql-filter:focus {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.95rem;
+    background-color: #000000;  /* black background */
+    color: #00FF00;             /* bright green text */
+    caret-color: #00FF00;       /* green cursor */
+    border: 1px solid #00FF00;  /* optional border */
+    padding: 0.375rem 0.75rem;  /* same as Bootstrap input padding */
+    outline: none;            /* remove default focus outline */
+    box-shadow: 0 0 5px #00FF00; /* glow effect when focused */
+}
+
+td:last-child {
+    text-align: center;
+    white-space: nowrap;
+}
+
+table.dataTable {
+    table-layout: fixed;
+}
+table.dataTable th, table.dataTable td {
+    white-space: nowrap;
+}
+
+/* Message cell */
+td.message {
+    max-width: 400px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    position: relative;
+}
+
+td.message .short-msg { display: inline; }
+td.message .full-msg { display: none; }
+
+td.message.expanded {
+    white-space: normal;
+}
+
+td.message.expanded .short-msg { display: none; }
+td.message.expanded .full-msg {
+    display: block;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Copy button */
+td.message .copy-btn {
+    display: none;
+    margin-left: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: #0d6efd;
+}
+
+td.message.expanded .copy-btn {
+    display: inline;
+}
+
+#copy-event-btn {
+    font-size: 0.9em;
+}
+</style>
+
+<script>
+$(document).ready(function() {
+
+    const startPicker = flatpickr("#start-time", {
+        enableTime: true,
+        dateFormat: "d/m/Y H:i",
+        time_24hr: true
+    });
+
+    const endPicker = flatpickr("#end-time", {
+        enableTime: true,
+        dateFormat: "d/m/Y H:i",
+        time_24hr: true
+    });
+
+    function showToast(msg) {
+        const id = 'toast-' + Date.now();
+        $('#toast-container').append(`
+            <div id="${id}" class="toast text-bg-primary border-0">
+                <div class="d-flex">
+                    <div class="toast-body">${msg}</div>
+                    <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `);
+        new bootstrap.Toast(document.getElementById(id), { delay: 2000 }).show();
+    }
+
+    const table = $('#timeline-table').DataTable({
+        serverSide: true,
+        processing: true,
+        searching: false,
+        ajax: {
+            url: "{{ url_for('timeline_data') }}",
+            data: function(d) {
+                d.start_time = startPicker.selectedDates.length
+                    ? Math.floor(startPicker.selectedDates[0].getTime() / 1000)
+                    : null;
+
+                d.end_time = endPicker.selectedDates.length
+                    ? Math.floor(endPicker.selectedDates[0].getTime() / 1000)
+                    : null;
+
+                d.sql_filter = $('#sql-filter').val();
+            }
+        },
+        columns: [
+            { data: 'timestamp', render: ts => new Date(ts/1000).toLocaleString('en-GB') },
+            { data: 'timestamp_desc' },
+            { data: 'data_type' },
+            {
+                data: 'message',
+                className: 'message',
+                render: msg => {
+                    if (!msg) return '';
+                    return `
+                        <span class="short-msg">${msg.substring(0,150)}${msg.length>150?'...':''}</span>
+                        <span class="full-msg">${msg}</span>
+                        <span class="copy-btn" title="Copy">📋</span>
+                    `;
+                }
+            },
+            {
+                data: 'id',
+                orderable: false,
+                render: id => `<button class="btn btn-sm btn-primary show-event" data-id="${id}">Show Event</button>`
+            }
+        ],
+        order: [[0, 'asc']],
+        pageLength: 50,
+        scrollX: true
+    });
+
+    $('#apply-filter').on('click', function() {
+        table.ajax.reload();
+    });
+
+    $('#timeline-table').on('click', 'td.message', function(e) {
+        if ($(e.target).hasClass('copy-btn')) {
+            const text = $(this).find('.full-msg').text();
+            navigator.clipboard.writeText(text).then(() => showToast('Message copied'));
+            e.stopPropagation();
+            return;
+        }
+        $(this).toggleClass('expanded');
+    });
+
+    $('#timeline-table').on('click', '.show-event', function() {
+        const id = $(this).data('id');
+        fetch(`/api/timeline_event/${id}`)
+            .then(r => r.json())
+            .then(data => {
+                // Pretty-print JSON
+                const jsonText = JSON.stringify(data, null, 2);
+                $('#event-json').text(jsonText);
+
+                // Trigger Prism syntax highlighting
+                Prism.highlightElement(document.getElementById('event-json'));
+
+                new bootstrap.Modal('#eventModal').show();
+            });
+    });
+
+
+    // Copy button in event modal
+    $('#copy-event-btn').on('click', function() {
+        const text = $('#event-json').text();
+        navigator.clipboard.writeText(text).then(() => showToast('Full event copied'));
+    });
+
+
+    $('#apply-filter').on('click', () => table.ajax.reload());
+
+    $(document).on('click', '.filter-helper', function (e) {
+        e.preventDefault();
+        const snippet = $(this).data('snippet');
+        const input = $('#sql-filter');
+       // Replace entire input with snippet:
+       input.val(snippet);
+       // Focus the input:
+       input.focus();
+    });
+
+});
+</script>
+
+{% endblock %}
+

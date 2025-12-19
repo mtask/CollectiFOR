@@ -123,7 +123,6 @@ class Finding(Base):
 
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
-
 class DB:
     def __init__(self, db_file):
         self.engine = create_engine(f"sqlite:///{db_file}", echo=False, future=True)

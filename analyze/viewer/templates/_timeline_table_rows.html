@@ -1,0 +1,12 @@
+{% for event in events %}
+<tr>
+    <td>{{ event.timestamp }}</td>
+    <td>{{ event.source }}</td>
+    <td>{{ event.event_type }}</td>
+    <td class="summary">{{ event.summary }}</td>
+    <td class="mono">
+        <pre class="json-collapsed">{{ event.meta|tojson(indent=2) }}</pre>
+        <button class="toggle-btn">Show more</button>
+    </td>
+</tr>
+{% endfor %}

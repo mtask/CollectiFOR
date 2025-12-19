@@ -1,16 +1,16 @@
 # Usage
 
 ```
-usage: collectifor.py [-h] [-d DB] [-v] [-y RULE_DIR] [-p PATTERN_DIR] [-l] [-fp] [-pe] [-pc] [--init] [--analysis] [--viewer] collection
+usage: collectifor.py [-h] [-c COLLECTION] [-d DB] [-td TDB] [-v] [-y RULE_DIR] [-p PATTERN_DIR] [-l] [-fp] [-pe] [-pc] [--init] [--analysis] [-tf TIMELINE_FILE] [--viewer]
 
 Parse forensic collection and store results in SQLite DB
 
-positional arguments:
-  collection            Path to collection directory or .tar.gz archive
-
 options:
   -h, --help            show this help message and exit
+  -c COLLECTION, --collection COLLECTION
+                        Path to collection directory or .tar.gz archive
   -d DB, --db DB        SQLite database file (default: collectifor.db)
+  -td TDB, --tdb TDB    DuckDB database file for imported timeline (default: timeline.duckdb)
   -v, --verbose         Enable verbose logging
   -y RULE_DIR, --yara RULE_DIR
                         Enable yara analysis module by providing path to your yara rules top-level directory.
@@ -23,6 +23,8 @@ options:
   -pc, --pcap           Enable PCAP analysis module
   --init                Initialize collection (Run only once against same collection)
   --analysis            Enable and run all analysis modules. Yara module requires --yara RULE_DIR and pattern module --pattern PATTERN_DIR
+  -tf TIMELINE_FILE, --timeline-file TIMELINE_FILE
+                        Import exported Plaso timeline in JSON lines format
   --viewer              Launch local analysis viewer
 ```
 
@@ -32,7 +34,7 @@ All the analysis and viewing related functionalities are launched with the `coll
 
 ```bash
 # Might require sudo/root depending on your collection's permissions
-python3 collectifor.py --init --analysis --yara yara/ --pattern patterns/ --viewer /collections/host_20251217_141749.tar.gz 
+python3 collectifor.py --init --analysis --yara yara/ --pattern patterns/ --viewer --collection /collections/host_20251217_141749.tar.gz 
 ```
 
 **Arguments**:
@@ -55,6 +57,15 @@ To initialize without:
 
 **NOTE:** Running initialization twice or more times against the same database will mean duplicate data.
 
+## Timeline
+
+CollectiFOR supports ingesting timeline files which are generated wiith `log2timeline.py` and then exported as JSON lines format.
+
+```
+python3 collectifor.py -tf /tmp/plaso/x.timeline.jsonl
+```
+
+See full examples in [playbooks](playbooks/timelines.md). Viewer (see below) has also some basic timeline exploring and visualization tools.
 
 ## Viewer
 
@@ -62,41 +73,96 @@ CollectiFOR viewer is Flask based application that provides some simple visibili
 Like shown in the all-in-one example you can launch viewer as part of the database initialization and/or analysis. With ready database you can just re-run viewer like this:
 
 ```
-python3 collectifor.py --viewer /collections/host_20251217_141749.tar.gz 
+python3 collectifor.py --viewer --collection /collections/host_20251217_141749.tar.gz 
 ```
 
 Remember to specify `--db <db file>` if you had non-default database path during the initialization.
 
 Here's a list of viewer's functionalities:
 
+<details>
+<summary>Network</summary>
 * Network data search against ingested data from collection's PCAP file.
 
 ![](imgs/network.png)
 
+</details>
+
+<details>
+<summary>Findings</summary>
+  
 * Findings. Results from `--analysis`/`--yara` /`--pattern`.
 
 ![](imgs/findings.png)
 
+</details>
+
+<details>
+<summary>Free search</summary>
+  
 * String search against the ingested data.
 
 ![](imgs/search.png)
 
+</details>
+
+<details>
+<summary>Checksum search</summary>
+  
 * Checksum data search. Can be search by checksum or by string.
 
 ![](imgs/checksum.png)
 
+</details>
+
+<details>
+<summary>File Navigator</summary>
+  
 * Simple file navigator based on collection's `files_and_dirs`. Allows to view files as well. This is main usage of the actual collection data in viewer in addition to initialized database.
 
 ![](imgs/files.png)
 
+</details>
+
+<details>
+<summary>Commands</summary>
+  
 * View and search for command outputs
 
 ![](imgs/commands.png)
 
+</details>
+
+<details>
+<summary>Network Listening Processes</summary>
+  
 * Details about network listening processes
 
 ![](imgs/listeners.png)
 
+</details>
+
+<details>
+<summary>Timeline Explorer</summary>
+  
+* Explore data from imported JSON lines timeline file.
+
+![](imgs/timeline_explorer.png)
+
+* Open full details of an event
+
+![](imgs/timeline_event.png )
+
+</details>
+
+
+<details>
+<summary>Timeline Chart</summary>
+  
+View timeline data in chart (counts, no event details).
+![](imgs/timeline_chart.png)
+
+</details>
 
 # Collection-Parser-Database mapping
 
@@ -128,7 +194,7 @@ YARA and Pattern modules use existing source content (YARA rules, IoC listings, 
 You can skipp all the PoC analysis modules like this if you still want to run YARA and/or PATTERN analysis.
 
 ```
-python3 collectifor.py --init --yara yara/ --pattern patterns/ --viewer /collections/host_20251217_141749.tar.gz 
+python3 collectifor.py --init --yara yara/ --pattern patterns/ --viewer --collection /collections/host_20251217_141749.tar.gz 
 ```
 
 ## Module | YARA

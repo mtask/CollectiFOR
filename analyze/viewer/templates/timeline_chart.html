@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Timeline Chart</h2>
+
+<div class="row mb-3 justify-content-center">
+    <div class="col-md-3">
+        <label>Start Time</label>
+        <input id="start-time" class="form-control" placeholder="dd/mm/yyyy HH:mm">
+    </div>
+
+    <div class="col-md-3">
+        <label>End Time</label>
+        <input id="end-time" class="form-control" placeholder="dd/mm/yyyy HH:mm">
+    </div>
+
+    <div class="col-md-2 align-self-end">
+        <button id="apply-filter" class="btn btn-primary w-100">Filter</button>
+    </div>
+</div>
+
+<div id="loading" class="text-center mb-3" style="display:none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <canvas id="timelineChart" height="100"></canvas>
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+let chart;
+
+function fetchChartData() {
+    $('#loading').show();
+
+    const start_time = $('#start-time').val();
+    const end_time = $('#end-time').val();
+
+    fetch(`/timeline_chart/data?start_time=${encodeURIComponent(start_time)}&end_time=${encodeURIComponent(end_time)}`)
+        .then(r => r.json())
+        .then(data => {
+            $('#loading').hide();
+
+            const ctx = document.getElementById('timelineChart').getContext('2d');
+            if(chart) chart.destroy();
+
+            chart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Events',
+                            data: data.counts,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Time' } },
+                        y: { title: { display: true, text: 'Number of Events' }, beginAtZero: true }
+                    }
+                }
+            });
+        });
+}
+
+$(document).ready(function() {
+    flatpickr("#start-time", { enableTime: true, dateFormat: "d/m/Y H:i", time_24hr: true });
+    flatpickr("#end-time", { enableTime: true, dateFormat: "d/m/Y H:i", time_24hr: true });
+
+    fetchChartData();
+
+    $('#apply-filter').on('click', function() {
+        fetchChartData();
+    });
+});
+</script>
+{% endblock %}
