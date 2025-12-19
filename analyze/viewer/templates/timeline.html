@@ -39,9 +39,25 @@
             <th>Event Type</th>
             <th>Source</th>
             <th>Message</th>
+            <th>Event</th>
         </tr>
     </thead>
 </table>
+</div>
+
+<!-- Event Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Event Details</h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="event-json" class="mb-0"></pre>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Toast container -->
@@ -52,11 +68,15 @@
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Flatpickr -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
 <style>
+td:last-child {
+    text-align: center;
+    white-space: nowrap;
+}
+
 table.dataTable {
     table-layout: fixed;
 }
@@ -106,7 +126,6 @@ td.message.expanded .copy-btn {
 <script>
 $(document).ready(function() {
 
-    /* Flatpickr */
     const startPicker = flatpickr("#start-time", {
         enableTime: true,
         dateFormat: "d/m/Y H:i",
@@ -119,19 +138,17 @@ $(document).ready(function() {
         time_24hr: true
     });
 
-    /* Toast helper */
     function showToast(msg) {
         const id = 'toast-' + Date.now();
         $('#toast-container').append(`
-            <div id="${id}" class="toast text-bg-primary border-0" role="alert">
+            <div id="${id}" class="toast text-bg-primary border-0">
                 <div class="d-flex">
                     <div class="toast-body">${msg}</div>
                     <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
                 </div>
             </div>
         `);
-        const toast = new bootstrap.Toast(document.getElementById(id), { delay: 2000 });
-        toast.show();
+        new bootstrap.Toast(document.getElementById(id), { delay: 2000 }).show();
     }
 
     const table = $('#timeline-table').DataTable({
@@ -167,6 +184,11 @@ $(document).ready(function() {
                         <span class="copy-btn" title="Copy">📋</span>
                     `;
                 }
+            },
+            {
+                data: 'id',
+                orderable: false,
+                render: id => `<button class="btn btn-sm btn-secondary show-event" data-id="${id}">Show Event</button>`
             }
         ],
         order: [[0, 'asc']],
@@ -178,7 +200,6 @@ $(document).ready(function() {
         table.ajax.reload();
     });
 
-    /* Expand + copy logic */
     $('#timeline-table').on('click', 'td.message', function(e) {
         if ($(e.target).hasClass('copy-btn')) {
             const text = $(this).find('.full-msg').text();
@@ -187,6 +208,16 @@ $(document).ready(function() {
             return;
         }
         $(this).toggleClass('expanded');
+    });
+
+    $('#timeline-table').on('click', '.show-event', function() {
+        const id = $(this).data('id');
+        fetch(`/api/timeline_event/${id}`)
+            .then(r => r.json())
+            .then(data => {
+                $('#event-json').text(JSON.stringify(data, null, 2));
+                new bootstrap.Modal('#eventModal').show();
+            });
     });
 });
 </script>

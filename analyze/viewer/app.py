@@ -303,7 +303,7 @@ def timeline_data():
         base_sql += f" AND ({sql_filter})"
 
     data_sql = f"""
-        SELECT timestamp, timestamp_desc, data_type, message
+        SELECT id, timestamp, timestamp_desc, data_type, message
         {base_sql}
         ORDER BY timestamp ASC
         LIMIT {length} OFFSET {start}
@@ -325,6 +325,37 @@ def timeline_data():
         "recordsFiltered": filtered_count,
         "data": data
     })
+
+@app.route("/api/timeline_event/<int:event_id>")
+def timeline_event(event_id):
+    conn = duckdb.connect(DUCKDB_FILE)
+
+    result = conn.execute(
+        "SELECT * FROM timeline_events WHERE id = ?",
+        [event_id]
+    )
+
+    row = result.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({"error": "Not found"}), 404
+
+    columns = [desc[0] for desc in result.description]
+    event_dict = dict(zip(columns, row))
+
+    # Directly parse JSON fields
+    print(event_dict)
+    event_dict["extra"] = json.loads(event_dict["extra"])
+    event_dict["date_time"] = json.loads(event_dict["date_time"])
+    if isinstance(event_dict.get('inserted_at'), datetime):
+        event_dict['inserted_at'] = event_dict['inserted_at'].isoformat()
+    conn.close()
+
+    # Return pretty JSON
+    return app.response_class(
+        response=json.dumps(event_dict, indent=2),
+        mimetype='application/json'
+    )
 
 
 def run_viewer(collection_dir, db_file="collectifor.db", duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
