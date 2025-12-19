@@ -165,7 +165,7 @@ $(document).ready(function() {
             }
         },
         columns: [
-            { data: 'timestamp', render: ts => new Date(ts/1000).toLocaleString() },
+            { data: 'timestamp', render: ts => new Date(ts/1000).toLocaleString('en-GB') },
             { data: 'timestamp_desc' },
             { data: 'data_type' },
             { 
