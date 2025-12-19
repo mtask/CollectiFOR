@@ -323,7 +323,6 @@ def timeline_data():
         filtered_count = conn.execute(
             f"SELECT COUNT(*) {base_sql}"
         ).fetchone()[0]
-        print(repr(e))
     except Exception as e:
         print(repr(e))
         filtered_count = 0
