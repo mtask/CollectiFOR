@@ -65,7 +65,7 @@ CollectiFOR supports ingesting timeline files which are generated wiith `log2tim
 python3 collectifor.py -tf /tmp/plaso/x.timeline.jsonl
 ```
 
-See full examples in [playbooks](playbooks/timelines.md)
+See full examples in [playbooks](playbooks/timelines.md). Viewer (see below) has also some basic timeline exploring and visualization tools.
 
 ## Viewer
 
@@ -80,34 +80,89 @@ Remember to specify `--db <db file>` if you had non-default database path during
 
 Here's a list of viewer's functionalities:
 
+<details>
+<summary>Network</summary>
 * Network data search against ingested data from collection's PCAP file.
 
 ![](imgs/network.png)
 
+</details>
+
+<details>
+<summary>Findings</summary>
+  
 * Findings. Results from `--analysis`/`--yara` /`--pattern`.
 
 ![](imgs/findings.png)
 
+</details>
+
+<details>
+<summary>Free search</summary>
+  
 * String search against the ingested data.
 
 ![](imgs/search.png)
 
+</details>
+
+<details>
+<summary>Checksum search</summary>
+  
 * Checksum data search. Can be search by checksum or by string.
 
 ![](imgs/checksum.png)
 
+</details>
+
+<details>
+<summary>File Navigator</summary>
+  
 * Simple file navigator based on collection's `files_and_dirs`. Allows to view files as well. This is main usage of the actual collection data in viewer in addition to initialized database.
 
 ![](imgs/files.png)
 
+</details>
+
+<details>
+<summary>Commands</summary>
+  
 * View and search for command outputs
 
 ![](imgs/commands.png)
 
+</details>
+
+<details>
+<summary>Network Listening Processes</summary>
+  
 * Details about network listening processes
 
 ![](imgs/listeners.png)
 
+</details>
+
+<details>
+<summary>Timeline Explorer</summary>
+  
+* Explore data from imported JSON lines timeline file.
+
+![](imgs/timeline_explorer.png)
+
+* Open full details of an event
+
+![](imgs/timeline_event.png )
+
+</details>
+
+
+<details>
+<summary>Timeline Explorer</summary>
+  
+View timeline data in chart (counts, no event details).
+![](imgs/timeline_chart.png)
+
+</details>
 
 # Collection-Parser-Database mapping
 
