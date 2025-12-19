@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, or_
 from sqlalchemy.orm import sessionmaker
 from flask import abort
 from datetime import datetime
+import duckdb
 import os
 import json
 import html
@@ -16,12 +17,8 @@ from lib.db import (
     Finding,
     FileEntry,
     ListenerEntry,
-    TimelineEvent,
 )
 
-from lib.db_tl import (
-    TimelineEvent,
-)
 
 app = Flask(__name__)
 
@@ -268,125 +265,86 @@ def finding_detail(finding_id):
     return render_template("finding_detail.html", finding=finding)
 
 
+
+# ------------------------
+# Timeline page
+# ------------------------
 @app.route("/timeline")
 def timeline():
-    session = get_tl_session()
+    """
+    Timeline viewer page with filters.
+    """
+    conn = duckdb.connect(DUCKDB_FILE)
+    # Get distinct sources and event types for filters
+    sources = [r[0] for r in conn.execute("SELECT DISTINCT data_type FROM timeline_events ORDER BY data_type").fetchall()]
+    event_types = [r[0] for r in conn.execute("SELECT DISTINCT timestamp_desc FROM timeline_events ORDER BY timestamp_desc").fetchall()]
+    conn.close()
 
-    q = request.args.get("q", "").strip()
-    source = request.args.get("source", "").strip()
-    event_type = request.args.get("event_type", "").strip()
-    start_time = request.args.get("start", "").strip()
-    end_time = request.args.get("end", "").strip()
+    return render_template("timeline.html", sources=sources, event_types=event_types)
 
-    MIN_TIMESTAMP = datetime(1980, 1, 1)  # exclude 1970/Not-a-time events
 
-    query = session.query(TimelineEvent).filter(TimelineEvent.timestamp >= MIN_TIMESTAMP)
+@app.route("/api/timeline_data")
+def timeline_data():
+    start_time = request.args.get("start_time")
+    end_time = request.args.get("end_time")
+    sources = request.args.getlist("source[]")
+    event_types = request.args.getlist("event_type[]")
+    start = int(request.args.get("start", 0))
+    length = int(request.args.get("length", 50))
 
-    # Filters
-    if q:
-        query = query.filter(TimelineEvent.summary.contains(q))
-
-    if source:
-        source_list = source.split(',')
-        query = query.filter(TimelineEvent.source.in_(source_list))
-
-    if event_type:
-        type_list = event_type.split(',')
-        query = query.filter(TimelineEvent.event_type.in_(type_list))
+    conn = duckdb.connect(DUCKDB_FILE)
+    sql = "SELECT timestamp, timestamp_desc, data_type, message FROM timeline_events WHERE 1=1"
+    params = []
 
     if start_time:
-        try:
-            dt_start = datetime.fromisoformat(start_time)
-            query = query.filter(TimelineEvent.timestamp >= dt_start)
-        except ValueError:
-            pass
+        sql += " AND timestamp >= ?"
+        ts_start = int(pd.Timestamp(start_time).timestamp() * 1_000_000)
+        params.append(ts_start)
 
     if end_time:
-        try:
-            dt_end = datetime.fromisoformat(end_time)
-            query = query.filter(TimelineEvent.timestamp <= dt_end)
-        except ValueError:
-            pass
+        sql += " AND timestamp <= ?"
+        ts_end = int(pd.Timestamp(end_time).timestamp() * 1_000_000)
+        params.append(ts_end)
 
-    limit = 2000
-    offset = int(request.args.get("offset", 0))
-    events = query.order_by(TimelineEvent.timestamp.asc()).offset(offset).limit(limit).all()
+    if sources:
+        sql += " AND data_type IN ({})".format(",".join("?"*len(sources)))
+        params.extend(sources)
 
-    # Distinct EventTypes and Sources for filters
-    event_types = [et[0] for et in session.query(TimelineEvent.event_type).distinct().order_by(TimelineEvent.event_type)]
-    sources = [s[0] for s in session.query(TimelineEvent.source).distinct().order_by(TimelineEvent.source) if s[0]]
+    if event_types:
+        sql += " AND timestamp_desc IN ({})".format(",".join("?"*len(event_types)))
+        params.extend(event_types)
 
-    session.close()
+    sql += " ORDER BY timestamp ASC LIMIT ? OFFSET ?"
+    params.extend([length, start])
 
-    return render_template(
-        "timeline.html",
-        events=events,
-        q=q,
-        source=source,
-        event_type=event_type,
-        start_time=start_time,
-        end_time=end_time,
-        event_types=event_types,
-        sources=sources,
-        limit=limit,
-        offset=offset
-    )
+    df = conn.execute(sql, params).df()
+    data = df.to_dict(orient='records')
+
+    # DataTables response
+    return jsonify({
+        "draw": request.args.get("draw", 1),
+        "recordsTotal": conn.execute("SELECT COUNT(*) FROM timeline_events").fetchone()[0],
+        "recordsFiltered": len(data),
+        "data": data
+    })
 
 
-# -----------------------------------
-# Main visualization page
-# -----------------------------------
-
-@app.route("/timeline_viz")
-def timeline_viz():
-    # Initial empty page; client loads events via AJAX
-    return render_template("timeline_viz.html")
-
-
-@app.route("/timeline_viz/events_json")
-def timeline_ajax():
-    session = get_tl_session()
-
-    start = request.args.get("start")
-    end = request.args.get("end")
-    limit = int(request.args.get("limit", 200))  # smaller batch
-
-    try:
-        dt_start = datetime.fromisoformat(start)
-        dt_end = datetime.fromisoformat(end)
-    except Exception:
-        return jsonify([])
-
-    events = session.query(TimelineEvent)\
-        .filter(TimelineEvent.timestamp >= dt_start)\
-        .filter(TimelineEvent.timestamp <= dt_end)\
-        .order_by(TimelineEvent.timestamp.asc())\
-        .limit(limit)\
-        .all()
-
-    result = []
-    for e in events:
-        result.append({
-            "id": e.id,
-            "start": e.timestamp.isoformat(),  # vis-timeline requires 'start'
-            "content": e.summary,
-            "group": e.event_type,
-            "meta": e.meta
-        })
-    session.close()
-    return jsonify(result)
+@app.route("/api/timeline_filters")
+def timeline_filters():
+    conn = duckdb.connect(DUCKDB_FILE)
+    sources = [r[0] for r in conn.execute("SELECT DISTINCT data_type FROM timeline_events").fetchall()]
+    event_types = [r[0] for r in conn.execute("SELECT DISTINCT timestamp_desc FROM timeline_events").fetchall()]
+    return jsonify({
+        "sources": sources,
+        "event_types": event_types
+    })
 
 
-
-# ----------------------------------------------------------------------
-# Entry point for collectifor.py
-# ----------------------------------------------------------------------
-
-def run_viewer(collection_dir, db_file="collectifor.db", db_tl_file="timeline.db", host="127.0.0.1", port=5000, debug=True):
-    global COLLECTION_DIR, DB_FILE, DB_TL_FILE
+def run_viewer(collection_dir, db_file="collectifor.db", duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
+    global COLLECTION_DIR, DB_FILE, DUCKDB_FILE
     COLLECTION_DIR = os.path.realpath(collection_dir)
     DB_FILE = db_file
-    DB_TL_FILE = db_tl_file
+    DUCKDB_FILE = duckdb_file
     print(f"[+] Viewer started")
     print(f"[+] Collection: {COLLECTION_DIR}")
     print(f"[+] URL: http://{host}:{port}")

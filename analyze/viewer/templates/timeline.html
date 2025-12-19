@@ -1,181 +1,106 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h2>Timeline</h2>
+<h2>Timeline Explorer</h2>
 
-<form id="timeline-filter-form" class="row g-2 mb-3">
-    <!-- Hidden inputs for dropdown selections -->
-    <input type="hidden" name="source" id="hidden-source" value="{{ source }}">
-    <input type="hidden" name="event_type" id="hidden-event-type" value="{{ event_type }}">
-
-    <!-- Search -->
-    <div class="col-auto">
-        <input type="text" name="q" class="form-control form-control-sm" placeholder="Search..." value="{{ q }}">
+<div class="row mb-3">
+    <div class="col-md-3">
+        <label>Start Time</label>
+        <input type="datetime-local" id="start-time" class="form-control">
     </div>
-
-    <!-- Source filter -->
-    <div class="col-auto">
-        <div class="dropdown">
-            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="sourceDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                Source
-            </button>
-            <ul class="dropdown-menu p-2" aria-labelledby="sourceDropdown" style="max-height: 200px; overflow-y: auto;">
-                {% for s in sources %}
-                <li>
-                    <div class="form-check">
-                        <input class="form-check-input source-checkbox" type="checkbox" value="{{ s }}" id="source-{{ loop.index }}" {% if s in source.split(',') %}checked{% endif %}>
-                        <label class="form-check-label" for="source-{{ loop.index }}">{{ s }}</label>
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
+    <div class="col-md-3">
+        <label>End Time</label>
+        <input type="datetime-local" id="end-time" class="form-control">
     </div>
-
-    <!-- EventType filter -->
-    <div class="col-auto">
-        <div class="dropdown">
-            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="typeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                Event Type
-            </button>
-            <ul class="dropdown-menu p-2" aria-labelledby="typeDropdown" style="max-height: 200px; overflow-y: auto;">
-                {% for t in event_types %}
-                <li>
-                    <div class="form-check">
-                        <input class="form-check-input type-checkbox" type="checkbox" value="{{ t }}" id="type-{{ loop.index }}" {% if t in event_type.split(',') %}checked{% endif %}>
-                        <label class="form-check-label" for="type-{{ loop.index }}">{{ t }}</label>
-                    </div>
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
+    <div class="col-md-3">
+        <label>Source</label>
+        <div id="source-filter" class="form-check-group" style="max-height: 150px; overflow-y: auto;"></div>
     </div>
-
-    <!-- Time range -->
-    <div class="col-auto">
-        <input type="date" name="start" class="form-control form-control-sm" value="{{ start_time }}">
+    <div class="col-md-3">
+        <label>Event Type</label>
+        <div id="type-filter" class="form-check-group" style="max-height: 150px; overflow-y: auto;"></div>
     </div>
-    <div class="col-auto">
-        <input type="date" name="end" class="form-control form-control-sm" value="{{ end_time }}">
-    </div>
-
-    <!-- Apply -->
-    <div class="col-auto">
-        <button type="submit" class="btn btn-sm btn-dark">Apply</button>
-    </div>
-
-    <!-- Reset all -->
-    <div class="col-auto">
-        <button type="button" class="btn btn-sm btn-outline-danger" id="reset-all">Reset All</button>
-    </div>
-</form>
-
-<div id="timeline-table-container">
-    <table class="table table-striped table-hover table-sm">
-        <thead>
-            <tr>
-                <th>Timestamp</th>
-                <th>Source</th>
-                <th>Event Type</th>
-                <th>Summary</th>
-                <th>Meta</th>
-            </tr>
-        </thead>
-        <tbody id="timeline-body">
-            {% for event in events %}
-            <tr>
-                <td>{{ event.timestamp }}</td>
-                <td>{{ event.source }}</td>
-                <td>{{ event.event_type }}</td>
-                <td class="summary">{{ event.summary }}</td>
-                <td class="mono"><pre>{{ event.meta | tojson(indent=2) }}</pre></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    {% if events|length == limit %}
-    <div class="text-center mb-3">
-        <button id="load-more-btn" class="btn btn-sm btn-secondary">Load more</button>
-    </div>
-    {% endif %}
 </div>
 
+<table id="timeline-table" class="table table-striped table-bordered display nowrap" style="width:100%">
+    <thead>
+        <tr>
+            <th>Timestamp</th>
+            <th>Event Type</th>
+            <th>Source</th>
+            <th>Message</th>
+        </tr>
+    </thead>
+</table>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    let offset = {{ offset + events|length }};
-    const limit = {{ limit }};
-    const loadMoreBtn = document.getElementById('load-more-btn');
-    const form = document.getElementById('timeline-filter-form');
-    const hiddenSource = document.getElementById('hidden-source');
-    const hiddenEventType = document.getElementById('hidden-event-type');
-    const sourceDropdownBtn = document.getElementById('sourceDropdown');
-    const typeDropdownBtn = document.getElementById('typeDropdown');
+function renderCheckboxes(containerId, values) {
+    const container = $('#' + containerId);
+    container.empty();
+    values.forEach(v => {
+        const id = containerId + '-' + v.replace(/\W/g, '');
+        container.append(`
+            <div class="form-check">
+                <input class="form-check-input ${containerId}" type="checkbox" value="${v}" id="${id}">
+                <label class="form-check-label" for="${id}">${v}</label>
+            </div>
+        `);
+    });
+}
 
-    function updateDropdownLabels() {
-        const selectedSources = Array.from(document.querySelectorAll('.source-checkbox:checked')).map(cb => cb.value);
-        const selectedTypes = Array.from(document.querySelectorAll('.type-checkbox:checked')).map(cb => cb.value);
+function getCheckedValues(className) {
+    return $('.' + className + ':checked').map(function(){ return this.value; }).get();
+}
 
-        sourceDropdownBtn.textContent = selectedSources.length > 0 ? `Source (${selectedSources.length})` : "Source";
-        typeDropdownBtn.textContent = selectedTypes.length > 0 ? `Event Type (${selectedTypes.length})` : "Event Type";
+$(document).ready(function() {
+    const table = $('#timeline-table').DataTable({
+        serverSide: true,
+        processing: true,
+        ajax: {
+            url: "{{ url_for('timeline_data') }}",
+            data: function(d) {
+                const start = $('#start-time').val();
+                const end = $('#end-time').val();
+                d.start_time = start;
+                d.end_time = end;
+                d.source = getCheckedValues('source-filter');
+                d.event_type = getCheckedValues('type-filter');
+            }
+        },
+        columns: [
+            { data: 'timestamp', render: function(ts){
+                const date = new Date(ts/1000); // plaso timestamps in microseconds
+                return date.toLocaleString();
+            }},
+            { data: 'timestamp_desc' },
+            { data: 'data_type' },
+            { data: 'message' }
+        ],
+        order: [[0, 'asc']],
+        pageLength: 50,
+        scrollX: true
+    });
+
+    function reloadTable() {
+        table.ajax.reload();
     }
 
-    // Initial update on page load
-    updateDropdownLabels();
+    $('#start-time, #end-time').on('change', reloadTable);
+    $(document).on('change', '.source-filter, .type-filter', reloadTable);
 
-    // Update labels when checkboxes change
-    document.querySelectorAll('.source-checkbox, .type-checkbox').forEach(cb => {
-        cb.addEventListener('change', updateDropdownLabels);
+    // fetch distinct values for checkboxes
+    $.getJSON("{{ url_for('timeline_filters') }}", function(data){
+        renderCheckboxes('source-filter', data.sources);
+        renderCheckboxes('type-filter', data.event_types);
+
+        // add classes for event delegation
+        $('.form-check-input', '#source-filter').addClass('source-filter');
+        $('.form-check-input', '#type-filter').addClass('type-filter');
     });
-
-    // Apply filters before submitting form
-    form.addEventListener('submit', function(e){
-        const selectedSources = Array.from(document.querySelectorAll('.source-checkbox:checked')).map(cb => cb.value);
-        const selectedTypes = Array.from(document.querySelectorAll('.type-checkbox:checked')).map(cb => cb.value);
-        hiddenSource.value = selectedSources.join(',');
-        hiddenEventType.value = selectedTypes.join(',');
-        form.submit();
-    });
-
-    // Reset all button
-    document.getElementById('reset-all').addEventListener('click', function(){
-        form.q.value = '';
-        form.start.value = '';
-        form.end.value = '';
-        hiddenSource.value = '';
-        hiddenEventType.value = '';
-        document.querySelectorAll('.source-checkbox, .type-checkbox').forEach(cb => cb.checked = false);
-        updateDropdownLabels();
-    });
-
-    // Load more functionality
-    if(loadMoreBtn){
-        loadMoreBtn.addEventListener('click', function(){
-            const params = new URLSearchParams(new FormData(form));
-            params.append('offset', offset);
-
-            fetch(`{{ url_for('timeline') }}?${params.toString()}`, {
-                headers: {'X-Requested-With': 'XMLHttpRequest'}
-            })
-            .then(res => res.text())
-            .then(html => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const newRows = doc.querySelectorAll('#timeline-body tr');
-
-                if(newRows.length > 0){
-                    const tbody = document.getElementById('timeline-body');
-                    newRows.forEach(row => tbody.appendChild(row));
-                    offset += newRows.length;
-                    if(newRows.length < limit){
-                        loadMoreBtn.style.display = 'none';
-                    }
-                } else {
-                    loadMoreBtn.style.display = 'none';
-                }
-            });
-        });
-    }
 });
 </script>
 {% endblock %}
-
