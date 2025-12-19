@@ -272,91 +272,58 @@ def finding_detail(finding_id):
 # ------------------------
 @app.route("/timeline")
 def timeline():
-    """
-    Timeline viewer page with filters.
-    """
-    conn = duckdb.connect(DUCKDB_FILE)
-    # Get distinct sources and event types for filters
-    sources = [r[0] for r in conn.execute("SELECT DISTINCT data_type FROM timeline_events ORDER BY data_type").fetchall()]
-    event_types = [r[0] for r in conn.execute("SELECT DISTINCT timestamp_desc FROM timeline_events ORDER BY timestamp_desc").fetchall()]
-    conn.close()
-
-    return render_template("timeline.html", sources=sources, event_types=event_types)
+    return render_template("timeline.html")
 
 
 @app.route("/api/timeline_data")
 def timeline_data():
     start_time = request.args.get("start_time")
     end_time = request.args.get("end_time")
-    sources = request.args.getlist("source[]")
-    event_types = request.args.getlist("event_type[]")
+    sql_filter = request.args.get("sql_filter", "").strip()
+
     start = int(request.args.get("start", 0))
     length = int(request.args.get("length", 50))
-    search_value = request.args.get("search[value]", "").strip()
 
     conn = duckdb.connect(DUCKDB_FILE)
-    sql = "SELECT timestamp, timestamp_desc, data_type, message FROM timeline_events WHERE 1=1"
-    params = []
 
-    # Time filters
+    base_sql = """
+        FROM timeline_events
+        WHERE 1=1
+    """
+
     if start_time:
-        sql += " AND timestamp >= ?"
-        ts_start = int(pd.Timestamp(start_time).timestamp() * 1_000_000)
-        params.append(ts_start)
+        ts_start = int(start_time) * 1_000_000
+        base_sql += f" AND timestamp >= {ts_start}"
 
     if end_time:
-        sql += " AND timestamp <= ?"
-        ts_end = int(pd.Timestamp(end_time).timestamp() * 1_000_000)
-        params.append(ts_end)
+        ts_end = int(end_time) * 1_000_000
+        base_sql += f" AND timestamp <= {ts_end}"
 
-    # Source filter
-    if sources:
-        sql += " AND data_type IN ({})".format(",".join("?"*len(sources)))
-        params.extend(sources)
+    if sql_filter:
+        base_sql += f" AND ({sql_filter})"
 
-    # Event type filter
-    if event_types:
-        sql += " AND timestamp_desc IN ({})".format(",".join("?"*len(event_types)))
-        params.extend(event_types)
+    data_sql = f"""
+        SELECT timestamp, timestamp_desc, data_type, message
+        {base_sql}
+        ORDER BY timestamp ASC
+        LIMIT {length} OFFSET {start}
+    """
 
-    # Global search
-    if search_value:
-        sql += " AND (message LIKE ? OR timestamp_desc LIKE ? OR data_type LIKE ?)"
-        pattern = f"%{search_value}%"
-        params.extend([pattern, pattern, pattern])
+    data = conn.execute(data_sql).df().to_dict(orient="records")
 
-    # Ordering + paging
-    sql += " ORDER BY timestamp ASC LIMIT ? OFFSET ?"
-    params.extend([length, start])
+    total_count = conn.execute(
+        "SELECT COUNT(*) FROM timeline_events"
+    ).fetchone()[0]
 
-    df = conn.execute(sql, params).df()
-    data = df.to_dict(orient='records')
-
-    # Count total and filtered
-    total_count = conn.execute("SELECT COUNT(*) FROM timeline_events").fetchone()[0]
-
-    # Count filtered for DataTables
-    # A simple option is to use the same WHERE filters but without LIMIT/OFFSET
-    count_sql = "SELECT COUNT(*) FROM timeline_events WHERE 1=1"
-    count_params = params[:-2]  # all params except limit & offset
-    records_filtered = conn.execute(count_sql + sql[sql.find(" AND"):sql.find(" ORDER BY")], count_params).fetchone()[0]
+    filtered_count = conn.execute(
+        f"SELECT COUNT(*) {base_sql}"
+    ).fetchone()[0]
 
     return jsonify({
         "draw": int(request.args.get("draw", 1)),
         "recordsTotal": total_count,
-        "recordsFiltered": records_filtered,
+        "recordsFiltered": filtered_count,
         "data": data
-    })
-
-
-@app.route("/api/timeline_filters")
-def timeline_filters():
-    conn = duckdb.connect(DUCKDB_FILE)
-    sources = [r[0] for r in conn.execute("SELECT DISTINCT data_type FROM timeline_events").fetchall()]
-    event_types = [r[0] for r in conn.execute("SELECT DISTINCT timestamp_desc FROM timeline_events").fetchall()]
-    return jsonify({
-        "sources": sources,
-        "event_types": event_types
     })
 
 

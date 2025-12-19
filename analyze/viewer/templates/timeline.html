@@ -3,22 +3,31 @@
 {% block content %}
 <h2>Timeline Explorer</h2>
 
-<div class="row mb-3">
+<div class="row mb-3 align-items-end">
     <div class="col-md-3">
         <label>Start Time</label>
-        <input type="datetime-local" id="start-time" class="form-control">
+        <input id="start-time" class="form-control" placeholder="dd/mm/yyyy HH:mm">
     </div>
+
     <div class="col-md-3">
         <label>End Time</label>
-        <input type="datetime-local" id="end-time" class="form-control">
+        <input id="end-time" class="form-control" placeholder="dd/mm/yyyy HH:mm">
     </div>
-    <div class="col-md-3">
-        <label>Source</label>
-        <div id="source-filter" class="form-check-group" style="max-height: 150px; overflow-y: auto;"></div>
+
+    <div class="col-md-4">
+        <label>DuckDB SQL Filter</label>
+        <input
+            type="text"
+            id="sql-filter"
+            class="form-control"
+            placeholder="e.g. message ILIKE '%error%' AND data_type='dns'"
+        >
     </div>
-    <div class="col-md-3">
-        <label>Event Type</label>
-        <div id="type-filter" class="form-check-group" style="max-height: 150px; overflow-y: auto;"></div>
+
+    <div class="col-md-2">
+        <button id="apply-filter" class="btn btn-primary w-100">
+            Filter
+        </button>
     </div>
 </div>
 
@@ -35,29 +44,29 @@
 </table>
 </div>
 
-<!-- Toast container for copy feedback -->
-<div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1055;"></div>
+<!-- Toast container -->
+<div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index:1055;"></div>
 
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-<style>
+<!-- Flatpickr -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-/* Ensure header aligns with columns */
+<style>
 table.dataTable {
     table-layout: fixed;
 }
-
 table.dataTable th, table.dataTable td {
     white-space: nowrap;
 }
 
-
-/* Collapsed messages: truncate with ellipsis */
+/* Message cell */
 td.message {
-    max-width: 400px;       /* adjust as needed */
+    max-width: 400px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -65,117 +74,98 @@ td.message {
     position: relative;
 }
 
-/* Inner message container */
-td.message .short-msg { 
-    display: inline; 
-}
-td.message .full-msg { 
-    display: none; 
-}
+td.message .short-msg { display: inline; }
+td.message .full-msg { display: none; }
 
-/* Expanded messages */
 td.message.expanded {
-    background: #f9f9f9;
-    padding: 5px;
-    border-radius: 4px;
+    white-space: normal;
 }
 
-td.message.expanded .short-msg { 
-    display: none; 
-}
+td.message.expanded .short-msg { display: none; }
 td.message.expanded .full-msg {
     display: block;
-    max-height: 200px;      /* scrollable inside cell */
+    white-space: pre-wrap;
+    max-height: 200px;
     overflow-y: auto;
-    white-space: pre-wrap;  /* preserve formatting */
-    word-break: break-word;
 }
 
 /* Copy button */
 td.message .copy-btn {
     display: none;
-    margin-left: 5px;
-    font-size: 0.8em;
+    margin-left: 6px;
     cursor: pointer;
-    color: #007bff;
+    font-size: 0.9em;
+    color: #0d6efd;
 }
+
 td.message.expanded .copy-btn {
     display: inline;
 }
-td.message .copy-btn:hover {
-    color: #0056b3;
-}
-
-/* Optional: smooth transition for expand/collapse */
-td.message .full-msg, td.message .short-msg {
-    transition: all 0.2s ease-in-out;
-}
-
 </style>
 
-
 <script>
-function renderCheckboxes(containerId, values) {
-    const container = $('#' + containerId);
-    container.empty();
-    values.forEach(v => {
-        const id = containerId + '-' + v.replace(/\W/g, '');
-        container.append(`
-            <div class="form-check">
-                <input class="form-check-input ${containerId}" type="checkbox" value="${v}" id="${id}">
-                <label class="form-check-label" for="${id}">${v}</label>
+$(document).ready(function() {
+
+    /* Flatpickr */
+    const startPicker = flatpickr("#start-time", {
+        enableTime: true,
+        dateFormat: "d/m/Y H:i",
+        time_24hr: true
+    });
+
+    const endPicker = flatpickr("#end-time", {
+        enableTime: true,
+        dateFormat: "d/m/Y H:i",
+        time_24hr: true
+    });
+
+    /* Toast helper */
+    function showToast(msg) {
+        const id = 'toast-' + Date.now();
+        $('#toast-container').append(`
+            <div id="${id}" class="toast text-bg-primary border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">${msg}</div>
+                    <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
             </div>
         `);
-    });
-}
+        const toast = new bootstrap.Toast(document.getElementById(id), { delay: 2000 });
+        toast.show();
+    }
 
-function getCheckedValues(className) {
-    return $('.' + className + ':checked').map(function(){ return this.value; }).get();
-}
-
-// Show bootstrap toast
-function showToast(msg) {
-    const toastId = 'toast-' + Date.now();
-    const html = `
-        <div id="${toastId}" class="toast align-items-center text-bg-primary border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body">${msg}</div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    `;
-    $('#toast-container').append(html);
-    const toastEl = document.getElementById(toastId);
-    const toast = new bootstrap.Toast(toastEl, { delay: 2000 });
-    toast.show();
-    toastEl.addEventListener('hidden.bs.toast', function() { $(toastEl).remove(); });
-}
-
-$(document).ready(function() {
     const table = $('#timeline-table').DataTable({
         serverSide: true,
         processing: true,
+        searching: false,
         ajax: {
             url: "{{ url_for('timeline_data') }}",
             data: function(d) {
-                d.start_time = $('#start-time').val();
-                d.end_time = $('#end-time').val();
-                d.source = getCheckedValues('source-filter');
-                d.event_type = getCheckedValues('type-filter');
+                d.start_time = startPicker.selectedDates.length
+                    ? Math.floor(startPicker.selectedDates[0].getTime() / 1000)
+                    : null;
+
+                d.end_time = endPicker.selectedDates.length
+                    ? Math.floor(endPicker.selectedDates[0].getTime() / 1000)
+                    : null;
+
+                d.sql_filter = $('#sql-filter').val();
             }
         },
         columns: [
             { data: 'timestamp', render: ts => new Date(ts/1000).toLocaleString('en-GB') },
             { data: 'timestamp_desc' },
             { data: 'data_type' },
-            { 
-                data: 'message', 
+            {
+                data: 'message',
                 className: 'message',
                 render: msg => {
-                    if(!msg) return '<span class="full-msg"></span><span class="copy-btn" title="Copy full message">📋</span>';
-                    return `<span class="short-msg">${msg.substring(0,150)}${msg.length>150?'...':''}</span>
-                            <span class="full-msg">${msg}</span>
-                            <span class="copy-btn" title="Copy full message">📋</span>`;
+                    if (!msg) return '';
+                    return `
+                        <span class="short-msg">${msg.substring(0,150)}${msg.length>150?'...':''}</span>
+                        <span class="full-msg">${msg}</span>
+                        <span class="copy-btn" title="Copy">📋</span>
+                    `;
                 }
             }
         ],
@@ -184,38 +174,20 @@ $(document).ready(function() {
         scrollX: true
     });
 
-    function reloadTable() { table.ajax.reload(); }
+    $('#apply-filter').on('click', function() {
+        table.ajax.reload();
+    });
 
-    $('#start-time, #end-time').on('change', reloadTable);
-    $(document).on('change', '.source-filter, .type-filter', reloadTable);
-
-    // Expand/collapse and copy
-    $('#timeline-table').on('click', 'td.message', function(e){
-        if($(e.target).hasClass('copy-btn')){
-            const fullMsg = $(this).find('.full-msg').text();
-            navigator.clipboard.writeText(fullMsg).then(() => showToast('Message copied!'));
+    /* Expand + copy logic */
+    $('#timeline-table').on('click', 'td.message', function(e) {
+        if ($(e.target).hasClass('copy-btn')) {
+            const text = $(this).find('.full-msg').text();
+            navigator.clipboard.writeText(text).then(() => showToast('Message copied'));
             e.stopPropagation();
             return;
         }
         $(this).toggleClass('expanded');
     });
-
-    // Tooltip for copy button
-    $(document).on('mouseenter', '.copy-btn', function() {
-        new bootstrap.Tooltip(this);
-    });
-
-    // fetch distinct values for checkboxes
-    $.getJSON("{{ url_for('timeline_filters') }}", function(data){
-        renderCheckboxes('source-filter', data.sources);
-        renderCheckboxes('type-filter', data.event_types);
-
-        $('.form-check-input', '#source-filter').addClass('source-filter');
-        $('.form-check-input', '#type-filter').addClass('type-filter');
-    });
-
-    // Global search for message column
-    // Enable global search for server-side processing
 });
 </script>
 
