@@ -34,7 +34,7 @@
 </table>
 
 <!-- Toast container for copy feedback -->
-<div id="toast-container"></div>
+<div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index: 1055;"></div>
 
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
@@ -42,45 +42,64 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <style>
-/* Message collapsing */
+/* Collapsed messages: truncate with ellipsis */
 td.message {
-    max-width: 400px;
+    max-width: 400px;       /* adjust as needed */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     cursor: pointer;
     position: relative;
-    white-space: normal;
 }
 
-td.message .short-msg { display: inline; }
-td.message.expanded .short-msg { display: none; }
+/* Inner message container */
+td.message .short-msg { 
+    display: inline; 
+}
+td.message .full-msg { 
+    display: none; 
+}
 
-td.message .full-msg {
-    display: none;
+/* Expanded messages */
+td.message.expanded {
     background: #f9f9f9;
     padding: 5px;
     border-radius: 4px;
-    margin-top: 5px;
-    max-height: 400px;
-    overflow-y: auto;
 }
-td.message.expanded .full-msg { display: block; }
 
-/* Copy button always visible */
+td.message.expanded .short-msg { 
+    display: none; 
+}
+td.message.expanded .full-msg {
+    display: block;
+    max-height: 200px;      /* scrollable inside cell */
+    overflow-y: auto;
+    white-space: pre-wrap;  /* preserve formatting */
+    word-break: break-word;
+}
+
+/* Copy button */
 td.message .copy-btn {
+    display: none;
     margin-left: 5px;
     font-size: 0.8em;
     cursor: pointer;
     color: #007bff;
 }
-td.message .copy-btn:hover { color: #0056b3; }
-
-/* Bootstrap toast container */
-#toast-container {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 2000;
+td.message.expanded .copy-btn {
+    display: inline;
 }
+td.message .copy-btn:hover {
+    color: #0056b3;
+}
+
+/* Optional: smooth transition for expand/collapse */
+td.message .full-msg, td.message .short-msg {
+    transition: all 0.2s ease-in-out;
+}
+
 </style>
+
 
 <script>
 function renderCheckboxes(containerId, values) {
