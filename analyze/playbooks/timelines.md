@@ -35,11 +35,22 @@ psort.py -o json_line -w x.timeline.jsonl <created-timeline>.plaso
 </details>
 
 <details>
-<summary> 4. Load JSONL to your collection</summary>
+<summary> 4. Load JSONL to CollectiFOR</summary>
 
 ```bash
-TBD
+python3 collectifor.py -tf /tmp/plaso/x.timeline.json
 ```
+</details>
+
+<details>
+<summary> 5. Analyze data in CollectiFOR Viewer</summary>
+
+```bash
+python3 collectifor.py --viewer
+```
+
+* Open 127.0.0.1:5000 in browser.
+
 </details>
 
 ## Plaso -> Timeline -> YARA check

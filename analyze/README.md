@@ -57,6 +57,15 @@ To initialize without:
 
 **NOTE:** Running initialization twice or more times against the same database will mean duplicate data.
 
+## Timeline
+
+CollectiFOR supports ingesting timeline files which are generated wiith `log2timeline.py` and then exported as JSON lines format.
+
+```
+python3 collectifor.py -tf /tmp/plaso/x.timeline.jsonl
+```
+
+See full examples in [playbooks](playbooks/timelines.md)
 
 ## Viewer
 
