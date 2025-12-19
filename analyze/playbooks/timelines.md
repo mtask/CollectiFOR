@@ -28,6 +28,7 @@ Without specifying `--storage_file <output>.plaso` log2timeline will generate fi
 
 <details>
 <summary> 3. Create JSON lines output log</summary>
+
 ```bash
 psort.py -o json_line -w x.timeline.jsonl <created-timeline>.plaso
 ```
@@ -35,6 +36,7 @@ psort.py -o json_line -w x.timeline.jsonl <created-timeline>.plaso
 
 <details>
 <summary> 4. Load JSONL to your collection</summary>
+
 ```bash
 TBD
 ```
@@ -48,6 +50,7 @@ TBD
 ```bash
 ./collect -c config.yaml --collect ...
 ```
+
 </details>
 
 <summary> 2. Create timeline</summary>
@@ -59,4 +62,5 @@ helpers/plaso.sh ../ansible_collect/fetched_collections/rl_20251217_200032/20251
 log2timeline.py /data/files_and_dirs/var/log/
 psort.py -o json_line -w x.timeline.jsonl <created-timeline>.plaso
 ```
+
 </details>
