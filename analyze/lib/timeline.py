@@ -1,52 +1,24 @@
 import os
 import json
 import logging
-import time
-
+from datetime import datetime, timezone
+import pandas as pd
 
 class PlasoTimelineParser:
-    """
-    High-volume parser for psort -o json_line output.
-    """
+    """Plaso JSONL parser using DuckDB with Pandas batches and live progress."""
 
-    DB_COLUMNS = {
-        "timestamp",
-        "timestamp_desc",
-        "date_time",
-        "data_type",
-        "parser",
-        "__container_type__",
-        "__type__",
-        "filename",
-        "display_name",
-        "file_entry_type",
-        "file_system_type",
-        "inode",
-        "file_size",
-        "number_of_links",
-        "owner_identifier",
-        "group_identifier",
-        "mode",
-        "is_allocated",
-        "message",
-    }
-
-    def __init__(self, db):
+    def __init__(self, db, table_name="timeline_events"):
         self.db = db
+        self.table_name = table_name
+        self.db.create_table(self.table_name)
 
-    # ----------------------------
-    # Public API
-    # ----------------------------
-
-    def parse_file(self, jsonl_path, batch_size=10_000):
+    def parse_file(self, jsonl_path, batch_size=100_000, progress_interval=10_000):
         if not os.path.isfile(jsonl_path):
-            logging.error(f"[-] File not found: {jsonl_path}")
+            logging.error(f"Plaso JSONL file not found: {jsonl_path}")
             return
 
         batch = []
         total = 0
-        start = time.monotonic()
-        last_report = start
 
         with open(jsonl_path, "r", encoding="utf-8") as fh:
             for line_no, line in enumerate(fh, 1):
@@ -57,74 +29,83 @@ class PlasoTimelineParser:
                 try:
                     record = json.loads(line)
                 except json.JSONDecodeError:
-                    logging.warning(f"[!] Invalid JSON at line {line_no}")
+                    logging.warning(f"Invalid JSON at line {line_no}")
                     continue
 
-                event = self._map_record(record)
-                if event is None:
+                ts = self._extract_timestamp(record)
+                if not ts:
                     continue
+
+                event = {
+                    "timestamp": int(ts.timestamp() * 1_000_000),
+                    "timestamp_desc": record.get("timestamp_desc"),
+                    "date_time": json.dumps(record.get("date_time", {})),
+                    "data_type": record.get("data_type", "plaso"),
+                    "parser": record.get("parser"),
+                    "filename": record.get("filename"),
+                    "display_name": record.get("display_name"),
+                    "file_entry_type": record.get("file_entry_type"),
+                    "file_system_type": record.get("file_system_type"),
+                    "inode": record.get("inode"),
+                    "file_size": record.get("file_size"),
+                    "number_of_links": record.get("number_of_links"),
+                    "owner_identifier": record.get("owner_identifier"),
+                    "group_identifier": record.get("group_identifier"),
+                    "mode": record.get("mode"),
+                    "is_allocated": record.get("is_allocated"),
+                    "message": record.get("message"),
+                    "extra": json.dumps(self._build_extra(record)),
+                }
 
                 batch.append(event)
                 total += 1
 
                 if len(batch) >= batch_size:
-                    self.db.add_timeline_events(batch)
+                    self.db.insert_batch(self.table_name, pd.DataFrame(batch))
                     batch.clear()
 
-                # Progress every ~5 seconds
-                now = time.monotonic()
-                if now - last_report >= 5:
-                    rate = total / (now - start)
-                    logging.info(
-                        "[+] Processed %s events (%.1f events/sec)",
-                        f"{total:,}",
-                        rate,
-                    )
-                    last_report = now
+                if total % progress_interval == 0:
+                    current_count = self.db.count_rows(self.table_name)
+                    logging.info(f"Processed {total:,} events (DB count: {current_count:,})")
 
         if batch:
-            self.db.add_timeline_events(batch)
+            self.db.insert_batch(self.table_name, pd.DataFrame(batch))
 
-        elapsed = time.monotonic() - start
-        logging.info(
-            "[✓] Finished: %s events in %.1fs (avg %.1f events/sec)",
-            f"{total:,}",
-            elapsed,
-            total / elapsed if elapsed else 0,
-        )
+        logging.info(f"Finished processing {total:,} events. Total in DB: {self.db.count_rows(self.table_name):,}")
 
-    # ----------------------------
-    # Internal helpers
-    # ----------------------------
+    # ------------------------
+    # Helpers
+    # ------------------------
 
-    def _map_record(self, record):
+    def _extract_timestamp(self, record):
         ts = record.get("timestamp")
-        if ts is None:
-            return None
+        if ts is not None:
+            try:
+                ts = float(ts)
+                if ts > 1e12:
+                    return datetime.fromtimestamp(ts / 1_000_000, tz=timezone.utc)
+                return datetime.fromtimestamp(ts, tz=timezone.utc)
+            except Exception:
+                pass
 
-        event = {"timestamp": int(ts)}
-        extra = {}
+        dt = record.get("date_time", {})
+        ts2 = dt.get("timestamp")
+        if ts2 is not None:
+            try:
+                ts2 = float(ts2)
+                return datetime.fromtimestamp(ts2, tz=timezone.utc)
+            except Exception:
+                pass
 
-        for key, value in record.items():
-            if key == "timestamp":
-                continue
-            if key in self.DB_COLUMNS:
-                event[key] = value
-            else:
-                extra[key] = self._json_safe(value)
+        return None
 
-        if extra:
-            event["extra"] = extra
-
-        return event
-
-    def _json_safe(self, value):
-        if value is None:
-            return None
-        if isinstance(value, (str, int, float, bool)):
-            return value
-        if isinstance(value, dict):
-            return {k: self._json_safe(v) for k, v in value.items()}
-        if isinstance(value, list):
-            return [self._json_safe(v) for v in value]
-        return str(value)
+    def _build_extra(self, record):
+        skip_keys = {
+            "__container_type__",
+            "__type__",
+            "timestamp",
+            "timestamp_desc",
+            "date_time",
+            "message",
+        }
+        return {k: v for k, v in record.items() if k not in skip_keys}

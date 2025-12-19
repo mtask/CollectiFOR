@@ -128,9 +128,10 @@ def view_file():
     rel_path = request.args.get("path")
     if not rel_path:
         return "Missing file path", 400
-
     # Determine parent directory
     parent_dir = "/" + "/".join(rel_path.strip("/").split("/")[:-1])
+    if not COLLECTION_DIR:
+       return render_template("file_view.html", path=rel_path, content="Collection directory was not provided on the app launch. Content can't be shown. Relaunch CollectiFOR with --collection <collection>", parent_dir=parent_dir)
 
     file_path = os.path.join(COLLECTION_DIR, "files_and_dirs", rel_path.lstrip("/"))
 
@@ -360,7 +361,10 @@ def timeline_event(event_id):
 
 def run_viewer(collection_dir, db_file="collectifor.db", duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
     global COLLECTION_DIR, DB_FILE, DUCKDB_FILE
-    COLLECTION_DIR = os.path.realpath(collection_dir)
+    if collection_dir:
+        COLLECTION_DIR = os.path.realpath(collection_dir)
+    else:
+        COLLECTION_DIR = None
     DB_FILE = db_file
     DUCKDB_FILE = duckdb_file
     print(f"[+] Viewer started")

@@ -14,6 +14,8 @@ from lib.parsers import (
     FilesAndDirsParser,
     ListenersParser,
 )
+from lib.db_tl_duckdb import DB as DDB
+from lib.timeline import PlasoTimelineParser
 from viewer.app import run_viewer
 
 # -----------------------------
@@ -60,6 +62,16 @@ def analysis(args, collection_path):
         findings = findings + mpcap.analyze(collection_path)
     return findings
 
+#-----------------------------
+# Timeline import
+#----------------------------
+
+def import_timeline(timeline):
+    ddb = DDB("timeline.duckdb")
+    parser = PlasoTimelineParser(ddb)
+    parser.parse_file(timeline, batch_size=100_000, progress_interval=50_000)
+
+
 # -----------------------------
 # Main
 # -----------------------------
@@ -69,7 +81,7 @@ def main():
     )
 
     parser.add_argument(
-        "collection",
+        "-c", "--collection",
         help="Path to collection directory or .tar.gz archive",
     )
 
@@ -77,6 +89,12 @@ def main():
         "-d", "--db",
         default="collectifor.db",
         help="SQLite database file (default: collectifor.db)",
+    )
+
+    parser.add_argument(
+        "-td", "--tdb",
+        default="timeline.duckdb",
+        help="DuckDB database file for imported timeline (default: timeline.duckdb)",
     )
 
     parser.add_argument(
@@ -134,6 +152,12 @@ def main():
     )
 
     parser.add_argument(
+        "-tf", "--timeline-file",
+        metavar="TIMELINE_FILE",
+        help="Import exported Plaso timeline in JSON lines format"
+    )
+
+    parser.add_argument(
         "--viewer",
         action="store_true",
         help="Launch local analysis viewer"
@@ -153,43 +177,44 @@ def main():
     # Collection handling
     # -----------------------------
     collection_path = args.collection
+    if args.collection:
+        if not os.path.exists(collection_path):
+            logging.error(f"Collection path does not exist: {collection_path}")
+            sys.exit(1)
 
-    if not os.path.exists(collection_path):
-        logging.error(f"Collection path does not exist: {collection_path}")
-        sys.exit(1)
+        if collection_path.endswith(".tar.gz"):
+            try:
+                collection_dir = decompress(collection_path)
+            except Exception as e:
+                logging.error(f"Failed to decompress archive: {e}")
+                sys.exit(1)
+        else:
+            collection_dir = collection_path
 
-    if collection_path.endswith(".tar.gz"):
-        try:
-            collection_dir = decompress(collection_path)
-        except Exception as e:
-            logging.error(f"Failed to decompress archive: {e}")
+        # -----------------------------
+        # Viewer
+        # -----------------------------
+        if not os.path.isdir(collection_dir):
+            logging.error(f"Invalid collection directory: {collection_dir}")
             sys.exit(1)
     else:
-        collection_dir = collection_path
-
-    # -----------------------------
-    # Viewer
-    # -----------------------------
-    if not os.path.isdir(collection_dir):
-        logging.error(f"Invalid collection directory: {collection_dir}")
-        sys.exit(1)
-
-    logging.info(f"Using collection directory: {collection_dir}")
+        logging.info(f"No collection directory provided")
 
     # -----------------------------
     # Database
     # -----------------------------
-    if args.init and os.path.isfile(args.db):
+    if args.init and os.path.isfile(args.db) and args.collection:
         ans = input(f"{args.db} already exists. Do you want to continue with initialization?[y/n] (default: n)")
         if ans.lower() != "y":
             logging.info("[-] Exiting without changes")
             sys.exit(0)
+
     db = DB(args.db)
 
     # -----------------------------
     # Run parsers
     # -----------------------------
-    if args.init:
+    if args.init and args.collection:
         logging.info("[+] Running initialize parsers")
         for ParserCls in PARSERS:
             logging.info(f"[RUN] {ParserCls.__name__}")
@@ -199,16 +224,25 @@ def main():
             except Exception:
                 # Parsers should not crash the whole run
                 logging.exception(f"[FAIL] {ParserCls.__name__}")
-
         logging.info("[+] All parsers completed")
-    logging.info("[+] Running enabled analysis modules")
-    findings = analysis(args, collection_dir)
-    if findings:
-        logging.info(f"Adding {len(findings)} findings to database.")
-        db.add_finding_entries(findings)
-    logging.info("[+] All modules completed")
+    elif args.init and not args.collection:
+        logging.error("[-] No collection provided with --collection <collection")
+    if args.timeline_file:
+        logging.info(f"[+] Importing timeline: {args.timeline_file}")
+        import_timeline(args.timeline_file)
+    if args.collection:
+        logging.info("[+] Running enabled analysis modules")
+        findings = analysis(args, collection_dir)
+        if findings:
+            logging.info(f"Adding {len(findings)} findings to database.")
+            db.add_finding_entries(findings)
+        logging.info("[+] All modules completed")
     if args.viewer:
         logging.info("[+] Running viewer")
+        try:
+            collection_dir
+        except NameError:
+            collection_dir = None
         run_viewer(collection_dir, db_file=args.db)
         return
 

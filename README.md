@@ -18,14 +18,13 @@ sudo ./collect -c ./config.yaml --collect --capture -if eth0
 5. Run collectiFOR
 
 
-
 ```bash
 # Might require sudo/root depending on your collection's path and its contents permissions
 cd analyze/
 python3 -m venv venv
 source venv/bin/activate
 pip3 install -r requirements.txt
-python3 collectifor.py --init --analysis --yara yara/ --pattern patterns/ --viewer /collections/host_20251217_141749.tar.gz 
+python3 collectifor.py --init --analysis --yara yara/ --pattern patterns/ --viewer --collection /collections/host_20251217_141749.tar.gz 
 ```
 
 6. Open 127.0.0.1:5000 in your browser and view collection and analysis data

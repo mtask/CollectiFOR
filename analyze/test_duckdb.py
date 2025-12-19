@@ -1,7 +1,7 @@
 import sys
 import logging
 from lib.db_tl_duckdb import DB
-from lib.timeline_duckdb import PlasoTimelineParser
+from lib.timeline import PlasoTimelineParser
 
 def main():
     if len(sys.argv) != 2:

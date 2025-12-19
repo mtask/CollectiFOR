@@ -1,16 +1,16 @@
 # Usage
 
 ```
-usage: collectifor.py [-h] [-d DB] [-v] [-y RULE_DIR] [-p PATTERN_DIR] [-l] [-fp] [-pe] [-pc] [--init] [--analysis] [--viewer] collection
+usage: collectifor.py [-h] [-c COLLECTION] [-d DB] [-td TDB] [-v] [-y RULE_DIR] [-p PATTERN_DIR] [-l] [-fp] [-pe] [-pc] [--init] [--analysis] [-tf TIMELINE_FILE] [--viewer]
 
 Parse forensic collection and store results in SQLite DB
 
-positional arguments:
-  collection            Path to collection directory or .tar.gz archive
-
 options:
   -h, --help            show this help message and exit
+  -c COLLECTION, --collection COLLECTION
+                        Path to collection directory or .tar.gz archive
   -d DB, --db DB        SQLite database file (default: collectifor.db)
+  -td TDB, --tdb TDB    DuckDB database file for imported timeline (default: timeline.duckdb)
   -v, --verbose         Enable verbose logging
   -y RULE_DIR, --yara RULE_DIR
                         Enable yara analysis module by providing path to your yara rules top-level directory.
@@ -23,6 +23,8 @@ options:
   -pc, --pcap           Enable PCAP analysis module
   --init                Initialize collection (Run only once against same collection)
   --analysis            Enable and run all analysis modules. Yara module requires --yara RULE_DIR and pattern module --pattern PATTERN_DIR
+  -tf TIMELINE_FILE, --timeline-file TIMELINE_FILE
+                        Import exported Plaso timeline in JSON lines format
   --viewer              Launch local analysis viewer
 ```
 
@@ -32,7 +34,7 @@ All the analysis and viewing related functionalities are launched with the `coll
 
 ```bash
 # Might require sudo/root depending on your collection's permissions
-python3 collectifor.py --init --analysis --yara yara/ --pattern patterns/ --viewer /collections/host_20251217_141749.tar.gz 
+python3 collectifor.py --init --analysis --yara yara/ --pattern patterns/ --viewer --collection /collections/host_20251217_141749.tar.gz 
 ```
 
 **Arguments**:
@@ -62,7 +64,7 @@ CollectiFOR viewer is Flask based application that provides some simple visibili
 Like shown in the all-in-one example you can launch viewer as part of the database initialization and/or analysis. With ready database you can just re-run viewer like this:
 
 ```
-python3 collectifor.py --viewer /collections/host_20251217_141749.tar.gz 
+python3 collectifor.py --viewer --collection /collections/host_20251217_141749.tar.gz 
 ```
 
 Remember to specify `--db <db file>` if you had non-default database path during the initialization.
@@ -128,7 +130,7 @@ YARA and Pattern modules use existing source content (YARA rules, IoC listings, 
 You can skipp all the PoC analysis modules like this if you still want to run YARA and/or PATTERN analysis.
 
 ```
-python3 collectifor.py --init --yara yara/ --pattern patterns/ --viewer /collections/host_20251217_141749.tar.gz 
+python3 collectifor.py --init --yara yara/ --pattern patterns/ --viewer --collection /collections/host_20251217_141749.tar.gz 
 ```
 
 ## Module | YARA
