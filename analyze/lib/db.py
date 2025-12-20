@@ -4,9 +4,14 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 Base = declarative_base()
 
+class Collections(Base):
+    __tablename__ = "collections"
+    collection_name = Column(String, primary_key=True)
+
 class CommandOutput(Base):
     __tablename__ = "command_output"
     id = Column(Integer, primary_key=True, autoincrement=True)
+    collection_name = Column(String, nullable=False)
     category = Column(String, nullable=False)
     commandline = Column(Text, nullable=False)
     output = Column(Text, nullable=False)
@@ -15,6 +20,7 @@ class CommandOutput(Base):
 class FilePermission(Base):
     __tablename__ = "file_permissions"
     id = Column(Integer, primary_key=True, autoincrement=True)
+    collection_name = Column(String, nullable=False)
     filepath = Column(Text, nullable=False)
     mode = Column(String, nullable=False)           # numeric mode, e.g., "644"
     perm_string = Column(String, nullable=False)   # symbolic, e.g., "-rw-r--r--"
@@ -28,17 +34,17 @@ class FilePermission(Base):
 class Checksum(Base):
     __tablename__ = "checksums"
     id = Column(Integer, primary_key=True, autoincrement=True)
+    collection_name = Column(String, nullable=False)
     filepath = Column(Text, nullable=False)
     checksum = Column(String, nullable=False)
     algorithm = Column(String, nullable=False)  # md5, sha1, sha256
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
-
-
 class PcapPacket(Base):
     __tablename__ = "pcap_packets"
 
     id = Column(Integer, primary_key=True)
+    collection_name = Column(String, nullable=False)
     interface = Column(String, nullable=False)
     packet_number = Column(Integer, nullable=False)
 
@@ -63,7 +69,7 @@ class NetworkFlow(Base):
     __tablename__ = "network_flows"
 
     id = Column(Integer, primary_key=True)
-
+    collection_name = Column(String, nullable=False)
     protocol = Column(String, nullable=False)
     src = Column(String, nullable=False)
     src_port = Column(Integer)
@@ -81,7 +87,7 @@ class FileEntry(Base):
     __tablename__ = "files_and_dirs"
 
     id = Column(Integer, primary_key=True)
-
+    collection_name = Column(String, nullable=False)
     collection_path = Column(String, nullable=False)
     path = Column(String, nullable=False)
     type = Column(String, nullable=False)
@@ -92,7 +98,7 @@ class ListenerEntry(Base):
     __tablename__ = "listeners"
 
     id = Column(Integer, primary_key=True)
-
+    collection_name = Column(String, nullable=False)
     pid = Column(Integer)
     protocol = Column(String, nullable=False)
     port = Column(Integer)
@@ -108,15 +114,13 @@ class Finding(Base):
     __tablename__ = "findings"
 
     id = Column(Integer, primary_key=True)
-
+    collection_name = Column(String, nullable=False)
     type = Column(String, nullable=False)
     message = Column(String, nullable=False)
     rule = Column(String)
     source_file = Column(String)
     tags = Column(String)
-
     meta = Column(JSON)  # stored as JSON
-
     namespace = Column(String)
     artifact = Column(String)
     indicator = Column(String)
@@ -124,10 +128,19 @@ class Finding(Base):
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
 class DB:
-    def __init__(self, db_file):
+    def __init__(self, db_file, collection_name):
         self.engine = create_engine(f"sqlite:///{db_file}", echo=False, future=True)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
+        self.collection_name = collection_name
+        if self.collection_name:
+            session = self.Session()
+            exists = session.query(Collections).filter_by(collection_name=self.collection_name).first()
+            if not exists:
+                session.add(Collections(collection_name=self.collection_name))
+                session.commit()
+                session.close()
+
     #############
     # init data #
     #############
@@ -137,6 +150,7 @@ class DB:
         for category, entries in commands_dict.items():
             for entry in entries:
                 session.add(CommandOutput(
+                    collection_name=self.collection_name,
                     category=category,
                     commandline=entry.get("commandline", ""),
                     output=entry.get("output", "")
@@ -151,6 +165,7 @@ class DB:
         session = self.Session()
         for entry in checksum_entries:
             session.add(Checksum(
+                collection_name = self.collection_name,
                 filepath=entry["filepath"],
                 checksum=entry["checksum"],
                 algorithm=entry["algorithm"]
@@ -165,6 +180,7 @@ class DB:
         session = self.Session()
         for entry in permission_entries:
             session.add(FilePermission(
+                collection_name=self.collection_name,
                 filepath=entry["filepath"],
                 mode=entry["mode"],
                 perm_string=entry["perm_string"],
@@ -181,6 +197,7 @@ class DB:
         session = self.Session()
         try:
             for pkt in packets:
+                pkt['collection_name'] = self.collection_name
                 session.add(PcapPacket(**pkt))
             session.commit()
         finally:
@@ -203,6 +220,7 @@ class DB:
             else:
                 session.add(NetworkFlow(
                     protocol=flow["protocol"],
+                    collection_name=self.collection_name,
                     src=flow["src"],
                     src_port=flow["src_port"],
                     dst=flow["dst"],
@@ -220,6 +238,7 @@ class DB:
         session = self.Session()
         try:
             for entry in entries:
+                entry['collection_name'] = self.collection_name
                 session.add(FileEntry(**entry))
             session.commit()
         finally:
@@ -229,6 +248,7 @@ class DB:
         session = self.Session()
         try:
             for entry in entries:
+                entry['collection_name'] = self.collection_name
                 session.add(ListenerEntry(**entry))
             session.commit()
         finally:
@@ -246,6 +266,7 @@ class DB:
         try:
             for entry in findings:
                 session.add(Finding(
+                    collection_name=self.collection_name,
                     type=entry.get("type", ""),
                     message=entry.get("message", ""),
                     rule=entry.get("rule", ""),

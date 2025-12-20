@@ -1,65 +1,86 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Network Search</h2>
+<h2 class="text-light">Network Search</h2>
 
-<form method="get">
-    <input type="text" name="q" value="{{ q }}" placeholder="IP, port, protocol" size="40">
-    <button type="submit">Search</button>
-</form>
+<div class="row mb-3 justify-content-center align-items-end">
+  <div class="col-md-10">
+    <form method="get" class="d-flex gap-2">
+      <input
+        type="text"
+        name="q"
+        value="{{ q }}"
+        placeholder="IP, port, protocol"
+        class="form-control"
+      >
+      <button type="submit" class="btn btn-primary">
+        Search
+      </button>
+    </form>
+  </div>
+</div>
 
 {% if q %}
 
-<h3>Flows</h3>
+<h3 class="text-light">Flows</h3>
 {% if flows %}
-<table>
-<tr>
-  <th>Protocol</th>
-  <th>Source</th>
-  <th>Destination</th>
-  <th>Packets</th>
-  <th>First Seen</th>
-  <th>Last Seen</th>
-</tr>
-{% for f in flows %}
-<tr>
-  <td>{{ f.protocol }}</td>
-  <td>{{ f.src }}:{{ f.src_port }}</td>
-  <td>{{ f.dst }}:{{ f.dst_port }}</td>
-  <td>{{ f.packet_count }}</td>
-  <td>{{ f.first_seen }}</td>
-  <td>{{ f.last_seen }}</td>
-</tr>
-{% endfor %}
+<table class="table table-dark table-striped table-hover table-sm">
+    <thead class="table-secondary">
+        <tr>
+            <th>Protocol</th>
+            <th>Source</th>
+            <th>Destination</th>
+            <th>Packets</th>
+            <th>First Seen</th>
+            <th>Last Seen</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for f in flows %}
+        <tr>
+            <td class="text-light">{{ f.protocol }}</td>
+            <td class="text-light">{{ f.src }}:{{ f.src_port }}</td>
+            <td class="text-light">{{ f.dst }}:{{ f.dst_port }}</td>
+            <td class="text-light">{{ f.packet_count }}</td>
+            <td class="text-light">{{ f.first_seen }}</td>
+            <td class="text-light">{{ f.last_seen }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
 </table>
 {% else %}
-<p>No flows found.</p>
+<p class="text-light">No flows found.</p>
 {% endif %}
 
-<h3>Packets</h3>
+<h3 class="text-light">Packets</h3>
 {% if packets %}
-<table>
-<tr>
-  <th>#</th>
-  <th>Time</th>
-  <th>Proto</th>
-  <th>Src</th>
-  <th>Dst</th>
-  <th>Raw</th>
-</tr>
-{% for p in packets %}
-<tr>
-  <td>{{ p.packet_number }}</td>
-  <td>{{ p.timestamp }}</td>
-  <td>{{ p.protocol }}</td>
-  <td>{{ p.src }}:{{ p.src_port }}</td>
-  <td>{{ p.dst }}:{{ p.dst_port }}</td>
-  <td class="mono">{{ p.raw_content }}</td>
-</tr>
-{% endfor %}
+<table class="table table-dark table-striped table-hover table-sm">
+    <thead class="table-secondary">
+        <tr>
+            <th>#</th>
+            <th>Time</th>
+            <th>Proto</th>
+            <th>Src</th>
+            <th>Dst</th>
+            <th>Raw</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for p in packets %}
+        <tr>
+            <td class="text-light">{{ p.packet_number }}</td>
+            <td class="text-light">{{ p.timestamp }}</td>
+            <td class="text-light">{{ p.protocol }}</td>
+            <td class="text-light">{{ p.src }}:{{ p.src_port }}</td>
+            <td class="text-light">{{ p.dst }}:{{ p.dst_port }}</td>
+            <td class="mono text-light">{{ p.raw_content }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
 </table>
 {% else %}
-<p>No packets found.</p>
+<p class="text-light">No packets found.</p>
 {% endif %}
 
 {% endif %}
 {% endblock %}
+

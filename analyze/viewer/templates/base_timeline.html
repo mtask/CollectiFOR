@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CollectiFor – Viewer</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Prism.js CSS for styling -->
+    <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism.css" rel="stylesheet" />
+
+    <!-- Prism.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+
+<style>
+        h2 {text-align: center;}
+        body {
+            font-family: sans-serif;
+            margin: 20px;
+            background: #1b2733;
+        }
+
+        header {
+            background: #2b2b2b;
+            color: #ffffff;
+            padding: 10px 20px;
+            margin-bottom: 20px;
+        }
+
+        header a {
+            color: #ffffff;
+            margin-right: 15px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        header a:hover {
+            text-decoration: underline;
+        }
+
+        .container {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: auto;
+            word-break: break-word;
+            margin-top: 10px;
+        }
+
+        thead th {
+            position: sticky;
+            top: 0;
+            background: #efefef;
+            z-index: 2;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px 10px;
+            text-align: left;
+            vertical-align: top;
+            max-width: 250px;
+            overflow-wrap: break-word;
+        }
+
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+
+        td.summary {
+            max-width: 300px;
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        td.mono pre {
+            max-height: 200px;
+            overflow: auto;
+            background: #f0f0f0;
+            padding: 4px;
+            border-radius: 3px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            table, thead, tbody, th, td, tr {
+                display: block;
+            }
+
+            thead tr {
+                position: absolute;
+                top: -9999px;
+                left: -9999px;
+            }
+
+            tr {
+                margin-bottom: 1em;
+                border-bottom: 2px solid #ddd;
+            }
+
+            td {
+                border: none;
+                position: relative;
+                padding-left: 50%;
+                text-align: left;
+            }
+
+            td:before {
+                position: absolute;
+                top: 6px;
+                left: 6px;
+                width: 45%;
+                white-space: nowrap;
+                font-weight: bold;
+                content: attr(data-label);
+            }
+
+            td.summary, td.mono pre {
+                padding-left: 50%;
+                max-width: 100%;
+            }
+        }
+    .app-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .nav-left a {
+        margin-right: 0.75rem;
+        text-decoration: none;
+    }
+
+    .collection-form select {
+        padding: 4px 8px;
+    }
+/* Force pre inside dark tables to use correct background/text */
+.table-dark td pre,
+.table-dark th pre {
+    background-color: #1b2733 !important; /* match table background */
+    color: #f8f9fa !important;            /* light text */
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: monospace;
+}
+
+/* Optional: slightly highlight output container */
+.output-preview {
+    background-color: #263043;
+    border-radius: 0.25rem;
+    padding: 0.25rem;
+}
+
+/* Dark page inputs and labels */
+#start-time, #end-time, #sql-filter {
+    background-color: #0d1a26;
+    color: #d1d9e0;
+    border: 1px solid #3a4a5a;
+}
+#start-time:focus, #end-time:focus, #sql-filter:focus {
+    background-color: #0d1a26;
+    color: #00ff00;
+    border: 1px solid #00ff00;
+    box-shadow: 0 0 5px #00ff00;
+}
+
+/* Labels */
+label {
+    color: #d1d9e0;
+}
+
+/* DataTables dark theme */
+table.dataTable, .dataTables_wrapper {
+    color: #d1d9e0;
+    background-color: #1b2733;
+}
+table.dataTable thead {
+    background-color: #273746;
+    color: #d1d9e0;
+}
+table.dataTable tbody tr {
+    background-color: #1b2733;
+    color: #d1d9e0;
+}
+table.dataTable tbody tr:nth-child(odd) {
+    background-color: #202c3a;
+}
+
+/* Message column for collapsible long text */
+td.message {
+    color: #d1d9e0;
+}
+
+/* Buttons */
+.btn, .dropdown-item {
+    color: #d1d9e0;
+    background-color: #273746;
+    border-color: #3a4a5a;
+}
+.btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+}
+.btn-outline-success {
+    color: #00ff00;
+    border-color: #00ff00;
+}
+
+/* Modal adjustments */
+.modal-content {
+    background-color: #1b2733;
+    color: #d1d9e0;
+}
+.modal-header, .modal-body {
+    color: #d1d9e0;
+}
+
+#event-json,
+#event-json * {
+    text-shadow: none !important;
+}
+
+#event-json {
+    background-color: #0d1a26;
+    color: #7CFC00;                  /* softer green */
+    font-family: Consolas, "Courier New", monospace;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.4;
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+}
+
+/* Placeholder text for dark inputs */
+#start-time::placeholder,
+#end-time::placeholder,
+#sql-filter::placeholder {
+    color: #d1d9e0;  /* light gray, visible on dark background */
+    opacity: 1;       /* ensure full opacity in all browsers */
+}
+
+
+/* Toasts */
+.toast {
+    background-color: #273746;
+    color: #d1d9e0;
+    border: 1px solid #3a4a5a;
+}
+</style>
+
+
+</head>
+
+<body>
+<header class="app-header">
+    <nav class="nav-left">
+        <a href="/">CollectiFOR</a>
+        <a href="/search">Search</a>
+        <a href="/commands">Commands</a>
+        <a href="/files">File Navigator</a>
+        <a href="/checksums">Checksums</a>
+        <a href="/network">Network</a>
+        <a href="/listeners">Listeners</a>
+        <a href="/findings">Findings</a>
+        <a href="/timeline">Timeline Explorer</a>
+        <a href="/timeline_chart">Timeline Chart</a>
+    </nav>
+
+    <!-- Timeline selector -->
+    <form method="post" action="/change_timeline" class="collection-form">
+        <input type="hidden" name="next" value="{{ request.full_path }}">
+
+        <select name="timeline" onchange="this.form.submit()">
+            <option value=""
+                {% if not session.get("timeline_name") %}selected{% endif %}>
+                All Timelines
+            </option>
+
+            {% for t in all_timelines %}
+                <option value="{{ t }}"
+                    {% if t == session.get("timeline_name") %}selected{% endif %}>
+                    {{ t }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+</header>
+<div class="container-fluid px-4">
+        {% block content %}{% endblock %}
+</div>
+
+</body>
+</html>
+

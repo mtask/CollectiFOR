@@ -1,77 +1,201 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Global Search</h2>
+<h2 class="text-light mb-4">Global Collection Search</h2>
 
-<form method="get">
-    <input type="text" name="q" value="{{ q }}" placeholder="Search text" size="60">
-    <button type="submit">Search</button>
-</form>
+<div class="row mb-3 justify-content-center align-items-end">
+    <div class="col-md-10">
+        <form method="get" class="d-flex gap-2">
+            <input
+                type="text"
+                name="q"
+                value="{{ q }}"
+                placeholder="Search text"
+                class="form-control"
+            >
+            <button class="btn btn-primary" type="submit">
+                Search
+            </button>
+        </form>
+    </div>
+</div>
 
 {% if q %}
 
-<h3>Command Output</h3>
-{% if results.commands %}
-<table>
-<tr><th>Category</th><th>Command</th><th>Output</th></tr>
-{% for c in results.commands %}
-<tr>
-  <td>{{ c.category }}</td>
-  <td class="mono">{{ c.commandline }}</td>
-  <td class="mono">{{ c.output }}</td>
-</tr>
-{% endfor %}
-</table>
-{% else %}
-<p>No command matches.</p>
+<!-- Command Output -->
+<details class="mb-3">
+  <summary class="d-flex align-items-center gap-2" style="display: list-item;">
+    <h3 class="m-0 text-light">Command Output  (result: {{ results.commands|default([])|length }})</h3>
+  </summary>
+  <div class="mt-2">
+    {% if results.commands %}
+    <table class="table table-dark table-striped table-hover table-sm">
+      <thead class="table-secondary">
+        <tr><th>Collection</th><th>Category</th><th>Command</th><th>Output</th></tr>
+      </thead>
+      <tbody>
+      {% for c in results.commands %}
+        <tr>
+          <td class="mono">{{ c.collection_name }}</td>
+          <td class="mono">{{ c.category }}</td>
+          <td class="mono">{{ c.commandline }}</td>
+          <td class="mono">
+            <div class="output-preview" style="max-height:100px; overflow:hidden; position:relative;">
+              <pre class="language-shell">{{ c.output }}</pre>
+              {% if c.output|length > 300 %}
+              <button type="button" class="btn btn-sm btn-outline-light mt-1 toggle-output">Show More</button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-light">No command matches.</p>
+    {% endif %}
+  </div>
+</details>
+
+<!-- Files -->
+<details class="mb-3">
+  <summary class="d-flex align-items-center gap-2" style="display: list-item;">
+    <h3 class="m-0 text-light">Files (result: {{ results.files|default([])|length }})</h3>
+  </summary>
+  <div class="mt-2">
+    {% if results.files %}
+    <table class="table table-dark table-striped table-hover table-sm">
+      <thead class="table-secondary">
+        <tr><th>Collection</th><th>Path</th><th>Type</th></tr>
+      </thead>
+      <tbody>
+      {% for f in results.files %}
+        <tr>
+          <td class="mono">{{ f.collection_name }}</td>
+          <td class="mono">{{ f.path }}</td>
+          <td class="mono">{{ f.type }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-light">No file matches.</p>
+    {% endif %}
+  </div>
+</details>
+
+<!-- Checksums -->
+<details class="mb-3">
+  <summary class="d-flex align-items-center gap-2" style="display: list-item;">
+    <h3 class="m-0 text-light">Checksums (result: {{ results.checksums|default([])|length }})</h3>
+  </summary>
+  <div class="mt-2">
+    {% if results.checksums %}
+    <table class="table table-dark table-striped table-hover table-sm">
+      <thead class="table-secondary">
+        <tr><th>Collection</th><th>Path</th><th>Checksum</th><th>Algorithm</th></tr>
+      </thead>
+      <tbody>
+      {% for f in results.checksums %}
+        <tr>
+          <td class="mono">{{ f.collection_name }}</td>
+          <td class="mono">{{ f.filepath }}</td>
+          <td class="mono">{{ f.checksum }}</td>
+          <td class="mono">{{ f.algorithm }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-light">No file matches.</p>
+    {% endif %}
+  </div>
+</details>
+
+<!-- Network Packets -->
+<details class="mb-3">
+  <summary class="d-flex align-items-center gap-2" style="display: list-item;">
+    <h3 class="m-0 text-light">Network Packets (result: {{ results.packets|default([])|length }})</h3>
+  </summary>
+  <div class="mt-2">
+    {% if results.packets %}
+    <table class="table table-dark table-striped table-hover table-sm">
+      <thead class="table-secondary">
+        <tr><th>Collection</th><th>#</th><th>Protocol</th><th>Src</th><th>Dst</th><th>Raw</th></tr>
+      </thead>
+      <tbody>
+      {% for p in results.packets %}
+        <tr>
+          <td class="mono">{{ p.collection_name }}</td>
+          <td class="mono">{{ p.packet_number }}</td>
+          <td class="mono">{{ p.protocol }}</td>
+          <td class="mono">{{ p.src }}:{{ p.src_port }}</td>
+          <td class="mono">{{ p.dst }}:{{ p.dst_port }}</td>
+          <td class="mono">{{ p.raw_content }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-light">No packet matches.</p>
+    {% endif %}
+  </div>
+</details>
+
+<!-- Findings -->
+<details class="mb-3">
+  <summary class="d-flex align-items-center gap-2" style="display: list-item;">
+    <h3 class="m-0 text-light">Findings (result: {{ results.findings|default([])|length }})</h3>
+  </summary>
+  <div class="mt-2">
+    {% if results.findings %}
+    <table class="table table-dark table-striped table-hover table-sm">
+      <thead class="table-secondary">
+        <tr>
+          <th>Collection</th>
+          <th>Type</th>
+          <th>Message</th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in results.findings %}
+        <tr>
+          <td>{{ f.collection_name }}</td>
+          <td>{{ f.type }}</td>
+          <td>{{ f.message }}</td>
+          <td>
+            <a href="/findings/{{ f.id }}" class="text-warning text-decoration-none">
+              View
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="text-light">No findings.</p>
+    {% endif %}
+  </div>
+</details>
+
 {% endif %}
 
-<h3>Files</h3>
-{% if results.files %}
-<table>
-<tr><th>Path</th><th>Mode</th><th>Owner</th><th>Group</th></tr>
-{% for f in results.files %}
-<tr>
-  <td class="mono">{{ f.filepath }}</td>
-  <td>{{ f.mode }}</td>
-  <td>{{ f.owner }}</td>
-  <td>{{ f.group }}</td>
-</tr>
-{% endfor %}
-</table>
-{% else %}
-<p>No file matches.</p>
-{% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.toggle-output').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const container = btn.closest('.output-preview');
+            if(container.style.maxHeight && container.style.maxHeight !== 'none') {
+                container.style.maxHeight = 'none';
+                btn.innerText = 'Show Less';
+            } else {
+                container.style.maxHeight = '100px';
+                btn.innerText = 'Show More';
+            }
+        });
+    });
+});
+</script>
 
-<h3>Network Packets</h3>
-{% if results.packets %}
-<table>
-<tr><th>#</th><th>Protocol</th><th>Src</th><th>Dst</th><th>Raw</th></tr>
-{% for p in results.packets %}
-<tr>
-  <td>{{ p.packet_number }}</td>
-  <td>{{ p.protocol }}</td>
-  <td>{{ p.src }}:{{ p.src_port }}</td>
-  <td>{{ p.dst }}:{{ p.dst_port }}</td>
-  <td class="mono">{{ p.raw_content }}</td>
-</tr>
-{% endfor %}
-</table>
-{% else %}
-<p>No packet matches.</p>
-{% endif %}
-
-<h3>Findings</h3>
-{% if results.findings %}
-<ul>
-{% for f in results.findings %}
-<li>
-  <a href="/findings/{{ f.id }}">{{ f.type }} – {{ f.message }}</a>
-</li>
-{% endfor %}
-</ul>
-{% else %}
-<p>No findings.</p>
-{% endif %}
-
-{% endif %}
 {% endblock %}
+

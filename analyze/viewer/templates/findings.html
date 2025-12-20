@@ -1,29 +1,33 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Findings</h2>
+<h2 class="text-light mb-4">Findings</h2>
 
 {% if findings %}
-<table>
-<tr>
-  <th>Type</th>
-  <th>Rule</th>
-  <th>Message</th>
-  <th>Artifact</th>
-  <th>Inserted</th>
-</tr>
-{% for f in findings %}
-<tr class="finding-{{ f.type }}">
-  <td>{{ f.type }}</td>
-  <td>{{ f.rule }}</td>
-  <td>
-    <a href="/findings/{{ f.id }}">{{ f.message }}</a>
-  </td>
-  <td class="mono">{{ f.artifact }}</td>
-  <td>{{ f.inserted_at }}</td>
-</tr>
-{% endfor %}
+<table class="table table-dark table-striped table-hover table-sm">
+    <thead class="table-secondary">
+        <tr>
+            <th>Type</th>
+            <th>Rule</th>
+            <th>Message</th>
+            <th>Artifact</th>
+            <th>Inserted</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for f in findings %}
+        <tr class="finding-{{ f.type }}">
+            <td>{{ f.type }}</td>
+            <td>{{ f.rule }}</td>
+            <td>
+                <a href="/findings/{{ f.id }}" class="text-info text-decoration-none">{{ f.message }}</a>
+            </td>
+            <td class="mono">{{ f.artifact }}</td>
+            <td>{{ f.inserted_at }}</td>
+        </tr>
+    {% endfor %}
+    </tbody>
 </table>
 {% else %}
-<p>No findings available.</p>
+<p class="text-light">No findings available.</p>
 {% endif %}
 {% endblock %}
