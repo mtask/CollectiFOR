@@ -6,6 +6,7 @@ import os
 import sys
 import logging
 import shutil
+import socket
 from datetime import datetime
 
 logging.basicConfig(
@@ -96,7 +97,12 @@ def main(args):
     config = load_config(args.config)
     validate_config(args, config)
     dir_timestamp =  datetime.now().strftime("%Y%m%d_%H%M%S")
-    outdir = os.path.join(config['outdir'], dir_timestamp)
+    if config['compress_collection']:
+        outdir = os.path.join(config['outdir'], dir_timestamp)
+    else:
+        # Keep same structure as with an extracted collection
+        hostname = socket.gethostname()
+        outdir = os.path.join(config['outdir'], f"{hostname}_{dir_timestamp}/{dir_timestamp}")
     os.makedirs(outdir, exist_ok=True)
     threads = []
     try:
