@@ -16,8 +16,10 @@ See [collect/README.md](https://github.com/mtask/CollectiFOR/tree/main/collect/R
   
 **analyze/**
   
-* collectofor.py -\>  Data ingestion (collections collected with `collect` tools and timeline ingestion), analysis tools (YARA, patterns, etc.), and web based viewer component (collectien navigation, search, timeline explorer, etc.)
-
+* collectifor.py -\>  Data ingestion (collections collected with `collect` tools and JSONL timeline ingestion), analysis tools (YARA, patterns, etc.), and web based viewer component (collection navigation, search, timeline explorer, etc.)
+* helpers/ -\> Plaso, zeek, etc. docker container launch scripts, additional collectien analaysis, etc.
+* playbooks/ -\> Playbooks to use the toolset. These are not directly investigation playbooks, but can help with investigation.
+  
 See [analyze/README.md](https://github.com/mtask/CollectiFOR/tree/main/analyze/README.md)
 
 ## Quick how-to
