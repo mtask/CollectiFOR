@@ -16,30 +16,19 @@
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
 
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+
+
 <style>
         h2 {text-align: center;}
         body {
             font-family: sans-serif;
             margin: 20px;
             background: #1b2733;
-        }
-
-        header {
-            background: #2b2b2b;
-            color: #ffffff;
-            padding: 10px 20px;
-            margin-bottom: 20px;
-        }
-
-        header a {
-            color: #ffffff;
-            margin-right: 15px;
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        header a:hover {
-            text-decoration: underline;
         }
 
         .container {
@@ -132,21 +121,7 @@
                 max-width: 100%;
             }
         }
-    .app-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-    }
 
-    .nav-left a {
-        margin-right: 0.75rem;
-        text-decoration: none;
-    }
-
-    .collection-form select {
-        padding: 4px 8px;
-    }
 /* Force pre inside dark tables to use correct background/text */
 .table-dark td pre,
 .table-dark th pre {
@@ -198,11 +173,6 @@ table.dataTable tbody tr {
 }
 table.dataTable tbody tr:nth-child(odd) {
     background-color: #202c3a;
-}
-
-/* Message column for collapsible long text */
-td.message {
-    color: #d1d9e0;
 }
 
 /* Buttons */
@@ -263,6 +233,79 @@ td.message {
     color: #d1d9e0;
     border: 1px solid #3a4a5a;
 }
+
+#sql-filter::selection {
+    background-color: #00FF00; /* invert selection colors */
+    color: #000000;
+}
+
+#sql-filter:focus {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.95rem;
+    background-color: #000000;  /* black background */
+    color: #00FF00;             /* bright green text */
+    caret-color: #00FF00;       /* green cursor */
+    border: 1px solid #00FF00;  /* optional border */
+    padding: 0.375rem 0.75rem;  /* same as Bootstrap input padding */
+    outline: none;            /* remove default focus outline */
+    box-shadow: 0 0 5px #00FF00; /* glow effect when focused */
+}
+
+td:last-child {
+    text-align: center;
+    white-space: nowrap;
+}
+
+table.dataTable {
+    table-layout: fixed;
+}
+table.dataTable th, table.dataTable td {
+    white-space: nowrap;
+}
+
+/* Message cell */
+td.message {
+    max-width: 400px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    position: relative;
+}
+
+td.message .short-msg { display: inline; }
+td.message .full-msg { display: none; }
+
+td.message.expanded {
+    white-space: normal;
+}
+
+td.message.expanded .short-msg { display: none; }
+td.message.expanded .full-msg {
+    display: block;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Copy button */
+td.message .copy-btn {
+    display: none;
+    margin-left: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    color: #0d6efd;
+}
+
+td.message.expanded .copy-btn {
+    display: inline;
+}
+
+#copy-event-btn {
+    font-size: 0.9em;
+}
+
+
 </style>
 
 
@@ -270,42 +313,69 @@ td.message {
 
 <body>
 <header class="app-header">
-    <nav class="nav-left">
-        <a href="/">CollectiFOR</a>
-        <a href="/search">Search</a>
-        <a href="/commands">Commands</a>
-        <a href="/files">File Navigator</a>
-        <a href="/checksums">Checksums</a>
-        <a href="/network">Network</a>
-        <a href="/listeners">Listeners</a>
-        <a href="/findings">Findings</a>
-        <a href="/timeline">Timeline Explorer</a>
-        <a href="/timeline_chart">Timeline Chart</a>
-    </nav>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid justify-content-center">
+    <!-- Brand -->
+    <a class="navbar-brand me-4" href="/">CollectiFOR</a>
 
-    <!-- Timeline selector -->
-    <form method="post" action="/change_timeline" class="collection-form">
-        <input type="hidden" name="next" value="{{ request.full_path }}">
+    <!-- Hamburger for mobile -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
 
-        <select name="timeline" onchange="this.form.submit()">
-            <option value=""
-                {% if not session.get("timeline_name") %}selected{% endif %}>
-                All Timelines
-            </option>
+    <!-- Navbar links + collection selector -->
+    <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/search">Search</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/commands">Commands</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/files">File Navigator</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/checksums">Checksums</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/network">Network</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/listeners">Listeners</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/findings">Findings</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/timeline">Timeline Explorer</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/timeline_chart">Timeline Chart</a>
+        </li>
+      </ul>
 
-            {% for t in all_timelines %}
-                <option value="{{ t }}"
-                    {% if t == session.get("timeline_name") %}selected{% endif %}>
-                    {{ t }}
-                </option>
-            {% endfor %}
-        </select>
+    <!-- Timeline selector on the right -->
+    <form method="post" action="/change_timeline" class="d-flex ms-3">
+      <input type="hidden" name="next" value="{{ request.full_path }}">
+      <select class="form-select form-select-sm bg-dark text-light border-secondary" name="timeline" onchange="this.form.submit()">
+        <option value=""
+          {% if not session.get("timeline_name") %}selected{% endif %}>
+          All Timelines
+        </option>
+        {% for t in all_timelines %}
+          <option value="{{ t }}"
+            {% if t == session.get("timeline_name") %}selected{% endif %}>
+            {{ t }}
+          </option>
+        {% endfor %}
+      </select>
     </form>
+  </div>
+</nav>
 </header>
-<div class="container-fluid px-4">
-        {% block content %}{% endblock %}
+
+<div class="container-fluid px-4 mt-4">
+    {% block content %}{% endblock %}
 </div>
-
-</body>
-</html>
-

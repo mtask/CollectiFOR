@@ -24,24 +24,6 @@
         background: #1b2733;
     }
 
-    header {
-        background: #2b2b2b;
-        color: #ffffff;
-        padding: 10px 20px;
-        margin-bottom: 20px;
-    }
-
-    header a {
-        color: #ffffff;
-        margin-right: 15px;
-        text-decoration: none;
-        font-weight: bold;
-    }
-
-    header a:hover {
-        text-decoration: underline;
-    }
-
     .container {
         background: #ffffff;
         padding: 20px;
@@ -133,21 +115,6 @@
         }
     }
 
-    .app-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-    }
-
-    .nav-left a {
-        margin-right: 0.75rem;
-        text-decoration: none;
-    }
-
-    .collection-form select {
-        padding: 4px 8px;
-    }
 details summary h3::before {
     content: "▶";          /* closed state icon */
     display: inline-block;
@@ -160,7 +127,8 @@ details[open] summary h3::before {
     transform: rotate(90deg);
 }
 
-input[type="text"] {
+
+input[type="text"]::placeholder {
     color: #d1d9e0;  /* light gray, visible on dark background */
     opacity: 1;       /* ensure full opacity in all browsers */
 }
@@ -187,39 +155,71 @@ input[type="text"]:focus {
 
 <body>
 <header class="app-header">
-    <nav class="nav-left">
-        <a href="/">CollectiFOR</a>
-        <a href="/search">Search</a>
-        <a href="/commands">Commands</a>
-        <a href="/files">File Navigator</a>
-        <a href="/checksums">Checksums</a>
-        <a href="/network">Network</a>
-        <a href="/listeners">Listeners</a>
-        <a href="/findings">Findings</a>
-        <a href="/timeline">Timeline Explorer</a>
-        <a href="/timeline_chart">Timeline Chart</a>
-    </nav>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid justify-content-center">
+    <!-- Brand -->
+    <a class="navbar-brand me-4" href="/">CollectiFOR</a>
 
-    <!-- Collection selector -->
-    <form method="post" action="/change_collection" class="collection-form">
+    <!-- Hamburger for mobile -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <!-- Navbar links + collection selector -->
+    <div class="collapse navbar-collapse justify-content-center" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/search">Search</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/commands">Commands</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/files">File Navigator</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/checksums">Checksums</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/network">Network</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/listeners">Listeners</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/findings">Findings</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/timeline">Timeline Explorer</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/timeline_chart">Timeline Chart</a>
+        </li>
+      </ul>
+
+      <!-- Collection selector -->
+      <form method="post" action="/change_collection" class="d-flex ms-3">
         <input type="hidden" name="next" value="{{ request.full_path }}">
-
-        <select name="collection" onchange="this.form.submit()">
-            <option value=""
-                {% if not session.get("collection_name") %}selected{% endif %}>
-                All Collections
+        <select class="form-select form-select-sm bg-dark text-light border-secondary" name="collection" onchange="this.form.submit()">
+          <option value=""
+            {% if not session.get("collection_name") %}selected{% endif %}>
+            All Collections
+          </option>
+          {% for c in all_collections %}
+            <option value="{{ c }}"
+              {% if c == session.get("collection_name") %}selected{% endif %}>
+              {{ c }}
             </option>
-
-            {% for c in all_collections %}
-                <option value="{{ c }}"
-                    {% if c == session.get("collection_name") %}selected{% endif %}>
-                    {{ c }}
-                </option>
-            {% endfor %}
+          {% endfor %}
         </select>
-    </form>
+      </form>
+    </div>
+  </div>
+</nav>
 </header>
-{% if not session.get("collection_name") and all_collections and request.endpoint not in ['checksum_search', 'finding_detail', 'search', 'commands'] %}
+
+{% if not session.get("collection_name") and all_collections and request.endpoint not in ['index', 'checksum_search', 'finding_detail', 'search', 'commands'] %}
   <!-- Modal overlay forcing collection selection -->
   <div id="collection-modal" style="
         position: fixed;
@@ -231,22 +231,19 @@ input[type="text"]:focus {
       <h2>Please select a collection to continue</h2>
       <form method="post" action="/change_collection">
         <input type="hidden" name="next" value="{{ request.path }}">
-        <select name="collection" required>
+        <select name="collection" required class="form-select">
           <option value="" disabled selected>Select collection</option>
           {% for c in all_collections %}
             <option value="{{ c }}">{{ c }}</option>
           {% endfor %}
         </select>
         <br><br>
-        <button type="submit">Continue</button>
+        <button type="submit" class="btn btn-primary">Continue</button>
       </form>
     </div>
   </div>
 {% endif %}
-<div class="container-fluid px-4">
-        {% block content %}{% endblock %}
+
+<div class="container-fluid px-4 mt-4">
+    {% block content %}{% endblock %}
 </div>
-
-</body>
-</html>
-
