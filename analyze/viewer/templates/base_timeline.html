@@ -157,6 +157,21 @@ label {
     color: #d1d9e0;
 }
 
+table.dataTable {
+    table-layout: auto; /* important! allows wrapping */
+    width: 100%;
+}
+
+td.message {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    overflow: auto;
+    max-width: 100px;
+    vertical-align: top;
+}
+
+
 /* DataTables dark theme */
 table.dataTable, .dataTables_wrapper {
     color: #d1d9e0;
@@ -270,54 +285,6 @@ td:last-child {
 /* Body cells default nowrap */
 .dataTables_scrollBody td {
     white-space: nowrap;
-}
-
-/* EXCEPT message column */
-td.message {
-    white-space: nowrap;
-}
-td.message.expanded {
-    white-space: normal;
-}
-
-
-
-/* Message cell */
-td.message {
-    max-width: 400px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    cursor: pointer;
-    position: relative;
-}
-
-td.message .short-msg { display: inline; }
-td.message .full-msg { display: none; }
-
-td.message.expanded {
-    white-space: normal;
-}
-
-td.message.expanded .short-msg { display: none; }
-td.message.expanded .full-msg {
-    display: block;
-    white-space: pre-wrap;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-/* Copy button */
-td.message .copy-btn {
-    display: none;
-    margin-left: 6px;
-    cursor: pointer;
-    font-size: 0.9em;
-    color: #0d6efd;
-}
-
-td.message.expanded .copy-btn {
-    display: inline;
 }
 
 #copy-event-btn {
