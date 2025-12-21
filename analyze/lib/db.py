@@ -7,6 +7,7 @@ Base = declarative_base()
 class Collections(Base):
     __tablename__ = "collections"
     collection_name = Column(String, primary_key=True)
+    collection_abs_path = Column(String, primary_key=True)
 
 class CommandOutput(Base):
     __tablename__ = "command_output"
@@ -128,7 +129,7 @@ class Finding(Base):
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
 class DB:
-    def __init__(self, db_file, collection_name):
+    def __init__(self, db_file, collection_name, collection_abs_path):
         self.engine = create_engine(f"sqlite:///{db_file}", echo=False, future=True)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
@@ -137,7 +138,7 @@ class DB:
             session = self.Session()
             exists = session.query(Collections).filter_by(collection_name=self.collection_name).first()
             if not exists:
-                session.add(Collections(collection_name=self.collection_name))
+                session.add(Collections(collection_name=self.collection_name, collection_abs_path=collection_abs_path))
                 session.commit()
                 session.close()
 

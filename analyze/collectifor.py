@@ -212,8 +212,9 @@ def main():
     try:
         collection_id = os.path.join(Path(collection_dir).parts[-2], Path(collection_dir).parts[-1])
     except UnboundLocalError:
+        collection_dir = None
         collection_id = None
-    db = DB(args.db, collection_id)
+    db = DB(args.db, collection_id, collection_dir)
 
     # -----------------------------
     # Run parsers
@@ -247,7 +248,7 @@ def main():
             collection_dir
         except NameError:
             collection_dir = None
-        run_viewer(collection_dir, db_file=args.db)
+        run_viewer(db_file=args.db)
         return
 
 if __name__ == "__main__":
