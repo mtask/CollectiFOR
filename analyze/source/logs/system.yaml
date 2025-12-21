@@ -1,0 +1,52 @@
+events:
+  - name: kernel_panic
+    indicator: Kernel panic
+    pattern: >
+      Kernel\s+panic
+    message_template: "Kernel panic detected"
+    meta_fields: []
+    filenames:
+      - /var/log/kern.log
+      - /var/log/messages
+
+  - name: disk_full
+    indicator: Disk full
+    pattern: >
+      .*Filesystem\s+full.*
+    message_template: "Disk full event detected"
+    meta_fields: []
+    filenames:
+      - /var/log/syslog
+      - /var/log/messages
+
+  - name: auth_log_rotate
+    indicator: Log rotation
+    pattern: >
+      logrotate\[\d+\]:\s+restarting\s+log\s+service
+    message_template: "Log rotation event"
+    meta_fields: []
+    filenames:
+      - /var/log/syslog
+      - /var/log/messages
+
+  - name: package_install
+    indicator: Package installed
+    pattern: >
+      install\s+(?P<package>\S+)
+    message_template: "Package installed: {package}"
+    meta_fields: [package]
+    filenames:
+      - /var/log/dpkg.log
+      - /var/log/apt/history.log
+      - /var/log/yum.log
+
+  - name: package_remove
+    indicator: Package removed
+    pattern: >
+      remove\s+(?P<package>\S+)
+    message_template: "Package removed: {package}"
+    meta_fields: [package]
+    filenames:
+      - /var/log/dpkg.log
+      - /var/log/apt/history.log
+      - /var/log/yum.log

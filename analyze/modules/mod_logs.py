@@ -1,127 +1,125 @@
-# modules/mod_logs.py
 import re
-import logging
+import os
 import gzip
+import yaml
+import logging
 from pathlib import Path
 from lib.finding import new_finding
 
+
 def _open_log(path):
     """Open normal or gzipped log file in text mode"""
-    if path.suffix == ".gz":
+    if Path(path).suffix == ".gz":
         return gzip.open(path, "rt", errors="ignore")
-    else:
-        return open(path, "r", errors="ignore")
+    return open(path, "r", errors="ignore")
 
 
-def analyze(rootdir):
+def _load_rules(rule_dir):
+    import re
+    import yaml
+    rules = []
+
+    for i in os.listdir(rule_dir):
+        rule_file = Path(rule_dir) / i
+        logging.info(f"[+] Loading rules from {rule_file}")
+        with open(rule_file, "r") as f:
+            data = yaml.safe_load(f)
+
+        for event in data.get("events", []):
+            raw_pattern = event["pattern"]
+
+            # Normalize YAML-folded whitespace:
+            # remove all literal whitespace that VERBOSE would ignore anyway
+            normalized = re.sub(r"[ \t\r\n]+", " ", raw_pattern).strip()
+
+            try:
+                regex = re.compile(normalized, re.VERBOSE)
+            except re.error as e:
+                raise ValueError(
+                    f"Invalid regex in rule '{event['name']}': {e}"
+                ) from e
+
+            rules.append({
+                "name": event["name"],
+                "indicator": event["indicator"],
+                "regex": regex,
+                "message_template": event["message_template"],
+                "meta_fields": event.get("meta_fields", []),
+                "filenames": event.get("filenames", [])
+            })
+
+    return rules
+
+
+def _find_files(log_dir, prefixes):
     """
-    Parse authentication logs across major Linux distributions.
-
-    Supports:
-      - Debian/Ubuntu: auth.log*
-      - RHEL/CentOS/Fedora: secure*
-      - Handles rotated .gz files
-    Extracts:
-      - Sudo authentication failures
-      - SSH login failures/successes
-      - Desktop login failures (GDM/LightDM/login)
+    Find all log files matching rules' .filenames including rotated files
     """
+    log_files = []
+    for prefix in prefixes:
+        p = Path(prefix)
+        base_name = p.name
+        pattern = f"{base_name}*"
+        for f in log_dir.rglob("*"):  # get all files
+            if f.is_file():
+                # check if the file matches the prefix
+                try:
+                    relative_path = f.relative_to(log_dir)  # make path relative
+                except ValueError:
+                    continue  # f is outside log_dir, skip
+                if str(relative_path).startswith(str(Path(prefix).relative_to("/"))):
+                    log_files.append({"path": str(f), "prefix": prefix})
+    return log_files
+
+def analyze(rootdir, rules_dir="source/logs/"):
     results = []
-    log_dir = Path(rootdir) / "files_and_dirs/var/log"
+    log_dir = Path(rootdir) / "files_and_dirs"
 
-    # Regex patterns
-    sudo_fail_re = re.compile(
-        r"sudo: pam_unix\(sudo:auth\): authentication failure; "
-        r"logname=(?P<logname>\S+) uid=(?P<uid>\d+) euid=(?P<euid>\d+) "
-        r"tty=(?P<tty>\S+) ruser=(?P<ruser>\S*) rhost=(?P<rhost>\S*)\s*user=(?P<user>\S+)"
-    )
+    rules = _load_rules(rules_dir)
 
-    desktop_fail_re = re.compile(
-        r"(gdm|lightdm|login).*authentication failure.*user=(?P<user>\S+)"
-    )
+    # Build a set of log file prefixes from rules
+    prefixes = set()
+    for d in rules:
+        prefixes.update(d["filenames"])
 
-    ssh_failed_re = re.compile(r"Failed password for (?P<user>\S+) from (?P<ip>\S+) port")
-    ssh_success_re = re.compile(r"Accepted .* for (?P<user>\S+) from (?P<ip>\S+)")
-
-    # Collect all relevant logs (Debian/Ubuntu + RHEL/CentOS)
-    log_files = list(log_dir.glob("auth.log*")) + list(log_dir.glob("secure*"))
+    log_files = _find_files(log_dir, prefixes)
 
     for log_file in log_files:
-        logging.info(f"Checking log file: {log_file}")
+        logging.info(f"Checking log file: {log_file['path']}")
         try:
-            with _open_log(log_file) as f:
-                lines = f.readlines()
-        except Exception:
-            continue
+            with _open_log(log_file['path']) as f:
+                for raw_line in f:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    for rule in rules:
+                        # Check if current log file is in rule filenames
+                        if f"{log_file['prefix']}" not in rule['filenames']:
+                            continue
+                        match = rule["regex"].search(line)
+                        if not match:
+                            continue
+                        finding = new_finding()
+                        finding["type"] = "logs"
+                        finding["artifact"] = str(f"files_and_dirs{log_file['prefix']}")
+                        finding["indicator"] = rule["indicator"]
+                        finding['rule'] = rule['name']
 
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
+                        # Message formatting (same content as original)
+                        finding["message"] = rule["message_template"].format(
+                            **match.groupdict()
+                        )
 
-            # Sudo failures
-            match = sudo_fail_re.search(line)
-            if match:
-                finding = new_finding()
-                finding['type'] = 'logs'
-                finding['message'] = f"Sudo authentication failed for user {match['user']} on tty {match['tty']}"
-                finding['artifact'] = str(log_file)
-                finding['indicator'] = "Sudo authentication failure"
-                finding['meta'] = {
-                                      "line": line,
-                                      "user": match['user'],
-                                      "logname": match['logname'],
-                                      "tty": match['tty'],
-                                      "uid": match['uid'],
-                                      "euid": match['euid'],
-                                      "rhost": match['rhost']
-                                  }
-                results.append(finding)
-                continue
+                        # Meta (same structure as original)
+                        meta = {"line": line}
+                        for field in rule["meta_fields"]:
+                            meta[field] = match.group(field)
+                        finding["meta"] = meta
 
-            # Desktop login failures
-            match = desktop_fail_re.search(line)
-            if match:
-                finding = new_finding()
-                finding['type'] = 'logs'
-                finding['message'] = f"Failed desktop login for user {match['user']}"
-                finding['artifact'] = str(log_file)
-                finding['indicator'] = "Desktop authentication failure"
-                finding['meta'] = {
-                                      "line": line,
-                                      "user": match['user']
-                                  }
-                results.append(finding)
-                continue
-
-            # SSH failures
-            match = ssh_failed_re.search(line)
-            if match:
-                finding = new_finding()
-                finding['type'] = 'logs'
-                finding['message'] = f"Failed SSH login for user {match['user']} from {match['ip']}"
-                finding['artifact'] = str(log_file)
-                finding['indicator'] = "SSH authentication failure"
-                finding['meta'] = {
-                                      "line": line,
-                                      "user": match['user'],
-                                      "ip": match['ip']
-                                  }
-                results.append(finding)
-                continue
-
-            # SSH successes
-            match = ssh_success_re.search(line)
-            if match:
-                finding = new_finding()
-                finding['type'] = 'logs'
-                finding['message'] = f"Successful SSH login for user {match['user']} from {match['ip']}"
-                finding['artifact'] = str(log_file)
-                finding['indicator'] = "SSH login success"
-                finding['meta'] = {
-                                      "line": line,
-                                      "user": match['user'],
-                                      "ip": match['ip']
-                                  }
-                results.append(finding)
+                        results.append(finding)
+                        break  # only one rule per line
+        except Exception as e:
+            logging.error(repr(e))
+    logging.info(f"[+] {len(results)} findings from logs")
     return results
+
