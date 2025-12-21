@@ -60,6 +60,13 @@
                 <li>
                     <a class="dropdown-item filter-helper"
                        href="#"
+                       data-snippet="json_extract_string(extra, '$.strings') ILIKE '%persistence%'">
+                       extra.strings ILIKE
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item filter-helper"
+                       href="#"
                        data-snippet="data_type = 'syslog:line'">
                         Filter by data type
                     </a>
@@ -82,21 +89,21 @@
                     <a class="dropdown-item filter-helper"
                        href="#"
                        data-snippet="timestamp_desc = 'Content Modification Time'">
-                       Content Modification Time
+                       timestamp_desc: Content Modification Time
                     </a>
                 </li>
                 <li>
                     <a class="dropdown-item filter-helper"
                        href="#"
                        data-snippet="timestamp_desc = 'Last Access Time'">
-                       Last Access Time
+                       timestamp_desc: Last Access Time
                     </a>
                 </li>
                 <li>
                     <a class="dropdown-item filter-helper"
                        href="#"
                        data-snippet="timestamp_desc = 'Metadata Modification Time'">
-                       Metadata Modification Time
+                       timestamp_desc: Metadata Modification Time
                     </a>
                 </li>
             </ul>
