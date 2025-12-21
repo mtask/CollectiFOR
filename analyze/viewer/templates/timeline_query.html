@@ -1,0 +1,64 @@
+{% extends "base_timeline.html" %}
+
+{% block content %}
+<h2>Timeline Query</h2>
+
+<form method="get" action="{{ url_for('timeline_query') }}">
+  <div class="row mb-3 justify-content-center align-items-end">
+      <div class="col-md-12">
+          <label for="sql-filter">DuckDB SQL Query</label>
+          <div class="input-group">
+              <input
+                  type="text"
+                  id="sql-filter"
+                  name="sql_filter"
+                  class="form-control"
+                  placeholder="Enter full SQL query, e.g. SELECT * FROM timeline_events LIMIT 10"
+                  value="{{ sql_query|default('') }}"
+              >
+              <button type="submit" class="btn btn-primary">
+                  Run
+              </button>
+          </div>
+      </div>
+  </div>
+</form>
+
+{% if not result_df.empty %}
+<div class="row">
+    <div class="col-12 position-relative">
+        <!-- Copy Button -->
+        <button id="copy-result-btn" class="btn btn-sm btn-outline-light position-absolute" style="top:0.5rem; right:0.5rem;">
+            <i class="bi bi-clipboard"></i>
+        </button>
+
+        <pre id="result-pre" class="p-3" style="background-color: black; color: #00FF00; overflow:auto; max-height: 70vh;">
+{{ result_df.to_csv(sep='|', index=False, header=True) }}
+        </pre>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container" class="position-fixed top-0 end-0 p-3" style="z-index:1055;"></div>
+
+<script>
+document.getElementById('copy-result-btn').addEventListener('click', () => {
+    const text = document.getElementById('result-pre').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        const id = 'toast-' + Date.now();
+        const toastHtml = `
+            <div id="${id}" class="toast text-bg-success border-0">
+                <div class="d-flex">
+                    <div class="toast-body">Copied to clipboard</div>
+                    <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        document.getElementById('toast-container').insertAdjacentHTML('beforeend', toastHtml);
+        new bootstrap.Toast(document.getElementById(id), { delay: 2000 }).show();
+    });
+});
+</script>
+{% endif %}
+
+{% endblock %}

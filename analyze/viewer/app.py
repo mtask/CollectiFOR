@@ -480,17 +480,36 @@ def timeline_event(event_id):
     columns = [desc[0] for desc in result.description]
     event_dict = dict(zip(columns, row))
 
-    # Directly parse JSON fields
     event_dict["extra"] = json.loads(event_dict["extra"])
     event_dict["date_time"] = json.loads(event_dict["date_time"])
     if isinstance(event_dict.get('inserted_at'), datetime):
         event_dict['inserted_at'] = event_dict['inserted_at'].isoformat()
     conn.close()
 
-    # Return pretty JSON
     return app.response_class(
         response=json.dumps(event_dict, indent=2),
         mimetype='application/json'
+    )
+
+
+@app.route('/timeline_query')
+def timeline_query():
+    conn = duckdb.connect(DUCKDB_FILE)
+    sql_query = request.args.get("sql_filter", "").strip()
+
+    result_df = pd.DataFrame()
+    if sql_query:
+        try:
+            result_df = conn.execute(sql_query).df()
+        except Exception as e:
+            result_df = pd.DataFrame([{"Error": str(e)}])
+    else:
+       result_df = conn.execute(f"PRAGMA table_info('timeline_events')").df()
+
+    return render_template(
+        'timeline_query.html',
+        sql_query=sql_query,
+        result_df=result_df
     )
 
 
