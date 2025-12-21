@@ -3,7 +3,6 @@
 {% block content %}
 <h2>Timeline Explorer</h2>
 
-<!-- Top row: calendar pickers -->
 <div class="row mb-3 justify-content-center">
     <div class="col-md-3">
         <label>Start Time</label>
@@ -14,10 +13,16 @@
         <label>End Time</label>
         <input id="end-time" class="form-control" placeholder="dd/mm/yyyy HH:mm">
     </div>
+
+    <div class="col-md-3">
+        <label>Sort Order</label>
+        <select id="sort-order" class="form-control">
+            <option value="desc" selected>Newest first (DESC)</option>
+            <option value="asc">Oldest first (ASC)</option>
+        </select>
+    </div>
 </div>
 
-<!-- Bottom row: search + filter button -->
-<!-- Bottom row: search + helpers + filter button -->
 <div class="row mb-3 justify-content-center align-items-end">
     <div class="col-md-10">
         <label>DuckDB SQL Filter</label>
@@ -196,6 +201,8 @@ $(document).ready(function() {
                     : null;
 
                 d.sql_filter = $('#sql-filter').val();
+                
+                d.sort_order = $('#sort-order').val();
             }
         },
         columns: [

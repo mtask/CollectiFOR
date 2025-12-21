@@ -400,7 +400,7 @@ def timeline():
 
 @app.route("/api/timeline_data")
 def timeline_data():
-    sort_order = "DESC"
+    sort_order = request.args.get("sort_order", "DESC")
     start_time = request.args.get("start_time")
     end_time = request.args.get("end_time")
     sql_filter = request.args.get("sql_filter", "").strip()
