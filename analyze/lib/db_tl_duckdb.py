@@ -19,6 +19,7 @@ class DB:
         self.conn.execute(f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
             id BIGINT PRIMARY KEY DEFAULT nextval('seq_{table_name}_id'),
+            timeline_file VARCHAR,
             timestamp BIGINT NOT NULL,
             timestamp_desc VARCHAR,
             date_time JSON,
@@ -41,11 +42,29 @@ class DB:
         );
         """)
 
+    def create_timeline_file_table(self, table_name="timeline_files"):
+        # Create table with default nextval from sequence
+        self.conn.execute(f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            timeline_file VARCHAR PRIMARY KEY,
+        );
+        """)
+
     def insert_batch(self, table_name, df: pd.DataFrame):
         """Insert a Pandas DataFrame into DuckDB table, only the DataFrame columns."""
         columns = ", ".join(df.columns)
         self.conn.register("df_batch", df)
         self.conn.execute(f"INSERT INTO {table_name} ({columns}) SELECT * FROM df_batch")
+
+    def insert_timeline_file(self, timeline_file, table_name="timeline_files"):
+        self.conn.execute(
+            f"""
+            INSERT INTO {table_name} (timeline_file)
+            VALUES (?)
+            ON CONFLICT(timeline_file) DO NOTHING
+            """,
+           [timeline_file]
+        )
 
     def count_rows(self, table_name="timeline_events"):
         """Return number of rows in table."""

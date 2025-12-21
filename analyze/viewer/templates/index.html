@@ -1,12 +1,37 @@
 {% extends "base.html" %}
 {% block content %}
-<ul>
-  <li><a href="/search">Search</a></li>
-  <li><a href="/commands">Commands</a></li>
-  <li><a href="/files">File Navigator</a></li>
-  <li><a href="/checksums">Checksum Search</a></li>
-  <li><a href="/network">Network Search</a></li>
-  <li><a href="/listeners">Listeners</a></li>
-  <li><a href="/findings">Findings</a></li>
-</ul>
+<div class="text-center my-5">
+    <!-- Logo -->
+    <img src="{{ url_for('static', filename='img/collectifor.png') }}" 
+         alt="CollectiFOR Logo" 
+         class="img-fluid mb-4" style="height: 400px;">
+
+    <!-- Links -->
+	<div class="list-group w-50 mx-auto">
+	    <a href="/search" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
+	        Search <i class="bi bi-search ms-2"></i>
+	    </a>
+	    <a href="/commands" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
+	        Commands <i class="bi bi-terminal ms-2"></i>
+	    </a>
+	    <a href="/files" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
+	        File Navigator <i class="bi bi-folder2-open ms-2"></i>
+	    </a>
+	    <a href="/checksums" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
+	        Checksum Search <i class="bi bi-shield-check ms-2"></i>
+	    </a>
+	    <a href="/network" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
+	        Network Search <i class="bi bi-diagram-3 ms-2"></i>
+	    </a>
+	    <a href="/listeners" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
+	        Listeners <i class="bi bi-broadcast ms-2"></i>
+	    </a>
+	    <a href="/timeline" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
+	        Timeline Explorer <i class="bi bi-clock-history ms-2"></i>
+	    </a>
+	    <a href="/timeline_chart" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
+	        Timeline Chart <i class="bi bi-bar-chart ms-2"></i>
+	    </a>
+	</div>
+</div>
 {% endblock %}

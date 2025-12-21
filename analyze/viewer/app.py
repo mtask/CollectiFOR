@@ -1,7 +1,7 @@
-from flask import Flask, render_template, request, current_app, jsonify
-from sqlalchemy import create_engine, or_
+from flask import Flask, render_template, request, current_app, jsonify, session, redirect, abort
+from flask import session as flask_session
+from sqlalchemy import create_engine, or_, not_
 from sqlalchemy.orm import sessionmaker
-from flask import abort
 from datetime import datetime
 import pandas as pd
 import duckdb
@@ -18,10 +18,12 @@ from lib.db import (
     Finding,
     FileEntry,
     ListenerEntry,
+    Collections,
 )
 
 
 app = Flask(__name__)
+app.secret_key = "super-secret-key"
 
 
 # ----------------------------------------------------------------------
@@ -36,13 +38,18 @@ def get_session():
     Session = sessionmaker(bind=engine)
     return Session()
 
-def get_tl_session():
-    engine = create_engine(
-        f"sqlite:///{DB_TL_FILE}",
-        future=True
-    )
-    Session = sessionmaker(bind=engine)
-    return Session()
+def apply_collection_filter(query, model):
+    collection = flask_session.get("collection_name")
+    if collection:
+        query = query.filter(model.collection_name == collection)
+    return query
+
+@app.context_processor
+def inject_collections():
+    return {
+        "all_collections": COLLECTIONS,
+        "all_timelines": TIMELINES
+    }
 
 
 # ----------------------------------------------------------------------
@@ -53,17 +60,38 @@ def get_tl_session():
 def index():
     return render_template("index.html")
 
+@app.route("/change_collection", methods=["POST"])
+def change_collection():
+    collection = request.form.get("collection")
+
+    if collection:
+        session["collection_name"] = collection
+    else:
+        session.pop("collection_name", None)  # All Collections
+
+    return redirect(request.form.get("next", "/"))
+
+@app.route("/change_timeline", methods=["POST"])
+def change_timeline():
+    timeline = request.form.get("timeline")
+
+    if timeline:
+        session["timeline_name"] = timeline
+    else:
+        session.pop("timeline_name", None)  # All Timelines
+
+    return redirect(request.form.get("next", "/"))
+
 @app.route("/listeners")
 def listeners():
-    session = get_session()
+    db = get_session()
     try:
-        entries = (
-            session.query(ListenerEntry)
-            .order_by(ListenerEntry.protocol, ListenerEntry.port)
-            .all()
-        )
+        query = db.query(ListenerEntry)
+        query = apply_collection_filter(query, ListenerEntry)
+
+        entries = query.order_by(ListenerEntry.protocol, ListenerEntry.port).all()
     finally:
-        session.close()
+        db.close()
 
     return render_template(
         "listeners.html",
@@ -73,12 +101,10 @@ def listeners():
 @app.route("/files/", defaults={"dir_path": ""})
 @app.route("/files/<path:dir_path>")
 def files(dir_path):
-    session = get_session()
+    db = get_session()
 
-    # Get optional search query
     q = request.args.get("q", "").strip()
 
-    # Normalize current directory
     dir_path = dir_path.strip("/")
     current_dir = "/" + dir_path if dir_path else ""
 
@@ -87,32 +113,41 @@ def files(dir_path):
 
     if q:
         # Global search ignoring current_dir
-        files = session.query(FileEntry).filter(
+        query = db.query(FileEntry).filter(
             FileEntry.type == "file",
             FileEntry.path.ilike(f"%{q}%")
-        ).all()
-        # Optionally, sort by path
+        )
+
+        query = apply_collection_filter(query, FileEntry)
+
+        files = query.all()
         files.sort(key=lambda f: f.path)
+
     else:
-        # Normal browsing mode
         current_depth = current_dir.count("/") if current_dir else 0
         like_pattern = f"{current_dir}/%" if current_dir else "/%"
 
         # Directories
-        dirs = session.query(FileEntry).filter(
+        dir_query = db.query(FileEntry).filter(
             FileEntry.path.like(like_pattern),
             FileEntry.type == "dir"
-        ).all()
+        )
+        dir_query = apply_collection_filter(dir_query, FileEntry)
+
+        dirs = dir_query.all()
         dirs = [d for d in dirs if d.path.count("/") == current_depth + 1]
 
         # Files
-        files = session.query(FileEntry).filter(
+        file_query = db.query(FileEntry).filter(
             FileEntry.path.like(like_pattern),
             FileEntry.type == "file"
-        ).all()
+        )
+        file_query = apply_collection_filter(file_query, FileEntry)
+
+        files = file_query.all()
         files = [f for f in files if f.path.count("/") == current_depth + 1]
 
-    session.close()
+    db.close()
 
     return render_template(
         "files.html",
@@ -130,10 +165,19 @@ def view_file():
         return "Missing file path", 400
     # Determine parent directory
     parent_dir = "/" + "/".join(rel_path.strip("/").split("/")[:-1])
-    if not COLLECTION_DIR:
-       return render_template("file_view.html", path=rel_path, content="Collection directory was not provided on the app launch. Content can't be shown. Relaunch CollectiFOR with --collection <collection>", parent_dir=parent_dir)
-
-    file_path = os.path.join(COLLECTION_DIR, "files_and_dirs", rel_path.lstrip("/"))
+    db = get_session()
+    current_collection = flask_session.get("collection_name")
+    collection_dir = (
+        db.query(Collections.collection_abs_path)
+        .filter(Collections.collection_name == current_collection)
+        .first()
+    )
+    collection_dir = collection_dir[0] if collection_dir else None
+    if not collection_dir:
+        return render_template("file_view.html", path=rel_path, content="Collection directory not found from the database", parent_dir=parent_dir)
+    if not os.path.isdir(collection_dir):
+        return render_template("file_view.html", path=rel_path, content="Collection directory {collection_dir} not found", parent_dir=parent_dir)
+    file_path = os.path.join(collection_dir, "files_and_dirs", rel_path.lstrip("/"))
 
     if not os.path.isfile(file_path):
         return "File not found", 404
@@ -149,51 +193,64 @@ def search():
     results = {}
 
     if q:
-        session = get_session()
+        db = get_session()
 
-        results["commands"] = session.query(CommandOutput)\
-            .filter(CommandOutput.output.contains(q)).all()
+        results["commands"] = apply_collection_filter(
+            db.query(CommandOutput).filter(CommandOutput.output.contains(q)),
+            CommandOutput
+        ).all()
 
-        results["files"] = session.query(FilePermission)\
-            .filter(FilePermission.filepath.contains(q)).all()
+        results["files"] = apply_collection_filter(
+            db.query(FileEntry).filter(FileEntry.path.contains(q)),
+            FileEntry
+        ).all()
 
-        results["packets"] = session.query(PcapPacket)\
-            .filter(PcapPacket.raw_content.contains(q)).limit(100).all()
+        results["packets"] = apply_collection_filter(
+            db.query(PcapPacket).filter(PcapPacket.raw_content.contains(q)),
+            PcapPacket
+        ).all()
 
-        results["findings"] = session.query(Finding)\
-            .filter(Finding.message.contains(q)).all()
+        results["checksums"] = apply_collection_filter(
+            db.query(Checksum).filter(
+                or_(
+                    Checksum.checksum.contains(q),
+                    Checksum.filepath.contains(q),
+                )
+            ),
+            Checksum
+        ).all()
 
-        session.close()
+        results["findings"] = apply_collection_filter(
+            db.query(Finding).filter(Finding.message.contains(q)),
+            Finding
+        ).all()
+
+        db.close()
 
     return render_template("search.html", q=q, results=results)
 
 @app.route("/commands")
 def commands():
-    session = get_session()
-
-    # Optional filter: command name (e.g. "lsmod", "docker", "ps")
+    db = get_session()
     q = request.args.get("q", "").strip()
 
-    query = session.query(CommandOutput)
-
     if q:
-        # Match both stdout.<cmd> and stderr.<cmd>
-        query = query.filter(
+        query = db.query(CommandOutput).filter(
             CommandOutput.category.ilike(f"%{q}%")
         )
+    else:
+        query = db.query(CommandOutput)
+
+    query = apply_collection_filter(query, CommandOutput)
 
     entries = query.order_by(
         CommandOutput.category,
         CommandOutput.inserted_at
     ).all()
 
-    session.close()
+    db.close()
 
-    return render_template(
-        "commands.html",
-        entries=entries,
-        search_query=q,
-    )
+    return render_template("commands.html", entries=entries, search_query=q)
 
 @app.route("/checksums")
 def checksum_search():
@@ -201,13 +258,18 @@ def checksum_search():
     results = []
 
     if value:
-        session = get_session()
-        results = session.query(Checksum)\
-            .filter(or_(
+        db = get_session()
+
+        query = db.query(Checksum).filter(
+            or_(
                 Checksum.checksum.contains(value),
                 Checksum.filepath.contains(value)
-            )).all()
-        session.close()
+            )
+        )
+        query = apply_collection_filter(query, Checksum)
+
+        results = query.all()
+        db.close()
 
     return render_template("checksums.html", value=value, results=results)
 
@@ -219,25 +281,31 @@ def network_search():
     flows = []
 
     if q:
-        session = get_session()
+        db = get_session()
 
-        packets = session.query(PcapPacket).filter(
+        packet_query = db.query(PcapPacket).filter(
             or_(
                 PcapPacket.src.contains(q),
                 PcapPacket.dst.contains(q),
                 PcapPacket.protocol.contains(q)
             )
-        ).limit(200).all()
+        )
+        packet_query = apply_collection_filter(packet_query, PcapPacket)
 
-        flows = session.query(NetworkFlow).filter(
+        packets = packet_query.limit(1000).all()
+
+        flow_query = db.query(NetworkFlow).filter(
             or_(
                 NetworkFlow.src.contains(q),
                 NetworkFlow.dst.contains(q),
                 NetworkFlow.protocol.contains(q)
             )
-        ).all()
+        )
+        flow_query = apply_collection_filter(flow_query, NetworkFlow)
 
-        session.close()
+        flows = flow_query.all()
+
+        db.close()
 
     return render_template(
         "network.html",
@@ -246,24 +314,78 @@ def network_search():
         flows=flows
     )
 
+from flask import request, render_template
+from sqlalchemy import or_
 
 @app.route("/findings")
 def findings():
-    session = get_session()
+    db = get_session()
 
-    findings = session.query(Finding)\
-        .order_by(Finding.type, Finding.inserted_at.desc())\
-        .all()
+    # Get query parameters
+    q = request.args.get("q", "").strip()
+    type_filters = request.args.getlist("type")
+    rule_filters = request.args.getlist("rule")
 
-    session.close()
-    return render_template("findings.html", findings=findings)
+    # Start base query
+    query = db.query(Finding)
+    query = apply_collection_filter(query, Finding)
+
+    # --- Multi-term text search with negation ---
+    if q:
+        include_terms = []
+        exclude_terms = []
+
+        # Split by whitespace
+        for term in q.split():
+            term = term.strip()
+            if not term:
+                continue
+            if term.startswith("-"):
+                exclude_terms.append(term[1:])
+            else:
+                include_terms.append(term)
+
+        # Include terms (AND logic)
+        for term in include_terms:
+            query = query.filter(Finding.message.ilike(f"%{term}%"))
+
+        # Exclude terms (OR logic)
+        if exclude_terms:
+            query = query.filter(~or_(*(Finding.message.ilike(f"%{t}%") for t in exclude_terms)))
+
+    # Filter by type(s)
+    if type_filters:
+        query = query.filter(Finding.type.in_(type_filters))
+
+    # Filter by rule(s)
+    if rule_filters:
+        query = query.filter(Finding.rule.in_(rule_filters))
+
+    # Order results
+    findings = query.order_by(Finding.type, Finding.inserted_at).all()
+
+    # For dropdowns: fetch all distinct types and rules
+    all_types = [row[0] for row in db.query(Finding.type).distinct().order_by(Finding.type)]
+    all_rules = [row[0] for row in db.query(Finding.rule).distinct().order_by(Finding.rule)]
+
+    db.close()
+
+    return render_template(
+        "findings.html",
+        findings=findings,
+        search_query=q,
+        type_filter=type_filters,
+        rule_filter=rule_filters,
+        all_types=all_types,
+        all_rules=all_rules
+    )
 
 
 @app.route("/findings/<int:finding_id>")
 def finding_detail(finding_id):
-    session = get_session()
-    finding = session.query(Finding).get(finding_id)
-    session.close()
+    db = get_session()
+    finding = db.query(Finding).get(finding_id)
+    db.close()
     return render_template("finding_detail.html", finding=finding)
 
 
@@ -303,6 +425,11 @@ def timeline_data():
     if sql_filter:
         base_sql += f" AND ({sql_filter})"
 
+    # <-- NEW: filter by timeline_name if set in session
+    timeline_name = flask_session.get("timeline_name")
+    if timeline_name:
+        base_sql += f" AND timeline_file = '{timeline_name}'"
+
     data_sql = f"""
         SELECT id, timestamp, timestamp_desc, data_type, message
         {base_sql}
@@ -333,6 +460,7 @@ def timeline_data():
         "recordsFiltered": filtered_count,
         "data": data
     })
+
 
 @app.route("/api/timeline_event/<int:event_id>")
 def timeline_event(event_id):
@@ -396,10 +524,18 @@ def timeline_chart_data():
     if end_time:
         ts = int(datetime.strptime(end_time, "%d/%m/%Y %H:%M").timestamp()*1_000_000)
         filters.append(f"timestamp <= {ts}")
+
+    # <-- Minimal addition: filter by timeline_name if set
+    timeline_name = flask_session.get("timeline_name")
+    if timeline_name:
+        filters.append(f"timeline_file = '{timeline_name}'")
+
     where_sql = f"WHERE {' AND '.join(filters)}" if filters else ""
 
     # Min/Max timestamps
-    min_ts, max_ts = conn.execute(f"SELECT MIN(timestamp), MAX(timestamp) FROM timeline_events {where_sql}").fetchone()
+    min_ts, max_ts = conn.execute(
+        f"SELECT MIN(timestamp), MAX(timestamp) FROM timeline_events {where_sql}"
+    ).fetchone()
     if min_ts is None or max_ts is None:
         return jsonify({"labels": [], "counts": []})
 
@@ -437,17 +573,27 @@ def timeline_chart_data():
 
     return jsonify({"labels": labels, "counts": counts})
 
+def get_collections():
+    db = get_session()
+    collection_names = [n[0] for n in db.query(Collections.collection_name).all()]
+    return collection_names
 
-def run_viewer(collection_dir, db_file="collectifor.db", duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
-    global COLLECTION_DIR, DB_FILE, DUCKDB_FILE
-    if collection_dir:
-        COLLECTION_DIR = os.path.realpath(collection_dir)
-    else:
-        COLLECTION_DIR = None
+def get_timelines():
+    conn = duckdb.connect(DUCKDB_FILE)
+    timeline_files = [row[0] for row in conn.execute(
+        "SELECT timeline_file FROM timeline_files"
+    ).fetchall()]
+    conn.close()
+    return timeline_files
+
+def run_viewer(db_file="collectifor.db", duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
+    global DB_FILE, DUCKDB_FILE, COLLECTIONS, TIMELINES
     DB_FILE = db_file
     DUCKDB_FILE = duckdb_file
+    COLLECTIONS = get_collections()
+    TIMELINES = get_timelines()
+    print(TIMELINES)
     print(f"[+] Viewer started")
-    print(f"[+] Collection: {COLLECTION_DIR}")
     print(f"[+] URL: http://{host}:{port}")
 
     app.run(host=host, port=port, debug=debug, use_reloader=False)

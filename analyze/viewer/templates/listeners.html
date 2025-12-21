@@ -1,16 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Listening Services</h2>
+<h2 class="text-light">Listening Services</h2>
 
-<p>
+<p style="text-align: center;" class="text-light">
   This page shows network listeners detected on the system at collection time.
 </p>
 
 {% if entries %}
-<table class="table table-sm table-striped">
-  <thead>
+<table class="table table-dark table-striped table-hover table-sm">
+  <thead class="table-secondary">
     <tr>
+      <th>Collection</th>
       <th>Protocol</th>
       <th>Port</th>
       <th>Bind</th>
@@ -24,14 +25,15 @@
   <tbody>
 {% for e in entries %}
     <tr>
-      <td>{{ e.protocol }}</td>
-      <td>{{ e.port }}</td>
-      <td class="mono">{{ e.bind }}</td>
-      <td>{{ e.pid }}</td>
-      <td>{{ e.process }}</td>
-      <td class="mono">{{ e.exec }}</td>
-      <td class="mono">{{ e.systemd }}</td>
-      <td class="mono">
+      <td class="text-light">{{ e.collection_name }}</td>
+      <td class="text-light">{{ e.protocol }}</td>
+      <td class="text-light">{{ e.port }}</td>
+      <td class="mono text-light">{{ e.bind }}</td>
+      <td class="text-light">{{ e.pid }}</td>
+      <td class="text-light">{{ e.process }}</td>
+      <td class="mono text-light">{{ e.exec }}</td>
+      <td class="mono text-light">{{ e.systemd }}</td>
+      <td class="mono text-light">
 {% if e.related_paths %}
 {{ '\n'.join(e.related_paths.split(' | ')) }}
 {% else %}
@@ -43,7 +45,8 @@
   </tbody>
 </table>
 {% else %}
-<p>No listener entries found.</p>
+<p class="text-light">No listener entries found.</p>
 {% endif %}
 
 {% endblock %}
+

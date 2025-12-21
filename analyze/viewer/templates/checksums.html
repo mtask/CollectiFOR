@@ -1,30 +1,49 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Checksum Search</h2>
+<h2 class="text-light">Checksum Search</h2>
 
-<form method="get">
-    <input type="text" name="value" value="{{ value }}" placeholder="Checksum or filepath" size="60">
-    <button type="submit">Search</button>
-</form>
+<div class="row mb-3 justify-content-center align-items-end">
+  <div class="col-md-10">
+    <form method="get" class="d-flex gap-2">
+      <input
+        type="text"
+        name="value"
+        value="{{ value }}"
+        placeholder="Checksum or filepath"
+        class="form-control"
+      >
+      <button type="submit" class="btn btn-primary">
+        Search
+      </button>
+    </form>
+  </div>
+</div>
 
 {% if results %}
-<table>
-    <tr>
-        <th>Filepath</th>
-        <th>Algorithm</th>
-        <th>Checksum</th>
-        <th>Inserted</th>
-    </tr>
-    {% for c in results %}
-    <tr>
-        <td class="mono">{{ c.filepath }}</td>
-        <td>{{ c.algorithm }}</td>
-        <td class="mono">{{ c.checksum }}</td>
-        <td>{{ c.inserted_at }}</td>
-    </tr>
-    {% endfor %}
+<table class="table table-dark table-striped table-hover table-sm">
+    <thead class="table-secondary">
+        <tr>
+            <th>Collection</th>
+            <th>Filepath</th>
+            <th>Algorithm</th>
+            <th>Checksum</th>
+            <th>Inserted</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in results %}
+        <tr>
+            <td class="mono text-light">{{ c.collection_name }}</td>
+            <td class="mono text-light">{{ c.filepath }}</td>
+            <td class="mono text-light">{{ c.algorithm }}</td>
+            <td class="mono text-light">{{ c.checksum }}</td>
+            <td class="mono text-light">{{ c.inserted_at }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
 </table>
 {% elif value %}
-<p>No results found.</p>
+<p class="text-light">No results found.</p>
 {% endif %}
 {% endblock %}
+

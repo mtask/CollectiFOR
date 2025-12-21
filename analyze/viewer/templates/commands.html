@@ -1,25 +1,31 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Command Outputs</h2>
+<h2 class="text-light">Command Outputs</h2>
 
-<p>
+<p class="text-light text-center">
   This page shows collected command output (stdout and stderr).
 </p>
 
-<!-- Search -->
-<form method="get" class="mb-3">
-  <input
-    type="text"
-    name="q"
-    placeholder="Filter by command (e.g. lsmod, docker, ps)"
-    value="{{ search_query|default('') }}"
-  >
-  <button type="submit">Filter</button>
-</form>
+<div class="row mb-3 justify-content-center align-items-end">
+  <div class="col-md-10">
+    <form method="get" class="d-flex gap-2">
+      <input
+        type="text"
+        name="q"
+        placeholder="Filter by command (e.g. lsmod, docker, ps)"
+        value="{{ search_query|default('') }}"
+        class="form-control"
+      >
+      <button type="submit" class="btn btn-primary">
+        Filter
+      </button>
+    </form>
+  </div>
+</div>
 
 {% if search_query %}
-  <p>
+  <p class="text-light">
     Showing results for command filter:
     <strong>{{ search_query }}</strong>
   </p>
@@ -27,27 +33,25 @@
 
 {% if entries %}
   {% for e in entries %}
-    <div style="margin-bottom: 2em;">
-      <h4>
-        {{ e.category }}
+    <div class="mb-4">
+      <h4 class="text-light">
+        {{ e.category }} ({{ e.collection_name }})
       </h4>
 
-      <div>
-        <strong>Command:</strong>
-        <span class="mono">{{ e.commandline }}</span>
+      <div class="mb-1">
+        <strong class="text-light">Command:</strong>
+        <span class="mono text-light">{{ e.commandline }}</span>
       </div>
 
-      <pre class="mono"
-           style="max-height: 400px; overflow: auto;
-                  border: 1px solid #ccc;
-                  padding: 10px;
-                  background: #f8f8f8;">
+      <pre class="mono bg-dark text-light p-2 rounded"
+           style="max-height: 400px; overflow: auto;">
 {{ e.output }}
       </pre>
     </div>
   {% endfor %}
 {% else %}
-  <p>No command output found.</p>
+  <p class="text-light">No command output found.</p>
 {% endif %}
 
 {% endblock %}
+

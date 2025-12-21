@@ -11,6 +11,10 @@ class PlasoTimelineParser:
         self.db = db
         self.table_name = table_name
         self.db.create_table(self.table_name)
+        self.db.create_timeline_file_table()
+
+    def _store_timeline_file(self, timeline_file):
+        self.db.insert_timeline_file(timeline_file)
 
     def parse_file(self, jsonl_path, batch_size=100_000, progress_interval=10_000):
         if not os.path.isfile(jsonl_path):
@@ -19,7 +23,7 @@ class PlasoTimelineParser:
 
         batch = []
         total = 0
-
+        self._store_timeline_file(os.path.basename(jsonl_path))
         with open(jsonl_path, "r", encoding="utf-8") as fh:
             for line_no, line in enumerate(fh, 1):
                 line = line.strip()
@@ -37,6 +41,7 @@ class PlasoTimelineParser:
                     continue
 
                 event = {
+                    "timeline_file": os.path.basename(jsonl_path),
                     "timestamp": int(ts.timestamp() * 1_000_000),
                     "timestamp_desc": record.get("timestamp_desc"),
                     "date_time": json.dumps(record.get("date_time", {})),
