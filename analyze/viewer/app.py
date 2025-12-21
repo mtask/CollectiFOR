@@ -101,7 +101,7 @@ def listeners():
 @app.route("/files/", defaults={"dir_path": ""})
 @app.route("/files/<path:dir_path>")
 def files(dir_path):
-    session = get_session()
+    db = get_session()
 
     q = request.args.get("q", "").strip()
 
@@ -113,7 +113,7 @@ def files(dir_path):
 
     if q:
         # Global search ignoring current_dir
-        query = session.query(FileEntry).filter(
+        query = db.query(FileEntry).filter(
             FileEntry.type == "file",
             FileEntry.path.ilike(f"%{q}%")
         )
@@ -128,7 +128,7 @@ def files(dir_path):
         like_pattern = f"{current_dir}/%" if current_dir else "/%"
 
         # Directories
-        dir_query = session.query(FileEntry).filter(
+        dir_query = db.query(FileEntry).filter(
             FileEntry.path.like(like_pattern),
             FileEntry.type == "dir"
         )
@@ -138,7 +138,7 @@ def files(dir_path):
         dirs = [d for d in dirs if d.path.count("/") == current_depth + 1]
 
         # Files
-        file_query = session.query(FileEntry).filter(
+        file_query = db.query(FileEntry).filter(
             FileEntry.path.like(like_pattern),
             FileEntry.type == "file"
         )
@@ -147,7 +147,7 @@ def files(dir_path):
         files = file_query.all()
         files = [f for f in files if f.path.count("/") == current_depth + 1]
 
-    session.close()
+    db.close()
 
     return render_template(
         "files.html",
@@ -165,10 +165,19 @@ def view_file():
         return "Missing file path", 400
     # Determine parent directory
     parent_dir = "/" + "/".join(rel_path.strip("/").split("/")[:-1])
-    if not COLLECTION_DIR:
-       return render_template("file_view.html", path=rel_path, content="Collection directory was not provided on the app launch. Content can't be shown. Relaunch CollectiFOR with --collection <collection>", parent_dir=parent_dir)
-
-    file_path = os.path.join(COLLECTION_DIR, "files_and_dirs", rel_path.lstrip("/"))
+    db = get_session()
+    current_collection = flask_session.get("collection_name")
+    collection_dir = (
+        db.query(Collections.collection_abs_path)
+        .filter(Collections.collection_name == current_collection)
+        .first()
+    )
+    collection_dir = collection_dir[0] if collection_dir else None
+    if not collection_dir:
+        return render_template("file_view.html", path=rel_path, content="Collection directory not found from the database", parent_dir=parent_dir)
+    if not os.path.isdir(collection_dir):
+        return render_template("file_view.html", path=rel_path, content="Collection directory {collection_dir} not found", parent_dir=parent_dir)
+    file_path = os.path.join(collection_dir, "files_and_dirs", rel_path.lstrip("/"))
 
     if not os.path.isfile(file_path):
         return "File not found", 404
@@ -527,19 +536,14 @@ def get_timelines():
     conn.close()
     return timeline_files
 
-def run_viewer(collection_dir, db_file="collectifor.db", duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
-    global COLLECTION_DIR, DB_FILE, DUCKDB_FILE, COLLECTIONS, TIMELINES
-    if collection_dir:
-        COLLECTION_DIR = os.path.realpath(collection_dir)
-    else:
-        COLLECTION_DIR = None
+def run_viewer(db_file="collectifor.db", duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
+    global DB_FILE, DUCKDB_FILE, COLLECTIONS, TIMELINES
     DB_FILE = db_file
     DUCKDB_FILE = duckdb_file
     COLLECTIONS = get_collections()
     TIMELINES = get_timelines()
     print(TIMELINES)
     print(f"[+] Viewer started")
-    print(f"[+] Collection: {COLLECTION_DIR}")
     print(f"[+] URL: http://{host}:{port}")
 
     app.run(host=host, port=port, debug=debug, use_reloader=False)

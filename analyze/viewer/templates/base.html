@@ -219,7 +219,7 @@ input[type="text"]:focus {
 </nav>
 </header>
 
-{% if not session.get("collection_name") and all_collections and request.endpoint not in ['index', 'checksum_search', 'finding_detail', 'search', 'commands'] %}
+{% if not session.get("collection_name") and all_collections and request.endpoint in ['files'] %}
   <!-- Modal overlay forcing collection selection -->
   <div id="collection-modal" style="
         position: fixed;
