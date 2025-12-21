@@ -1,6 +1,100 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="text-light mb-4">Findings</h2>
+
+<div class="d-flex justify-content-center align-items-center mb-4">
+  <h2 class="text-light mb-0 d-flex align-items-center">
+  Findings
+  <i
+  class="bi bi-question-circle-fill text-primary ms-2"
+  style="cursor: pointer; font-size: 1.2rem;"
+  tabindex="0"
+  data-bs-toggle="popover"
+  data-bs-trigger="focus"
+  data-bs-placement="right"
+  data-bs-html="true"
+  title="Search Box Help"    data-bs-content="
+<b>Search Box How-To:</b><br><br>
+1. <b>Free-text search:</b><br>
+&emsp;Type one or more words to filter messages containing all words.<br>
+&emsp;Example: <code>ssh sudo</code> → messages containing both 'ssh' AND 'sudo'.<br><br>
+2. <b>Negation:</b><br>
+&emsp;Prefix a word with '-' to exclude messages containing it.<br>
+&emsp;Example: <code>ssh -root</code> → messages containing 'ssh' but NOT 'root'.<br><br>
+3. <b>Multi-term filtering:</b><br>
+&emsp;Combine multiple include and exclude terms.<br>
+&emsp;Example: <code>ssh sudo -root -admin</code><br>
+&emsp;→ messages containing 'ssh' AND 'sudo' AND NOT containing 'root' OR 'admin'.<br><br>
+4. <b>Type / Rule filters:</b><br>
+&emsp;Use the dropdowns to select one or more event types or rules.<br>
+&emsp;Multiple selections are allowed via checkboxes.
+"
+  ></i>
+  </h2>
+</div>
+
+<div class="row mb-3 justify-content-center align-items-end">
+  <div class="col-md-10">
+    <form method="get" class="d-flex gap-2 flex-wrap">
+
+      <!-- Free text search -->
+      <input
+        type="text"
+        name="q"
+        placeholder="Search message (prefix '-' to negate)"
+        value="{{ search_query|default('') }}"
+        class="form-control"
+      >
+
+      <!-- Type dropdown with checkboxes -->
+      <select
+        name="type"
+        class="selectpicker form-control"
+        multiple
+        data-actions-box="true"
+        data-live-search="true"
+        title="Select type(s)"
+      >
+        {% for t in all_types %}
+          <option value="{{ t }}" {% if t in type_filter %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- Rule dropdown with checkboxes -->
+      <select
+        name="rule"
+        class="selectpicker form-control"
+        multiple
+        data-actions-box="true"
+        data-live-search="true"
+        title="Select rule(s)"
+      >
+        {% for r in all_rules %}
+          <option value="{{ r }}" {% if r in rule_filter %}selected{% endif %}>{{ r }}</option>
+        {% endfor %}
+      </select>
+
+      <button type="submit" class="btn btn-primary">
+        Filter
+      </button>
+    </form>
+  </div>
+</div>
+
+<script>
+  $(document).ready(function() {
+    $('.selectpicker').selectpicker();
+  });
+  // Help "popup"
+  document.addEventListener("DOMContentLoaded", function () {
+    var popoverTriggerList = [].slice.call(
+      document.querySelectorAll('[data-bs-toggle="popover"]')
+    );
+    popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl);
+    });
+  });
+</script>
+
 
 {% if findings %}
 <table class="table table-dark table-striped table-hover table-sm">

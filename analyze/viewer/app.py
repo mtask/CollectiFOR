@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, current_app, jsonify, session, redirect, abort
 from flask import session as flask_session
-from sqlalchemy import create_engine, or_
+from sqlalchemy import create_engine, or_, not_
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import pandas as pd
@@ -314,21 +314,71 @@ def network_search():
         flows=flows
     )
 
+from flask import request, render_template
+from sqlalchemy import or_
 
 @app.route("/findings")
 def findings():
     db = get_session()
 
+    # Get query parameters
+    q = request.args.get("q", "").strip()
+    type_filters = request.args.getlist("type")
+    rule_filters = request.args.getlist("rule")
+
+    # Start base query
     query = db.query(Finding)
     query = apply_collection_filter(query, Finding)
 
-    findings = query\
-        .order_by(Finding.type, Finding.inserted_at.desc())\
-        .all()
+    # --- Multi-term text search with negation ---
+    if q:
+        include_terms = []
+        exclude_terms = []
+
+        # Split by whitespace
+        for term in q.split():
+            term = term.strip()
+            if not term:
+                continue
+            if term.startswith("-"):
+                exclude_terms.append(term[1:])
+            else:
+                include_terms.append(term)
+
+        # Include terms (AND logic)
+        for term in include_terms:
+            query = query.filter(Finding.message.ilike(f"%{term}%"))
+
+        # Exclude terms (OR logic)
+        if exclude_terms:
+            query = query.filter(~or_(*(Finding.message.ilike(f"%{t}%") for t in exclude_terms)))
+
+    # Filter by type(s)
+    if type_filters:
+        query = query.filter(Finding.type.in_(type_filters))
+
+    # Filter by rule(s)
+    if rule_filters:
+        query = query.filter(Finding.rule.in_(rule_filters))
+
+    # Order results
+    findings = query.order_by(Finding.type, Finding.inserted_at).all()
+
+    # For dropdowns: fetch all distinct types and rules
+    all_types = [row[0] for row in db.query(Finding.type).distinct().order_by(Finding.type)]
+    all_rules = [row[0] for row in db.query(Finding.rule).distinct().order_by(Finding.rule)]
 
     db.close()
 
-    return render_template("findings.html", findings=findings)
+    return render_template(
+        "findings.html",
+        findings=findings,
+        search_query=q,
+        type_filter=type_filters,
+        rule_filter=rule_filters,
+        all_types=all_types,
+        all_rules=all_rules
+    )
 
 
 @app.route("/findings/<int:finding_id>")
