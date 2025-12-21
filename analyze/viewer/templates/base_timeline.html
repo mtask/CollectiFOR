@@ -58,7 +58,6 @@
             padding: 6px 10px;
             text-align: left;
             vertical-align: top;
-            max-width: 250px;
             overflow-wrap: break-word;
         }
 
@@ -256,12 +255,32 @@ td:last-child {
     white-space: nowrap;
 }
 
-table.dataTable {
+// Try to fix heade row alignment
+.dataTables_scrollHead table,
+.dataTables_scrollBody table {
     table-layout: fixed;
 }
-table.dataTable th, table.dataTable td {
+
+
+/* Headers should never wrap */
+.dataTables_scrollHead th {
     white-space: nowrap;
 }
+
+/* Body cells default nowrap */
+.dataTables_scrollBody td {
+    white-space: nowrap;
+}
+
+/* EXCEPT message column */
+td.message {
+    white-space: nowrap;
+}
+td.message.expanded {
+    white-space: normal;
+}
+
+
 
 /* Message cell */
 td.message {

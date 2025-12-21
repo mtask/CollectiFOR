@@ -183,6 +183,7 @@ $(document).ready(function() {
         serverSide: true,
         processing: true,
         searching: false,
+        ordering: false,
         ajax: {
             url: "{{ url_for('timeline_data') }}",
             data: function(d) {
@@ -219,10 +220,20 @@ $(document).ready(function() {
                 render: id => `<button class="btn btn-sm btn-primary show-event" data-id="${id}">Show Event</button>`
             }
         ],
+        columnDefs: [
+           { targets: 0, width: "12%" },
+           { targets: 1, width: "10%" },
+           { targets: 2, width: "8%" },
+           { targets: 3, width: "60%" },
+           { targets: 4, width: "10%" }
+        ],
         order: [[0, 'asc']],
         pageLength: 50,
+        autoWidth: false,
         scrollX: true
     });
+
+    table.columns.adjust();
 
     $('#apply-filter').on('click', function() {
         table.ajax.reload();
