@@ -17,7 +17,7 @@ See [collect/README.md](https://github.com/mtask/CollectiFOR/tree/main/collect/R
 **analyze/**
   
 * collectifor.py -\>  Data ingestion (collections collected with `collect` tools and JSONL timeline ingestion), analysis tools (YARA, patterns, etc.), and web based viewer component (collection navigation, search, timeline explorer, etc.)
-* helpers/ -\> Plaso, zeek, etc. docker container launch scripts, additional collectien analaysis, etc.
+* helpers/ -\> Plaso, zeek, etc. docker container launch scripts, additional collectien analysis, etc.
   
 See [analyze/README.md](https://github.com/mtask/CollectiFOR/tree/main/analyze/README.md)
   
@@ -42,7 +42,7 @@ cd analyze/
 python3 -m venv venv
 source venv/bin/activate
 pip3 install -r requirements.txt
-python3 collectifor.py --init --analysis --yara yara/ --pattern patterns/ --viewer --collection /collections/host_20251217_141749.tar.gz 
+python3 collectifor.py -c config.yaml.sample --viewer --init --analysis --collection /collections/host_20251217_141749.tar.gz 
 ```
 
 6. Open 127.0.0.1:5000 in your browser and view collection and analysis data

@@ -1,6 +1,6 @@
-# CollectiFOR | ingest
+# CollectiFOR | init
 
-After ingestion move to [analysis](../analysis/README.md) or to [viewer](../viewer/README.md) if you just want to explore the ingested data via UI.
+After collection database initialization (data ingestion)  move to [analysis](../analysis/README.md) or to [viewer](../viewer/README.md) if you just want to explore the ingested data via UI.
 
 > [!IMPORTANT]
 > Do not remove your extracted collection if you want to run automatic analysis against it. Some viewer funcationalities (File Navigator) will also not fully work without access the original collection.

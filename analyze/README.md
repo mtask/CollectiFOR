@@ -9,26 +9,28 @@ All the main components are used via collectifor.py script. You can have two mai
   
 See documentation for:
  * 1. [Ingestion](docs/init/README.md)
- * 2. [Automated analysis](docs/analysis/README.md)
- * 3. [View](docs/viewer/README.md)
+ * 2. [Analysis](docs/analysis/README.md)
+ * 3. [Viewer](docs/viewer/README.md)
 
 ## Quick how-to - Launch initialization, analysis and viewer
 
 ### CollectiFOR collections
 
-Here's all-in-one example command to run everything with a fresh collection tar.gz.
+1. Modify config.yaml.sample
+
+2. Here's all-in-one example command to run everything with a fresh collection tar.gz.
 
 ```bash
 # Might require sudo/root depending on your collection's permissions
-python3 collectifor.py --init --analysis --yara yara/ --pattern patterns/ --viewer --collection /collections/host_20251217_141749.tar.gz 
+python3 collectifor.py -c config.yaml.sample --analysis --collection /collections/host1_20251217_141749.tar.gz 
+# Analyze other collection
+python3 collectifor.py -c config.yaml.sample --analysis --collection /collections/host2_20251218_141749.tar.gz 
 ```
 
 **Arguments**:
 
-* `--init`: -> Initialize collection SQLite database. Default path is `./collectifor.db`
+* `-c` -> Path to config YAML.
 * `--analysis` -> Run analysis modules
-* `--yara yara/` -> YARA rules directory for the analysis
-* `--pattern patterns/` -> Pattern files directory for the analysis
 * `--viewer` -> Launch collectiFOR viewer after initialization and analysis (Listens -> 127.0.0.1:5000)
 * `--collection /collections/host_20251217_141749.tar.gz` -> Path to collection. Can be collection tar.gz or collection directory if already decompressed.
 
