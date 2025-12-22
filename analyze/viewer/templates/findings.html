@@ -20,14 +20,18 @@
 2. <b>Negation:</b><br>
 &emsp;Prefix a word with '-' to exclude messages containing it.<br>
 &emsp;Example: <code>ssh -root</code> → messages containing 'ssh' but NOT 'root'.<br><br>
-3. <b>Multi-term filtering:</b><br>
+3. <b>OR operator:</b><br>
+&emsp;Use <code>|</code> to match any of multiple terms within a group.<br>
+&emsp;Example: <code>user|admin</code> → messages containing 'user' OR 'admin'.<br>
+&emsp;Combine with spaces for AND logic: <code>user|admin ssh</code> → ('user' OR 'admin') AND 'ssh'.<br><br>
+4. <b>Multi-term filtering:</b><br>
 &emsp;Combine multiple include and exclude terms.<br>
 &emsp;Example: <code>ssh sudo -root -admin</code><br>
 &emsp;→ messages containing 'ssh' AND 'sudo' AND NOT containing 'root' OR 'admin'.<br><br>
-4. <b>Quotes</b><br>
-&emsp;Include as one string → &quot;include this text&quot;.<br>
-&emsp;Exclude as one string → -&quot;exclude this text&quot;.<br><br>
-5. <b>Type / Rule filters:</b><br>
+5. <b>Quotes:</b><br>
+&emsp;Include as one string →  &quot;include this text &quot;.<br>
+&emsp;Exclude as one string → - &quot;exclude this text &quot;.<br>
+6. <b>Type / Rule filters:</b><br>
 &emsp;Use the dropdowns to select one or more event types or rules.<br>
 &emsp;Multiple selections are allowed via checkboxes.<br>
 "

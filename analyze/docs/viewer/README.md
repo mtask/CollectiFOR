@@ -24,6 +24,31 @@ There's a dropdown menu at the right side of the navigation bar were you can sel
 ![](imgs/collections.png)
 ![](imgs/timelines.png)
 
+Some collection related search features support simple query language like this:
+
+1. **Free-text search:**  
+   Type one or more words to filter messages containing all words.  
+   Example: `ssh sudo` → messages containing both 'ssh' **AND** 'sudo'.
+
+2. **Negation:**  
+   Prefix a word with `-` to exclude messages containing it.  
+   Example: `ssh -root` → messages containing 'ssh' but **NOT** 'root'.
+
+3. **OR operator:**  
+   Use `|` to match any of multiple terms within a group.  
+   Example: `user|admin` → messages containing 'user' **OR** 'admin'.  
+   Combine with spaces for AND logic: `user|admin ssh` → ('user' **OR** 'admin') **AND** 'ssh'.
+
+4. **Multi-term filtering:**  
+   Combine multiple include and exclude terms.  
+   Example: `ssh sudo -root -admin` → messages containing 'ssh' **AND** 'sudo' **AND NOT** containing 'root' **OR** 'admin'.
+
+5. **Quotes:**  
+   Include as one string → `"include this text"`.  
+   Exclude as one string → `-"exclude this text"`.
+
+There's a question mark icon that shows a similar help-text to indicate that the page's search functionality supports these type of queries.
+
 <details>
 <summary>Collection search</summary>
   

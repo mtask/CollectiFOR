@@ -188,16 +188,23 @@ def view_file():
 
     return render_template("file_view.html", path=rel_path, content=content, parent_dir=parent_dir)
 
-def _apply_text_query(query, column, q_text):
+
+def _apply_text_query(query, columns, q_text):
     """
-    Applies include/exclude term logic (with quoted phrases)
-    - Quoted phrases are treated as single terms.
-    - Leading dash outside quotes indicates exclusion.
+    Search syntax:
+      - space        → AND
+      - |            → OR
+      - -term        → NOT
+      - "quoted phrase" → exact phrase
+    Supports multiple columns.
     """
     if not q_text:
         return query
 
-    include_terms = []
+    if not isinstance(columns, (list, tuple)):
+        columns = [columns]
+
+    include_groups = []   # each group is OR-ed
     exclude_terms = []
 
     pattern = r'(-?)"(.*?)"|(-?\S+)'
@@ -205,27 +212,39 @@ def _apply_text_query(query, column, q_text):
 
     for dash, quoted, unquoted in tokens:
         if quoted:
-            term = quoted.strip()
-            is_exclude = (dash == "-")
+            raw = quoted.strip()
+            is_exclude = dash == "-"
         else:
-            term = (unquoted or "").strip()
-            is_exclude = term.startswith("-")
+            raw = (unquoted or "").strip()
+            is_exclude = raw.startswith("-")
             if is_exclude:
-                term = term[1:]
+                raw = raw[1:]
 
-        if not term:
+        if not raw:
             continue
 
-        if is_exclude:
-            exclude_terms.append(term)
-        else:
-            include_terms.append(term)
+        # OR support within a group
+        parts = raw.split("|")
 
-    for term in include_terms:
-        query = query.filter(column.ilike(f"%{term}%"))
+        if is_exclude:
+            exclude_terms.extend(parts)
+        else:
+            include_groups.append(parts)
+
+    # AND between groups, OR within group, across all columns
+    for group in include_groups:
+        query = query.filter(
+            or_(
+                *(col.ilike(f"%{term}%") for col in columns for term in group)
+            )
+        )
 
     if exclude_terms:
-        query = query.filter(~or_(*(column.ilike(f"%{t}%") for t in exclude_terms)))
+        query = query.filter(
+            ~or_(
+                *(col.ilike(f"%{t}%") for t in exclude_terms for col in columns)
+            )
+        )
 
     return query
 
@@ -307,13 +326,24 @@ def checksum_search():
     if value:
         db = get_session()
 
-        query = db.query(Checksum).filter(
+        base_query = db.query(Checksum)
+        base_query = apply_collection_filter(base_query, Checksum)
+
+        # Apply text search separately per column
+        q_checksum = _apply_text_query(
+            base_query, Checksum.checksum, value
+        )
+        q_filepath = _apply_text_query(
+            base_query, Checksum.filepath, value
+        )
+
+        # OR the results together
+        query = base_query.filter(
             or_(
-                Checksum.checksum.contains(value),
-                Checksum.filepath.contains(value)
+                Checksum.id.in_(q_checksum.with_entities(Checksum.id)),
+                Checksum.id.in_(q_filepath.with_entities(Checksum.id))
             )
         )
-        query = apply_collection_filter(query, Checksum)
 
         results = query.all()
         db.close()
@@ -330,26 +360,24 @@ def network_search():
     if q:
         db = get_session()
 
-        packet_query = db.query(PcapPacket).filter(
-            or_(
-                PcapPacket.src.contains(q),
-                PcapPacket.dst.contains(q),
-                PcapPacket.protocol.contains(q)
-            )
-        )
+        # PcapPacket search
+        packet_query = db.query(PcapPacket)
         packet_query = apply_collection_filter(packet_query, PcapPacket)
-
+        packet_query = _apply_text_query(
+            packet_query,
+            [PcapPacket.src, PcapPacket.dst, PcapPacket.protocol],
+            q
+        )
         packets = packet_query.limit(1000).all()
 
-        flow_query = db.query(NetworkFlow).filter(
-            or_(
-                NetworkFlow.src.contains(q),
-                NetworkFlow.dst.contains(q),
-                NetworkFlow.protocol.contains(q)
-            )
-        )
+        # NetworkFlow search
+        flow_query = db.query(NetworkFlow)
         flow_query = apply_collection_filter(flow_query, NetworkFlow)
-
+        flow_query = _apply_text_query(
+            flow_query,
+            [NetworkFlow.src, NetworkFlow.dst, NetworkFlow.protocol],
+            q
+        )
         flows = flow_query.all()
 
         db.close()

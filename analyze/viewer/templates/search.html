@@ -3,7 +3,7 @@
 <div class="d-flex justify-content-center align-items-center mb-4">
   <h2 class="text-light mb-0 d-flex align-items-center">
   Collection Search
-  <i
+<i
   class="bi bi-question-circle-fill text-primary ms-2"
   style="cursor: pointer; font-size: 1.2rem;"
   tabindex="0"
@@ -11,7 +11,8 @@
   data-bs-trigger="focus"
   data-bs-placement="right"
   data-bs-html="true"
-  title="Search Box Help"    data-bs-content="
+  title="Search Box Help"
+  data-bs-content="
 <b>Search Box How-To:</b><br><br>
 1. <b>Free-text search:</b><br>
 &emsp;Type one or more words to filter messages containing all words.<br>
@@ -19,15 +20,19 @@
 2. <b>Negation:</b><br>
 &emsp;Prefix a word with '-' to exclude messages containing it.<br>
 &emsp;Example: <code>ssh -root</code> → messages containing 'ssh' but NOT 'root'.<br><br>
-3. <b>Multi-term filtering:</b><br>
+3. <b>OR operator:</b><br>
+&emsp;Use <code>|</code> to match any of multiple terms within a group.<br>
+&emsp;Example: <code>user|admin</code> → messages containing 'user' OR 'admin'.<br>
+&emsp;Combine with spaces for AND logic: <code>user|admin ssh</code> → ('user' OR 'admin') AND 'ssh'.<br><br>
+4. <b>Multi-term filtering:</b><br>
 &emsp;Combine multiple include and exclude terms.<br>
 &emsp;Example: <code>ssh sudo -root -admin</code><br>
 &emsp;→ messages containing 'ssh' AND 'sudo' AND NOT containing 'root' OR 'admin'.<br><br>
-4. <b>Quotes</b><br>
+5. <b>Quotes:</b><br>
 &emsp;Include as one string →  &quot;include this text &quot;.<br>
 &emsp;Exclude as one string → - &quot;exclude this text &quot;.<br>
 "
-  ></i>
+></i>
   </h2>
 </div>
 
