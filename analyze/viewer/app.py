@@ -642,11 +642,26 @@ def get_collections():
     collection_names = [n[0] for n in db.query(Collections.collection_name).all()]
     return collection_names
 
+
 def get_timelines():
     conn = duckdb.connect(DUCKDB_FILE)
-    timeline_files = [row[0] for row in conn.execute(
-        "SELECT timeline_file FROM timeline_files"
-    ).fetchall()]
+
+    table_exists = conn.execute("""
+        SELECT COUNT(*)
+        FROM information_schema.tables
+        WHERE table_name = 'timeline_files'
+    """).fetchone()[0] > 0
+
+    if not table_exists:
+        conn.close()
+        return []
+
+    timeline_files = [
+        row[0] for row in conn.execute(
+            "SELECT timeline_file FROM timeline_files"
+        ).fetchall()
+    ]
+
     conn.close()
     return timeline_files
 

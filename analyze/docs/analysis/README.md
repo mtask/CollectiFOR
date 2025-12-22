@@ -1,21 +1,42 @@
 # Analysis modules
 
-There are multiple automatica analysis modules which allow, for example, rule and pattern based analysis. 
-Using `--analysis` option with `collectifor.py` enables all analysis modules. Two modules, `yara` and `pattern`, also require options that point to rule and pattern files (`--yara <your yara rules dir` / `--pattern <your pattern rules dir>`. 
-Other modules also have their own cli options to enable only specific modules instead of all. See the module listing below.
+There are multiple automatica analysis modules which allow, for example, rule and pattern based analysis. Here's an example how to run all analysis modules:
+  
+```bash
+python3 collectifor.py -c config.yaml.sample --init --analysis --collection /collections/host_20251217_141749/20251217_141749
+```
   
 > [!TIP]
 > If you provide collection path to already extracted tar.gz file, the collectifor.py will automatically use the existing directory.
 > Manually providing directory path (instead of tar.gz) needs to be pointed to `<path>/<hostname>_<ts>/<ts>/` -> collection files like `files_and_dirs` directory are in this path.
->  
-> If you provided an alternative database path during `--init`, then use the same database path for the same collection(s) `(--db <path>.db`).
   
-Here's an example to run all the analysis modules:
+Before running the analysis modify config.yaml.sample to your needs. Module details are listed below, but here's a short overview of the configuration options:
 
-```bash
-python3 collectifor.py --init --analysis --yara yara/ --pattern patterns/ --collection /collections/host_20251217_141749/20251217_141749
+* Database paths are defined at top-level. These should be the same as during the `--init` run.
+
+```yaml
+collection_database: './collectifor.db'
+timeline_database: './timeline.duckdb'
 ```
-  
+* Enabled/disabled analysis modules are defined under `analysis` key.
+
+```yaml
+analysis:
+  enable_yara: true
+  enable_pattern: true
+  enable_files: true
+  enable_file_permissions: true
+  enable_pcap: true
+```
+
+* Below the `enable_<module>` definitions are some source file paths for a few modules. These are explained later in this document.
+
+```yaml
+  yara: './source/yara'
+  pattern: './source/pattern/'
+  files: './source/files/'
+``` 
+    
 Note that running same analysis module twice or more times against the same collection and database will mean duplicate findings.
 
 In CollectiFOR database all analysis results are stored in "findings" table. Modules marked as `alpha / PoC` in the below listing are mostly in PoC concept state and have very simplistic analysis.

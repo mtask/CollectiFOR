@@ -4,11 +4,10 @@ CollectiFOR viewer is Flask based application that provides some simple visibili
 Like shown in the all-in-one example you can launch viewer as part of the database initialization and/or analysis. With ready database you can just re-run viewer like this:
 
 ```
-python3 collectifor.py --viewer --collection /collections/host_20251217_141749.tar.gz 
+python3 collectifor.py -c config.yaml.sample --viewer
 ```
-
-Remember to specify `--db <db file>` if you had non-default database path during the initialization.
-
+Ensure you are using configuration file which database path(s) match the wanted collection and/or timeline databases.
+  
 Here's a list of viewer's functionalities:
 
 <details>

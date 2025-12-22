@@ -40,7 +40,7 @@ exit
 <summary> 4. Load JSONL to CollectiFOR</summary>
 
 ```bash
-python3 collectifor.py -tf x.timeline.jsonl
+python3 collectifor.py -c config.yaml.sample -tf x.timeline.jsonl
 ```
 </details>
 
@@ -48,7 +48,7 @@ python3 collectifor.py -tf x.timeline.jsonl
 <summary> 5. Analyze data in CollectiFOR Viewer</summary>
 
 ```bash
-python3 collectifor.py --viewer
+python3 collectifor.py -c config.yaml.sample --viewer
 ```
 
 * Open 127.0.0.1:5000 in browser.

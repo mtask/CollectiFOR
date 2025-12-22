@@ -8,14 +8,15 @@ After ingestion move to [analysis](../analysis/README.md) or to [viewer](../view
 
 ## Collections
 
-Collection ingestion is launched with the `--init` option. In addition you need to provide path to collection directory or tar.gz file with `--collection <path>`
+Collection ingestion is launched with the `--init` option. In addition you need to provide path to collection directory or tar.gz file with `--collection <path>` and path to configuration file with `-c <config>.yaml`.
+Modify the provided `config.yaml.sample` if needed. The `analysis` section in the configuration file does not matter in this phase. Only the database location(s) matter.
 
 ```
-sudo python3 collectifor.py --init --collection /collections/host_20251217_141749.tar.gz 
+sudo python3 collectifor.py -c config.yaml.sample --init --collection /collections/host_20251217_141749.tar.gz 
 ```
 
 You can combine `--init` with other phases like seen [here](../../README.md), but this page focuses on the initialization phase.
-By default the init run creates an SQLite3 database `./collectifor.db` which will hold all the data ingested from collections. You can provide alternative database path with `--db <path>.db`
+Initialization creates an SQLite3 database to path defined in config -> `collection_database`.
 
 Below table shows which data is currently ingested to CollectiFOR database in initialization.
 
@@ -52,9 +53,9 @@ CollectiFOR can also ingest super timelines created with Plaso tools. The [viewe
 CollectiFOR supports only JSON lines format (`psort.py -o json_line`).
   
 ```bash
-python3 collectifor.py -tf /path/to/case.x.timeline.jsonl
+python3 collectifor.py -c config.yaml.sample -tf /path/to/case.x.timeline.jsonl
 ```
   
-This generates a DuckDB database `./timeline.db` by default. You can override the database location with `--tdb <path>.db`. 
+This generates a DuckDB database to path defined in config -> `timeline_database`.
 Option `-tf <timeline>.jsonl` can also be run at the same time with other `collectifor.py`'s options (`--init`, `--analysis`, etc.).
 Here is some examples of how to generate timelines: [timelines.md](../workflows/timelines.md).
