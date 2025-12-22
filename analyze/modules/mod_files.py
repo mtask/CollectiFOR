@@ -82,7 +82,7 @@ def _find_files(file_dir, prefixes):
 
     return files_lst
 
-def analyze(rootdir, rules_dir="source/files/"):
+def analyze(rules_dir, rootdir):
     results = []
     file_dir = Path(rootdir) / "files_and_dirs"
 
