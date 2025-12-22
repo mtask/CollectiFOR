@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, current_app, jsonify, session, redirect, abort
+from flask import Flask, render_template, request, current_app, jsonify, session, redirect, abort, url_for
 from flask import session as flask_session
 from sqlalchemy import create_engine, or_, not_
 from sqlalchemy.orm import sessionmaker
@@ -6,6 +6,7 @@ from datetime import datetime
 import pandas as pd
 import duckdb
 import os
+import re
 import json
 import html
 
@@ -176,7 +177,7 @@ def view_file():
     if not collection_dir:
         return render_template("file_view.html", path=rel_path, content="Collection directory not found from the database", parent_dir=parent_dir)
     if not os.path.isdir(collection_dir):
-        return render_template("file_view.html", path=rel_path, content="Collection directory {collection_dir} not found", parent_dir=parent_dir)
+        return render_template("file_view.html", path=rel_path, content=f"Collection directory {collection_dir} not found", parent_dir=parent_dir)
     file_path = os.path.join(collection_dir, "files_and_dirs", rel_path.lstrip("/"))
 
     if not os.path.isfile(file_path):
@@ -187,6 +188,48 @@ def view_file():
 
     return render_template("file_view.html", path=rel_path, content=content, parent_dir=parent_dir)
 
+def _apply_text_query(query, column, q_text):
+    """
+    Applies include/exclude term logic (with quoted phrases)
+    - Quoted phrases are treated as single terms.
+    - Leading dash outside quotes indicates exclusion.
+    """
+    if not q_text:
+        return query
+
+    include_terms = []
+    exclude_terms = []
+
+    pattern = r'(-?)"(.*?)"|(-?\S+)'
+    tokens = re.findall(pattern, q_text)
+
+    for dash, quoted, unquoted in tokens:
+        if quoted:
+            term = quoted.strip()
+            is_exclude = (dash == "-")
+        else:
+            term = (unquoted or "").strip()
+            is_exclude = term.startswith("-")
+            if is_exclude:
+                term = term[1:]
+
+        if not term:
+            continue
+
+        if is_exclude:
+            exclude_terms.append(term)
+        else:
+            include_terms.append(term)
+
+    for term in include_terms:
+        query = query.filter(column.ilike(f"%{term}%"))
+
+    if exclude_terms:
+        query = query.filter(~or_(*(column.ilike(f"%{t}%") for t in exclude_terms)))
+
+    return query
+
+
 @app.route("/search")
 def search():
     q = request.args.get("q", "").strip()
@@ -196,32 +239,36 @@ def search():
         db = get_session()
 
         results["commands"] = apply_collection_filter(
-            db.query(CommandOutput).filter(CommandOutput.output.contains(q)),
+            _apply_text_query(db.query(CommandOutput), CommandOutput.output, q),
             CommandOutput
         ).all()
 
         results["files"] = apply_collection_filter(
-            db.query(FileEntry).filter(FileEntry.path.contains(q)),
+            _apply_text_query(db.query(FileEntry), FileEntry.path, q),
             FileEntry
         ).all()
 
         results["packets"] = apply_collection_filter(
-            db.query(PcapPacket).filter(PcapPacket.raw_content.contains(q)),
+            _apply_text_query(db.query(PcapPacket), PcapPacket.raw_content, q),
             PcapPacket
         ).all()
 
         results["checksums"] = apply_collection_filter(
-            db.query(Checksum).filter(
+            _apply_text_query(
+                db.query(Checksum),
+                Checksum.checksum,
+                q
+            ).filter(
                 or_(
-                    Checksum.checksum.contains(q),
-                    Checksum.filepath.contains(q),
+                    Checksum.checksum.ilike(f"%{q}%"),
+                    Checksum.filepath.ilike(f"%{q}%")
                 )
             ),
             Checksum
         ).all()
 
         results["findings"] = apply_collection_filter(
-            db.query(Finding).filter(Finding.message.contains(q)),
+            _apply_text_query(db.query(Finding), Finding.message, q),
             Finding
         ).all()
 
@@ -314,54 +361,26 @@ def network_search():
         flows=flows
     )
 
-from flask import request, render_template
-from sqlalchemy import or_
-
 @app.route("/findings")
 def findings():
     db = get_session()
 
-    # Get query parameters
     q = request.args.get("q", "").strip()
     type_filters = request.args.getlist("type")
     rule_filters = request.args.getlist("rule")
 
-    # Start base query
     query = db.query(Finding)
     query = apply_collection_filter(query, Finding)
 
-    # --- Multi-term text search with negation ---
     if q:
-        include_terms = []
-        exclude_terms = []
+        query = _apply_text_query(query, Finding.message, q)
 
-        # Split by whitespace
-        for term in q.split():
-            term = term.strip()
-            if not term:
-                continue
-            if term.startswith("-"):
-                exclude_terms.append(term[1:])
-            else:
-                include_terms.append(term)
-
-        # Include terms (AND logic)
-        for term in include_terms:
-            query = query.filter(Finding.message.ilike(f"%{term}%"))
-
-        # Exclude terms (OR logic)
-        if exclude_terms:
-            query = query.filter(~or_(*(Finding.message.ilike(f"%{t}%") for t in exclude_terms)))
-
-    # Filter by type(s)
     if type_filters:
         query = query.filter(Finding.type.in_(type_filters))
 
-    # Filter by rule(s)
     if rule_filters:
         query = query.filter(Finding.rule.in_(rule_filters))
 
-    # Order results
     findings = query.order_by(Finding.type, Finding.inserted_at).all()
 
     # For dropdowns: fetch all distinct types and rules
@@ -379,7 +398,6 @@ def findings():
         all_types=all_types,
         all_rules=all_rules
     )
-
 
 @app.route("/findings/<int:finding_id>")
 def finding_detail(finding_id):
@@ -492,9 +510,30 @@ def timeline_event(event_id):
     )
 
 
-@app.route('/timeline_query')
+@app.route('/timeline_query', methods=['GET', 'POST'])
 def timeline_query():
     conn = duckdb.connect(DUCKDB_FILE)
+
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS saved_queries (
+            name TEXT PRIMARY KEY,
+            query TEXT NOT NULL
+        )
+    """)
+
+    # Handle "save query"
+    if request.method == 'POST':
+        name = request.form.get("query_name", "").strip()
+        query = request.form.get("sql_filter", "").strip()
+
+        if name and query:
+            conn.execute(
+                "INSERT OR REPLACE INTO saved_queries (name, query) VALUES (?, ?)",
+                (name, query)
+            )
+
+        return redirect(url_for('timeline_query', sql_filter=query))
+
     sql_query = request.args.get("sql_filter", "").strip()
 
     result_df = pd.DataFrame()
@@ -504,12 +543,17 @@ def timeline_query():
         except Exception as e:
             result_df = pd.DataFrame([{"Error": str(e)}])
     else:
-       result_df = conn.execute(f"PRAGMA table_info('timeline_events')").df()
+        result_df = conn.execute("PRAGMA table_info('timeline_events')").df()
+
+    saved_queries = conn.execute(
+        "SELECT name, query FROM saved_queries ORDER BY name"
+    ).fetchall()
 
     return render_template(
         'timeline_query.html',
         sql_query=sql_query,
-        result_df=result_df
+        result_df=result_df,
+        saved_queries=saved_queries
     )
 
 
