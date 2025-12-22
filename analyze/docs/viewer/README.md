@@ -1,6 +1,9 @@
 ## Viewer
 
 CollectiFOR Viewer is Flask based application that provides some simple visibility to collected data, analysis results and timeline files. 
+
+![](imgs/index.png)
+
 With ready database you can run the viewer just like this:
 
 ```
@@ -15,12 +18,18 @@ Ensure you are using configuration file which database path(s) match the wanted 
   
 **Functionalities:**
 
+By default all collections and timelines are used when the viewer is launched. File Navigator can only work with one collection at the time and enforces to select a collection.
+There's a dropdown menu at the right side of the navigation bar were you can select a specific collection/timeline or all collections/timelines depending on the current page.
+
+![](imgs/collections.png)
+![](imgs/collections.png)
+
 <details>
 <summary>Collection search</summary>
   
 * String search against the ingested data. Supports a simple query language. See its instructions by pressing the question mark icon on the page.
 
-![](../imgs/search.png)
+![](imgs/search.png)
 
 </details>
 
@@ -29,7 +38,9 @@ Ensure you are using configuration file which database path(s) match the wanted 
   
 * Findings from analysis. Supports a simple query language. See its instructions by pressing the question mark icon on the page.
 
-![](../imgs/findings.png)
+![](imgs/findings.png)
+
+![](imgs/findings.png)
 
 </details>
 
@@ -38,7 +49,7 @@ Ensure you are using configuration file which database path(s) match the wanted 
 
 * Network data search against ingested data from collection's PCAP file.
 
-![](../imgs/network.png)
+![](imgs/network.png)
 
 </details>
 
@@ -49,7 +60,7 @@ Ensure you are using configuration file which database path(s) match the wanted 
   
 * Checksum data search. Can be searched by checksum or by string.
 
-![](../imgs/checksum.png)
+![](imgs/checksum.png)
 
 </details>
 
@@ -60,7 +71,7 @@ Ensure you are using configuration file which database path(s) match the wanted 
 
 Viewing actual file content requires that extracted collection directory is found on the same path that it was during the database initialization. 
 
-![](../imgs/files.png)
+![](imgs/files.png)
 
 </details>
 
@@ -69,7 +80,7 @@ Viewing actual file content requires that extracted collection directory is foun
   
 * View and search for command outputs. Search allows to search by command (e.g. docker, ps, iptables, etc.). You can also search only for stdout or stderr content with prefix `(stdeout|stderr).<command>`.
 
-![](../imgs/commands.png)
+![](imgs/commands.png)
 
 </details>
 
@@ -78,7 +89,7 @@ Viewing actual file content requires that extracted collection directory is foun
   
 * Details about network listening processes
 
-![](../imgs/listeners.png)
+![](imgs/listeners.png)
 
 </details>
 
@@ -89,24 +100,20 @@ Viewing actual file content requires that extracted collection directory is foun
 
 Supports event filtering via direct SQL query syntax. For example: `<field> ILIKE '%string%'. UI has some helper queries. Timeline database is DuckDB so adjust your filters according to that.
 
-![](../imgs/timeline_explorer.png)
+![](imgs/timeline_explorer.png)
 
 * Open full details of an event
 
-![](../imgs/timeline_event.png )
+![](imgs/timeline_event.png )
 
 </details>
 
 <details>
 <summary>Timeline Query</summary>
   
-* Full SQL query interface to timeline database. Allows saving queries.
+* Full SQL query interface to timeline database. Allows saving queries and copying output to clipboard.
 
-![](../imgs/timeline_explorer.png)
-
-* Open full details of an event
-
-![](../imgs/timeline_event.png )
+![](imgs/timeline_query.png)
 
 </details>
 
@@ -114,5 +121,5 @@ Supports event filtering via direct SQL query syntax. For example: `<field> ILIK
 <summary>Timeline Chart</summary>
   
 View timeline data in chart (counts, no event details).
-![](../imgs/timeline_chart.png)
+![](imgs/timeline_chart.png)
 </details>
