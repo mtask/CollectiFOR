@@ -166,7 +166,7 @@ def main():
     # Database
     # -----------------------------
     if args.init and os.path.isfile(config['collection_database']) and args.collection:
-        ans = input(f"{config['collection_database']} already exists. Do you want to continue with initialization?[y/n] (default: n)")
+        ans = input(f"{config['collection_database']} already exists. Do you want to continue with initialization?[y/n] (default: n): ")
         if ans.lower() != "y":
             logging.info("[-] Exiting without changes")
             sys.exit(0)
