@@ -1,0 +1,140 @@
+{% extends "base_timeline.html" %}
+
+{% block content %}
+<h2>Timeline Query</h2>
+
+<!-- Saved Queries Dropdown -->
+<div class="row mb-3 justify-content-center">
+    <div class="col-md-6">
+        <div class="d-flex align-items-center gap-2">
+            <label class="mb-0 small text-muted">Saved Queries:</label>
+                Saved Queries:
+            </label>
+            <select class="form-select w-auto" id="saved-query-select">
+                <option value="">-- Select saved query --</option>
+                {% for name, query in saved_queries %}
+                    <option value="{{ query|e }}">{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</div>
+
+<!-- Query Form -->
+<form method="get" action="{{ url_for('timeline_query') }}" id="query-form">
+    <div class="row mb-3 justify-content-center align-items-end">
+        <div class="col-md-12">
+            <label for="sql-filter">DuckDB SQL Query</label>
+            <div class="input-group">
+                <input
+                    type="text"
+                    id="sql-filter"
+                    name="sql_filter"
+                    class="form-control"
+                    placeholder="Enter full SQL query, e.g. SELECT * FROM timeline_events LIMIT 10"
+                    value="{{ sql_query|default('') }}"
+                >
+                <button type="submit" class="btn btn-primary">
+                    Run
+                </button>
+                <button type="button" class="btn btn-secondary" id="save-query-btn">
+                    Save
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% if not result_df.empty %}
+<div class="row">
+    <div class="col-12 position-relative">
+        <!-- Copy Button -->
+        <button
+            id="copy-result-btn"
+            class="btn btn-sm btn-outline-light position-absolute"
+            style="top:0.5rem; right:0.5rem;"
+        >
+            <i class="bi bi-clipboard"></i>
+        </button>
+
+        <pre
+            id="result-pre"
+            class="p-3"
+            style="background-color: black; color: #00FF00; overflow:auto; max-height: 70vh;"
+        >
+{{ result_df.to_csv(sep='|', index=False, header=True) }}
+        </pre>
+    </div>
+</div>
+
+<!-- Toast container -->
+<div
+    id="toast-container"
+    class="position-fixed top-0 end-0 p-3"
+    style="z-index:1055;"
+></div>
+
+<script>
+/* Copy to clipboard */
+document.getElementById('copy-result-btn').addEventListener('click', () => {
+    const text = document.getElementById('result-pre').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+        const id = 'toast-' + Date.now();
+        const toastHtml = `
+            <div id="${id}" class="toast text-bg-success border-0">
+                <div class="d-flex">
+                    <div class="toast-body">Copied to clipboard</div>
+                    <button class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        document.getElementById('toast-container')
+            .insertAdjacentHTML('beforeend', toastHtml);
+        new bootstrap.Toast(
+            document.getElementById(id),
+            { delay: 2000 }
+        ).show();
+    });
+});
+</script>
+{% endif %}
+
+<!-- Save query + dropdown behavior -->
+<script>
+/* Save Query */
+document.getElementById('save-query-btn').addEventListener('click', () => {
+    const query = document.getElementById('sql-filter').value.trim();
+    if (!query) return;
+
+    const name = prompt("Save query as:");
+    if (!name) return;
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "{{ url_for('timeline_query') }}";
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'hidden';
+    nameInput.name = 'query_name';
+    nameInput.value = name;
+
+    const queryInput = document.createElement('input');
+    queryInput.type = 'hidden';
+    queryInput.name = 'sql_filter';
+    queryInput.value = query;
+
+    form.appendChild(nameInput);
+    form.appendChild(queryInput);
+    document.body.appendChild(form);
+    form.submit();
+});
+
+/* Load saved query into input */
+document.getElementById('saved-query-select').addEventListener('change', function () {
+    if (this.value) {
+        document.getElementById('sql-filter').value = this.value;
+    }
+});
+</script>
+
+{% endblock %}

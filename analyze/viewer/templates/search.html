@@ -1,6 +1,35 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="text-light mb-4">Global Collection Search</h2>
+<div class="d-flex justify-content-center align-items-center mb-4">
+  <h2 class="text-light mb-0 d-flex align-items-center">
+  Global Collection Search
+  <i
+  class="bi bi-question-circle-fill text-primary ms-2"
+  style="cursor: pointer; font-size: 1.2rem;"
+  tabindex="0"
+  data-bs-toggle="popover"
+  data-bs-trigger="focus"
+  data-bs-placement="right"
+  data-bs-html="true"
+  title="Search Box Help"    data-bs-content="
+<b>Search Box How-To:</b><br><br>
+1. <b>Free-text search:</b><br>
+&emsp;Type one or more words to filter messages containing all words.<br>
+&emsp;Example: <code>ssh sudo</code> → messages containing both 'ssh' AND 'sudo'.<br><br>
+2. <b>Negation:</b><br>
+&emsp;Prefix a word with '-' to exclude messages containing it.<br>
+&emsp;Example: <code>ssh -root</code> → messages containing 'ssh' but NOT 'root'.<br><br>
+3. <b>Multi-term filtering:</b><br>
+&emsp;Combine multiple include and exclude terms.<br>
+&emsp;Example: <code>ssh sudo -root -admin</code><br>
+&emsp;→ messages containing 'ssh' AND 'sudo' AND NOT containing 'root' OR 'admin'.<br><br>
+4. <b>Quotes</b><br>
+&emsp;Include as one string →  &quot;include this text &quot;.<br>
+&emsp;Exclude as one string → - &quot;exclude this text &quot;.<br>
+"
+  ></i>
+  </h2>
+</div>
 
 <div class="row mb-3 justify-content-center align-items-end">
     <div class="col-md-10">
@@ -9,7 +38,7 @@
                 type="text"
                 name="q"
                 value="{{ q }}"
-                placeholder="Search text"
+                placeholder="Search message (prefix '-' to negate)"
                 class="form-control"
             >
             <button class="btn btn-primary" type="submit">
@@ -39,11 +68,8 @@
           <td class="mono">{{ c.category }}</td>
           <td class="mono">{{ c.commandline }}</td>
           <td class="mono">
-            <div class="output-preview" style="max-height:100px; overflow:hidden; position:relative;">
+            <div class="output-preview" style="position:relative;">
               <pre class="language-shell">{{ c.output }}</pre>
-              {% if c.output|length > 300 %}
-              <button type="button" class="btn btn-sm btn-outline-light mt-1 toggle-output">Show More</button>
-              {% endif %}
             </div>
           </td>
         </tr>
@@ -56,10 +82,10 @@
   </div>
 </details>
 
-<!-- Files -->
+<!-- Filenames -->
 <details class="mb-3">
   <summary class="d-flex align-items-center gap-2" style="display: list-item;">
-    <h3 class="m-0 text-light">Files (result: {{ results.files|default([])|length }})</h3>
+    <h3 class="m-0 text-light">Filenames (result: {{ results.files|default([])|length }})</h3>
   </summary>
   <div class="mt-2">
     {% if results.files %}
@@ -182,17 +208,11 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.toggle-output').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const container = btn.closest('.output-preview');
-            if(container.style.maxHeight && container.style.maxHeight !== 'none') {
-                container.style.maxHeight = 'none';
-                btn.innerText = 'Show Less';
-            } else {
-                container.style.maxHeight = '100px';
-                btn.innerText = 'Show More';
-            }
-        });
+    var popoverTriggerList = [].slice.call(
+      document.querySelectorAll('[data-bs-toggle="popover"]')
+    );
+    popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl);
     });
 });
 </script>

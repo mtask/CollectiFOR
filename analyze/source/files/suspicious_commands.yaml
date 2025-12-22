@@ -1,0 +1,66 @@
+events:
+  - name: suspicious_file_download
+    indicator: File download command detected in shell scripts or history
+    pattern: >
+      (?P<cmd>\b(wget|curl|scp)\b)
+    message_template: "Suspicious file download command detected: {cmd}"
+    meta_fields: [cmd]
+    filenames:
+       - /home/*/.bashrc
+       - /home/*/.bash_profile
+       - /home/*/.profile
+       - /home/*/.zshrc
+       - /home/*/.zprofile
+       - /home/*/.kshrc
+       - /home/*/.config/fish/config.fish
+       - /root/.bashrc
+       - /root/.bash_profile
+       - /root/.profile
+       - /root/.zshrc
+       - /root/.zprofile
+       - /root/.kshrc
+       - /root/.config/fish/config.fish
+
+  - name: base64_obfuscation_detected
+    indicator: Base64 decoding or eval detected in shell scripts or history
+    pattern: >
+      (?P<cmd>\b(base64\s+-d|eval)\b)
+    message_template: "Suspicious base64/eval command detected: {cmd}"
+    meta_fields: [cmd]
+    filenames:
+       - /home/*/.bashrc
+       - /home/*/.bash_profile
+       - /home/*/.profile
+       - /home/*/.zshrc
+       - /home/*/.zprofile
+       - /home/*/.kshrc
+       - /home/*/.config/fish/config.fish
+       - /root/.bashrc
+       - /root/.bash_profile
+       - /root/.profile
+       - /root/.zshrc
+       - /root/.zprofile
+       - /root/.kshrc
+       - /root/.config/fish/config.fish
+
+  - name: suspicious_alias_or_function
+    indicator: Suspicious shell alias or function definition
+    pattern: >
+      (?P<entry>alias\s+\S+=|function\s+\S+\s*\(\))
+    message_template: "Suspicious shell alias/function: {entry}"
+    meta_fields: [entry]
+    filenames:
+       - /home/*/.bashrc
+       - /home/*/.bash_profile
+       - /home/*/.profile
+       - /home/*/.zshrc
+       - /home/*/.zprofile
+       - /home/*/.kshrc
+       - /home/*/.config/fish/config.fish
+       - /root/.bashrc
+       - /root/.bash_profile
+       - /root/.profile
+       - /root/.zshrc
+       - /root/.zprofile
+       - /root/.kshrc
+       - /root/.config/fish/config.fish

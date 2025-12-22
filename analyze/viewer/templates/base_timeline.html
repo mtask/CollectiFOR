@@ -58,7 +58,6 @@
             padding: 6px 10px;
             text-align: left;
             vertical-align: top;
-            max-width: 250px;
             overflow-wrap: break-word;
         }
 
@@ -81,6 +80,15 @@
             font-family: monospace;
             white-space: pre-wrap;
         }
+      
+#timeline-table tbody tr {
+    height: 6rem;
+}
+
+#timeline-table tbody td {
+    vertical-align: middle;
+}
+
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -141,12 +149,12 @@
 }
 
 /* Dark page inputs and labels */
-#start-time, #end-time, #sql-filter {
+#start-time, #end-time, #sql-filter, #sort-order, #saved-query-select {
     background-color: #0d1a26;
     color: #d1d9e0;
     border: 1px solid #3a4a5a;
 }
-#start-time:focus, #end-time:focus, #sql-filter:focus {
+#start-time:focus, #end-time:focus, #sql-filter:focus, #sort-order:focus {
     background-color: #0d1a26;
     color: #00ff00;
     border: 1px solid #00ff00;
@@ -157,6 +165,21 @@
 label {
     color: #d1d9e0;
 }
+
+table.dataTable {
+    table-layout: auto; /* important! allows wrapping */
+    width: 100%;
+}
+
+td.message {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    overflow: auto;
+    max-width: 100px;
+    vertical-align: top;
+}
+
 
 /* DataTables dark theme */
 table.dataTable, .dataTables_wrapper {
@@ -256,49 +279,21 @@ td:last-child {
     white-space: nowrap;
 }
 
-table.dataTable {
+// Try to fix heade row alignment
+.dataTables_scrollHead table,
+.dataTables_scrollBody table {
     table-layout: fixed;
 }
-table.dataTable th, table.dataTable td {
+
+
+/* Headers should never wrap */
+.dataTables_scrollHead th {
     white-space: nowrap;
 }
 
-/* Message cell */
-td.message {
-    max-width: 400px;
+/* Body cells default nowrap */
+.dataTables_scrollBody td {
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    cursor: pointer;
-    position: relative;
-}
-
-td.message .short-msg { display: inline; }
-td.message .full-msg { display: none; }
-
-td.message.expanded {
-    white-space: normal;
-}
-
-td.message.expanded .short-msg { display: none; }
-td.message.expanded .full-msg {
-    display: block;
-    white-space: pre-wrap;
-    max-height: 200px;
-    overflow-y: auto;
-}
-
-/* Copy button */
-td.message .copy-btn {
-    display: none;
-    margin-left: 6px;
-    cursor: pointer;
-    font-size: 0.9em;
-    color: #0d6efd;
-}
-
-td.message.expanded .copy-btn {
-    display: inline;
 }
 
 #copy-event-btn {
@@ -350,6 +345,9 @@ td.message.expanded .copy-btn {
         </li>
         <li class="nav-item">
           <a class="nav-link text-warning" href="/timeline">Timeline Explorer</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/timeline_query">Timeline Query</a>
         </li>
         <li class="nav-item">
           <a class="nav-link text-warning" href="/timeline_chart">Timeline Chart</a>

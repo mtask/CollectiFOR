@@ -150,6 +150,20 @@ input[type="text"]:focus {
     outline: none; /* optional, removes default focus outline */
 }
 
+.language-shell {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.95rem;               /* adjust size if needed */
+    -webkit-font-smoothing: antialiased;  /* Chrome/Safari */
+    -moz-osx-font-smoothing: grayscale;   /* Firefox */
+    text-rendering: optimizeLegibility;   /* optional for better clarity */
+    line-height: 1.4;                 /* good spacing for readability */
+}
+
+.dropdown-toggle {
+    background-color: #0d1a26;
+    color: #d1d9e0;
+    border: 1px solid #3a4a5a;
+}
 
 </style>
 
@@ -194,6 +208,9 @@ input[type="text"]:focus {
         </li>
         <li class="nav-item">
           <a class="nav-link text-warning" href="/timeline">Timeline Explorer</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-warning" href="/timeline_query">Timeline Query</a>
         </li>
         <li class="nav-item">
           <a class="nav-link text-warning" href="/timeline_chart">Timeline Chart</a>
