@@ -22,7 +22,7 @@ By default all collections and timelines are used when the viewer is launched. F
 There's a dropdown menu at the right side of the navigation bar were you can select a specific collection/timeline or all collections/timelines depending on the current page.
 
 ![](imgs/collections.png)
-![](imgs/collections.png)
+![](imgs/timelines.png)
 
 <details>
 <summary>Collection search</summary>
