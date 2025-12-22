@@ -1,0 +1,11 @@
+events:
+  - name: cron_job
+    indicator: Cron job found
+    pattern: >
+      ^\s*^[0-9*\s]+(?P<entry>.*)
+    message_template: "Cron job entry detected: {entry}"
+    meta_fields: [entry]
+    filenames:
+      - /etc/crontab
+      - /etc/cron.d/*
+      - /var/spool/cron/*

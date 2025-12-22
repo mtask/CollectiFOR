@@ -1,0 +1,31 @@
+events:
+  - name: sshd_root_login_allowed
+    indicator: Root login allowed in sshd_config
+    pattern: >
+      ^\s*PermitRootLogin\s+(?P<value>yes|prohibit-password|without-password)
+    message_template: "sshd config allows root login: {value}"
+    meta_fields: [value]
+    filenames:
+      - /etc/ssh/sshd_config
+      - /etc/ssh/sshd_config.d/*.conf
+
+  - name: sshd_password_auth_enabled
+    indicator: PasswordAuthentication enabled
+    pattern: >
+      ^\s*PasswordAuthentication\s+(?P<value>yes)
+    message_template: "PasswordAuthentication is enabled: {value}"
+    meta_fields: [value]
+    filenames:
+      - /etc/ssh/sshd_config
+      - /etc/ssh/sshd_config.d/*.conf
+
+  - name: sudo_nopasswd_detected
+    indicator: Sudoers NOPASSWD entry detected
+    pattern: >
+      ^(?!\#)(?P<value>\S+).*NOPASSWD
+    message_template: "Sudoers file contains NOPASSWD entry for {value}"
+    meta_fields: [value]
+    filenames:
+      - /etc/sudoers
+      - /etc/sudoers.d/*
+

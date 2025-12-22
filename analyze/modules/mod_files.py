@@ -1,5 +1,6 @@
 import re
 import os
+import glob
 import gzip
 import yaml
 import logging
@@ -7,8 +8,9 @@ from pathlib import Path
 from lib.finding import new_finding
 
 
-def _open_log(path):
-    """Open normal or gzipped log file in text mode"""
+def _open_file(path):
+    """Open normal or gzipped file in text mode"""
+    logging.info(f"[+] Read file {path}")
     if Path(path).suffix == ".gz":
         return gzip.open(path, "rt", errors="ignore")
     return open(path, "r", errors="ignore")
@@ -51,29 +53,38 @@ def _load_rules(rule_dir):
     return rules
 
 
-def _find_files(log_dir, prefixes):
+def _find_files(file_dir, prefixes):
     """
-    Find all log files matching rules' .filenames including rotated files
+    Find all files matching rules' .filenames including rotated files
+    and glob patterns like /x/y/*.ext
     """
-    log_files = []
+    files_lst = []
     for prefix in prefixes:
-        p = Path(prefix)
-        base_name = p.name
-        pattern = f"{base_name}*"
-        for f in log_dir.rglob("*"):  # get all files
-            if f.is_file():
-                # check if the file matches the prefix
-                try:
-                    relative_path = f.relative_to(log_dir)  # make path relative
-                except ValueError:
-                    continue  # f is outside log_dir, skip
-                if str(relative_path).startswith(str(Path(prefix).relative_to("/"))):
-                    log_files.append({"path": str(f), "prefix": prefix})
-    return log_files
+        # Check if the prefix contains a glob pattern (*)
+        if "*" in str(prefix):
+            for f_path in glob.glob(str(Path(file_dir) / prefix.lstrip('/'))):
+                f = Path(f_path)
+                if f.is_file():
+                    files_lst.append({"path": str(f), "prefix": prefix})
+        else:
+            # Rotated files
+            p = Path(prefix)
+            base_name = p.name
+            for f in file_dir.rglob("*"):
+                if f.is_file():
+                    try:
+                        relative_path = f.relative_to(file_dir)
+                    except ValueError:
+                        continue
+                    # check if the file matches the prefix
+                    if str(relative_path).startswith(str(Path(prefix).relative_to("/"))):
+                        files_lst.append({"path": str(f), "prefix": prefix})
 
-def analyze(rootdir, rules_dir="source/logs/"):
+    return files_lst
+
+def analyze(rootdir, rules_dir="source/files/"):
     results = []
-    log_dir = Path(rootdir) / "files_and_dirs"
+    file_dir = Path(rootdir) / "files_and_dirs"
 
     rules = _load_rules(rules_dir)
 
@@ -82,26 +93,26 @@ def analyze(rootdir, rules_dir="source/logs/"):
     for d in rules:
         prefixes.update(d["filenames"])
 
-    log_files = _find_files(log_dir, prefixes)
+    files_lst = _find_files(file_dir, prefixes)
 
-    for log_file in log_files:
-        logging.info(f"Checking log file: {log_file['path']}")
+    for current_file in files_lst:
+        logging.info(f"Checking file: {current_file['path']}")
         try:
-            with _open_log(log_file['path']) as f:
+            with _open_file(current_file['path']) as f:
                 for raw_line in f:
                     line = raw_line.strip()
                     if not line:
                         continue
                     for rule in rules:
-                        # Check if current log file is in rule filenames
-                        if f"{log_file['prefix']}" not in rule['filenames']:
+                        # Check if current file is in rule filenames
+                        if f"{current_file['prefix']}" not in rule['filenames']:
                             continue
                         match = rule["regex"].search(line)
                         if not match:
                             continue
                         finding = new_finding()
-                        finding["type"] = "logs"
-                        finding["artifact"] = str(f"files_and_dirs{log_file['prefix']}")
+                        finding["type"] = "files"
+                        finding["artifact"] = current_file['path'].split('files_and_dirs')[1]
                         finding["indicator"] = rule["indicator"]
                         finding['rule'] = rule['name']
 
@@ -120,6 +131,6 @@ def analyze(rootdir, rules_dir="source/logs/"):
                         break  # only one rule per line
         except Exception as e:
             logging.error(repr(e))
-    logging.info(f"[+] {len(results)} findings from logs")
+    logging.info(f"[+] {len(results)} findings from files_and_dirs")
     return results
 

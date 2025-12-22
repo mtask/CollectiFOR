@@ -45,9 +45,9 @@ def analysis(args, collection_path):
         logging.info("[RUN] YARA module")
         import modules.mod_yara as my
         findings = findings + my.search(args.yara, collection_path)
-    if args.logs or args.analysis:
-        import modules.mod_logs as ml
-        logging.info("[RUN] Logs module")
+    if args.files or args.analysis:
+        import modules.mod_files as ml
+        logging.info("[RUN] Files module")
         findings = findings + ml.analyze(collection_path)
     if args.file_permissions or args.analysis:
         import modules.mod_file_permissions as mf
@@ -117,9 +117,9 @@ def main():
     )
 
     parser.add_argument(
-        "-l", "--logs",
+        "-f", "--files",
         action='store_true',
-        help="Enable logs analysis module"
+        help="Enable file analysis module"
     )
 
     parser.add_argument(

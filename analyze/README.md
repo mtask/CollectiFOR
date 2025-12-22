@@ -16,7 +16,7 @@ options:
                         Enable yara analysis module by providing path to your yara rules top-level directory.
   -p PATTERN_DIR, --pattern PATTERN_DIR
                         Enable pattern analysis module by providing path your pattern files top-level directory.
-  -l, --logs            Enable logs analysis module
+  -f, --files           Enable file analysis module
   -fp, --file-permissions
                         Enable file permissions analysis module
   -pe, --persistence    Enable persistence analysis module
@@ -228,11 +228,11 @@ Does some simple analysis against the `file_permissions.txt` content if the coll
 
 Does some simple analysis against the `files_and_dirs` content if the collection has one.
 
-## Module | Logs (alpha / PoC)
+## Module | Files (alpha / PoC)
 
-* Enable: `--logs`
+* Enable: `--files`
 
-Does some simple analysis against the `files_and_dirs/var/log` file contents if logs are included in the collection.
+Does some simple analysis against the `files_and_dirs` file contents if included in the collection.
 
 ## Module | PCAP (alpha / PoC)
 
