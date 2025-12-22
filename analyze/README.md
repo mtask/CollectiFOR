@@ -1,6 +1,6 @@
 This directory contains collection and timeline ingestion tools and web based UI component CollectiFOR Viewer.
 
-![](../imgs/viewer.png])
+![](../imgs/viewer.png)
 
 All the main components are used via collectifor.py script. You can have two main type of data sources to ingest:
 
