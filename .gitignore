@@ -1,10 +1,10 @@
 analyze/load_sources.sh
 *venv
 __pycache__
-analyze/patterns/*
-!analyze/patterns/.gitkeep
-analyze/yara/*
-!analyze/yara/.gitkeep
+analyze/source/patterns/*
+!analyze/source/patterns/.gitkeep
+analyze/source/yara/*
+!analyze/source/yara/.gitkeep
 analyze/report/report.html
 collect/memory/lime*
 dist
