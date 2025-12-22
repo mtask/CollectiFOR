@@ -1,8 +1,7 @@
 # CollectiFOR | analysis
 
-
-There are multiple automatic analysis modules that do, for example, rule and pattern based analysis. After analysis move to [viewer](../viewer/README.md).
-Note that analysis is not required to explore initialized collection database via viewer. Only thing missing before analysis are potential findings in its findings section.
+There are multiple automatic analysis modules that do, for example, rule and pattern based analysis. Analysis modules add "findings" to collection database which was [initialized](../init/README.md) with `--init` option.
+Move to [viewer](../viewer/README.md) after analysis.Note that analysis is not required to explore initialized collection database via viewer. Only thing missing before analysis are potential findings in its findings section.
   
 Here's an example how to run all analysis modules:
 ```bash
