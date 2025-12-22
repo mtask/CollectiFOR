@@ -671,7 +671,6 @@ def run_viewer(db_file="collectifor.db", duckdb_file="timeline.duckdb", host="12
     DUCKDB_FILE = duckdb_file
     COLLECTIONS = get_collections()
     TIMELINES = get_timelines()
-    print(TIMELINES)
     print(f"[+] Viewer started")
     print(f"[+] URL: http://{host}:{port}")
 
