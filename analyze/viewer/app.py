@@ -396,22 +396,34 @@ def findings():
     q = request.args.get("q", "").strip()
     type_filters = request.args.getlist("type")
     rule_filters = request.args.getlist("rule")
+    ack_filters = request.args.getlist("ack")  # list of '0' and/or '1'
 
     query = db.query(Finding)
     query = apply_collection_filter(query, Finding)
 
+    # Apply text search
     if q:
         query = _apply_text_query(query, Finding.message, q)
 
+    # Apply type filters
     if type_filters:
         query = query.filter(Finding.type.in_(type_filters))
 
+    # Apply rule filters
     if rule_filters:
         query = query.filter(Finding.rule.in_(rule_filters))
 
+    # Apply ack/unack filter
+    if ack_filters:
+        # Convert to int and filter
+        ack_values = [int(a) for a in ack_filters if a in ('0', '1')]
+        if ack_values:
+            query = query.filter(Finding.ack.in_(ack_values))
+    # If no ack filter provided, do nothing → include both 0 and 1
+
     findings = query.order_by(Finding.type, Finding.inserted_at).all()
 
-    # For dropdowns: fetch all distinct types and rules
+    # Fetch dropdown options
     all_types = [row[0] for row in db.query(Finding.type).distinct().order_by(Finding.type)]
     all_rules = [row[0] for row in db.query(Finding.rule).distinct().order_by(Finding.rule)]
 
@@ -423,6 +435,7 @@ def findings():
         search_query=q,
         type_filter=type_filters,
         rule_filter=rule_filters,
+        ack_filter=ack_filters,  # pass current ack filter to template
         all_types=all_types,
         all_rules=all_rules
     )
@@ -434,6 +447,42 @@ def finding_detail(finding_id):
     db.close()
     return render_template("finding_detail.html", finding=finding)
 
+@app.route("/findings/<int:finding_id>/ack", methods=["POST"])
+def update_ack(finding_id):
+    db = get_session()
+    finding = db.query(Finding).get(finding_id)
+    if not finding:
+        db.close()
+        return jsonify({"error": "Finding not found"}), 404
+
+    data = request.get_json()
+    if "ack" in data:
+        finding.ack = 1 if data["ack"] else 0
+        db.commit()
+        ack_value = finding.ack  # store value while still attached
+        db.close()
+        return jsonify({"status": "ok", "ack": ack_value})
+    else:
+        db.close()
+        return jsonify({"error": "Missing ack value"}), 400
+
+@app.route("/findings/bulk_ack", methods=["POST"])
+def bulk_ack():
+    db = get_session()
+    data = request.get_json()
+    ids = data.get("ids", [])
+    ack_value = 1 if data.get("ack") else 0
+
+    if not ids:
+        db.close()
+        return jsonify({"error": "No IDs provided"}), 400
+
+    db.query(Finding).filter(Finding.id.in_(ids)).update(
+        {Finding.ack: ack_value}, synchronize_session=False
+    )
+    db.commit()
+    db.close()
+    return jsonify({"status": "ok", "ack": ack_value, "count": len(ids)})
 
 
 # ------------------------

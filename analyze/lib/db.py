@@ -125,7 +125,7 @@ class Finding(Base):
     namespace = Column(String)
     artifact = Column(String)
     indicator = Column(String)
-
+    ack = Column(Integer, default=0)
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
 class DB:

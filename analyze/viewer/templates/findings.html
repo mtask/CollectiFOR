@@ -44,18 +44,21 @@
     <form method="get" class="d-flex gap-2 flex-wrap align-items-end">
 
       <!-- Input + button group -->
-      <div class="input-group">
-        <input
-          type="text"
-          name="q"
-          placeholder="Search message (prefix '-' to negate)"
-          value="{{ search_query|default('') }}"
-          class="form-control"
-        >
-        <button type="submit" class="btn btn-primary">
-          Filter
-        </button>
-      </div>
+<div class="input-group">
+    <input
+      type="text"
+      name="q"
+      placeholder="Search message (prefix '-' to negate)"
+      value="{{ search_query|default('') }}"
+      class="form-control"
+    >
+    <button type="submit" class="btn btn-primary">
+      Filter
+    </button>
+    <a href="{{ url_for('findings') }}" class="btn btn-secondary">
+      Reset
+    </a>
+</div>
 
       <!-- Type dropdown with checkboxes -->
       <select
@@ -85,9 +88,25 @@
         {% endfor %}
       </select>
 
+<!-- Acked filter -->
+<select
+    name="ack"
+    class="selectpicker form-control"
+    data-actions-box="true"
+    title="Acked / Unacked"
+>
+    <option value="1" {% if '1' in ack_filter %}selected{% endif %}>Acked</option>
+    <option value="0" {% if '0' in ack_filter %}selected{% endif %}>Unacked</option>
+</select>
+
+        <option value="1" {% if ack_filter == '1' %}selected{% endif %}>Acked</option>
+        <option value="0" {% if ack_filter == '0' %}selected{% endif %}>Unacked</option>
+      </select>
+
     </form>
   </div>
 </div>
+
 
 <script>
   $(document).ready(function() {
@@ -106,6 +125,11 @@
 
 
 {% if findings %}
+<div class="mb-2 d-flex justify-content-end gap-1">
+    <button type="button" class="btn btn-sm btn-success" id="select-all">Ack All</button>
+    <button type="button" class="btn btn-sm btn-warning" id="deselect-all">Unack All</button>
+</div>
+
 <table class="table table-dark table-striped table-hover table-sm">
     <thead class="table-secondary">
         <tr>
@@ -114,6 +138,7 @@
             <th>Message</th>
             <th>Artifact</th>
             <th>Inserted</th>
+            <th>Acked</th> <!-- New column -->
         </tr>
     </thead>
     <tbody>
@@ -126,6 +151,15 @@
             </td>
             <td class="mono">{{ f.artifact }}</td>
             <td>{{ f.inserted_at }}</td>
+            <td>
+<input
+    type="checkbox"
+    class="ack-checkbox"
+    data-id="{{ f.id }}"
+    {% if f.ack %}checked{% endif %}
+/>
+
+            </td>
         </tr>
     {% endfor %}
     </tbody>
@@ -133,4 +167,62 @@
 {% else %}
 <p class="text-light">No findings available.</p>
 {% endif %}
+<script>
+$(document).ready(function() {
+
+    // Single checkbox changes (optional, still works individually)
+    $('.ack-checkbox').on('change', function() {
+        const checkbox = $(this);
+        const findingId = checkbox.data('id');
+        const ackValue = checkbox.is(':checked') ? 1 : 0;
+
+        $.ajax({
+            url: `/findings/${findingId}/ack`,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ ack: ackValue }),
+            success: function(response) {
+                console.log('Ack updated', response);
+            },
+            error: function(err) {
+                alert('Error updating ack');
+                checkbox.prop('checked', !checkbox.is(':checked'));
+            }
+        });
+    });
+
+    // Bulk ack/unack
+    function bulkAck(setChecked) {
+        const ids = [];
+        $('.ack-checkbox').each(function() {
+            const checkbox = $(this);
+            checkbox.prop('checked', setChecked);
+            ids.push(checkbox.data('id'));
+        });
+
+        $.ajax({
+            url: '/findings/bulk_ack',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ ids: ids, ack: setChecked ? 1 : 0 }),
+            success: function(response) {
+                console.log('Bulk ack updated', response);
+            },
+            error: function(err) {
+                alert('Error updating bulk ack');
+                console.error(err);
+            }
+        });
+    }
+
+    $('#select-all').on('click', function() {
+        bulkAck(true);
+    });
+
+    $('#deselect-all').on('click', function() {
+        bulkAck(false);
+    });
+
+});
+</script>
 {% endblock %}
