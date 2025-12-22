@@ -2,6 +2,10 @@
 
 After ingestion move to [analysis](../analysis/README.md) or to [viewer](../viewer/README.md) if you just want to explore the ingested data via UI.
 
+> [!IMPORTANT]
+> Do not remove your extracted collection if you want to run automatic analysis against it. Some viewer funcationalities (File Navigator) will also not fully work without access the original collection.
+> If you do not need access to files via viewer's file navigator then it's safe to remove or move the original extracted path (after analysis if used).
+
 ## Collections
 
 Collection ingestion is launched with the `--init` option. In addition you need to provide path to collection directory or tar.gz file with `--collection <path>`
@@ -28,7 +32,7 @@ Below table shows which data is currently ingested to CollectiFOR database in in
 
 All parsers skip ingestion gracefully if the related collection data is not found because not all collections include content from every collect module.
   
-You can ingest multiple collections to sama database. In the [viewer](../viewer/README.md) component you can explore all the collections at once or select a single collection.
+You can ingest multiple collections to sama database, but only one collection per run. In the [viewer](../viewer/README.md) component you can explore all the collections at once or select a single collection.
 Which collections should be in the same database depends on needs. Note that `--init` does not do deduplication. If the same collection is ingested again it will create lots of duplicate rows which.
 In accidental double ingestion it might be easiest to remove the database file and re-init. If only one collection needds to be removed from multi-collection database, that can't be removed, then some manual SQL work is needed.
 

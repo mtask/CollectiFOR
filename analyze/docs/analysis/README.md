@@ -1,20 +1,34 @@
 # Analysis modules
 
-Using `--analysis` option with `collectifor.py` enables all analysis modules. YARA and pattern modules do, however, require additional arugments (`--yara` / `--pattern` DIR). 
-Other modules also have their own cli options to enable only specific modules instead of all.
+There are multiple automatica analysis modules which allow, for example, rule and pattern based analysis. 
+Using `--analysis` option with `collectifor.py` enables all analysis modules. Two modules, `yara` and `pattern`, also require options that point to rule and pattern files (`--yara <your yara rules dir` / `--pattern <your pattern rules dir>`. 
+Other modules also have their own cli options to enable only specific modules instead of all. See the module listing below.
+  
+> [!TIP]
+> If you provide collection path to already extracted tar.gz file, the collectifor.py will automatically use the existing directory.
+> Manually providing directory path (instead of tar.gz) needs to be pointed to `<path>/<hostname>_<ts>/<ts>/` -> collection files like `files_and_dirs` directory are in this path.
+>  
+> If you provided an alternative database path during `--init`, then use the same database path for the same collection(s) `(--db <path>.db`).
+  
+Here's an example to run all the analysis modules:
 
-**NOTE:** Running same analysis module twice or more times against the same database can mean duplicate findings.
+```bash
+python3 collectifor.py --init --analysis --yara yara/ --pattern patterns/ --collection /collections/host_20251217_141749/20251217_141749
+```
+  
+Note that running same analysis module twice or more times against the same collection and database will mean duplicate findings.
 
 In CollectiFOR database all analysis results are stored in "findings" table. Modules marked as `alpha / PoC` in the below listing are mostly in PoC concept state and have very simplistic analysis.
 YARA and Pattern modules use existing source content (YARA rules, IoC listings, etc), so those do not have similar own analysis logic and should yield good results with good rule/pattern sources.
 
 You can skipp all the PoC analysis modules like this if you still want to run YARA and/or PATTERN analysis.
 
-```
-python3 collectifor.py --init --yara yara/ --pattern patterns/ --viewer --collection /collections/host_20251217_141749.tar.gz 
-```
+# Modules
 
-## Module | YARA
+Do not use `--analysis` option if you want to run individual modules only.
+
+<details>
+ <summary># YARA</summary>
 
 * Enable: `--yara RULES_DIR`
 
@@ -25,25 +39,22 @@ RULES_DIR
   myrules/*.yar
   rule_provider_Z/*.yar
 ```
+</details>
 
-## Module | Pattern
+<details>
+<summary>Pattern</summary>
 
 * Enable: `--pattern PATTERN_DIR`
 
 Files in PATTERN_DIR are passed to `grep` as pattern file which means that there should be one "greppable" pattern per line in each file.
 Can also contain sub-directories.
+</details>
 
 ## Module | File permissions (alpha / PoC)
 
 * Enable: `--file-permissions`
 
 Does some simple analysis against the `file_permissions.txt` content if the collection has one.
-
-## Module | persistence (alpha / PoC)
-
-* Enable: `--persistence`
-
-Does some simple analysis against the `files_and_dirs` content if the collection has one.
 
 ## Module | Files (alpha / PoC)
 
