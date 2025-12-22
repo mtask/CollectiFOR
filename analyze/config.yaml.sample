@@ -1,0 +1,11 @@
+collection_database: './collectifor.db'
+timeline_database: './timeline.duckdb'
+analysis:
+  enable_yara: true
+  enable_pattern: true
+  enable_files: true
+  enable_file_permissions: true
+  enable_pcap: true
+  yara: './source/yara'
+  pattern: './source/pattern/' 
+  files: './source/files/'
