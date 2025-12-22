@@ -1,0 +1,56 @@
+# CollectiFOR | ingest
+
+After ingestion move to [analysis](../analysis/README.md) or to [viewer](../viewer/README.md) if you just want to explore the ingested data via UI.
+
+## Collections
+
+Collection ingestion is launched with the `--init` option. In addition you need to provide path to collection directory or tar.gz file with `--collection <path>`
+
+```
+sudo python3 collectifor.py --init --collection /collections/host_20251217_141749.tar.gz 
+```
+
+You can combine `--init` with other phases like seen [here](../../README.md), but this page focuses on the initialization phase.
+By default the init run creates an SQLite3 database `./collectifor.db` which will hold all the data ingested from collections. You can provide alternative database path with `--db <path>.db`
+
+Below table shows which data is currently ingested to CollectiFOR database in initialization.
+
+
+| Collection           | Parser             | DB table         |
+|----------------------|--------------------|------------------|
+| commands/            | CommandsParser     | command_output   |
+| checksums/           | ChecksumParser     | checksums        |
+| files_and_dirs/      | FilesAndDirsParser | files_and_dirs   |
+| capture/*.pcap       | PcapParser         | pcap_packets     |
+| capture/*.pcap       | PcapParser         | network_flows    |
+| file_permissions.txt | PermissionsParser  | file_permissions |
+| listeners.json       | ListenersParser    | listeners        |
+
+All parsers skip ingestion gracefully if the related collection data is not found because not all collections include content from every collect module.
+  
+You can ingest multiple collections to sama database. In the [viewer](../viewer/README.md) component you can explore all the collections at once or select a single collection.
+Which collections should be in the same database depends on needs. Note that `--init` does not do deduplication. If the same collection is ingested again it will create lots of duplicate rows which.
+In accidental double ingestion it might be easiest to remove the database file and re-init. If only one collection needds to be removed from multi-collection database, that can't be removed, then some manual SQL work is needed.
+
+```bash
+sqlite3 collectifor.db 
+# Check collection names
+select collection_name from collections;
+# Delete collection data from tables
+DELETE FROM command_output WHERE collection_name = 'something';
+DELETE FROM <tablename2> WHERE collection_name = '<ccllection>';
+# etc.
+```
+
+## Timelines
+
+CollectiFOR can also ingest super timelines created with Plaso tools. The [viewer](../viewer/README.md) component has some basic timeline explorer, query and chart tools.
+CollectiFOR supports only JSON lines format (`psort.py -o json_line`).
+  
+```bash
+python3 collectifor.py -tf /path/to/case.x.timeline.jsonl
+```
+  
+This generates a DuckDB database `./timeline.db` by default. You can override the database location with `--tdb <path>.db`. 
+Option `-tf <timeline>.jsonl` can also be run at the same time with other `collectifor.py`'s options (`--init`, `--analysis`, etc.).
+Here is some examples of how to generate timelines: [timelines.md](../workflows/timelines.md).

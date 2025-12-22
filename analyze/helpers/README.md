@@ -1,5 +1,13 @@
 # Helper scripts
 
+## hasher.py 
+
+TBD -> ingest collection findings ?
+
+```bash
+python3 -m helpers.hasher /tmp/out/20251220_000010/ /tmp/out/20251220_000040/
+```
+
 ## Plaso | plaso.sh
 
 Runs `log2timeline/plaso` docker image and mounts the collection inside. Spawns inside the container to run Plaso tools.
