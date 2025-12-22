@@ -68,11 +68,8 @@
           <td class="mono">{{ c.category }}</td>
           <td class="mono">{{ c.commandline }}</td>
           <td class="mono">
-            <div class="output-preview" style="max-height:100px; overflow:hidden; position:relative;">
+            <div class="output-preview" style="position:relative;">
               <pre class="language-shell">{{ c.output }}</pre>
-              {% if c.output|length > 300 %}
-              <button type="button" class="btn btn-sm btn-outline-light mt-1 toggle-output">Show More</button>
-              {% endif %}
             </div>
           </td>
         </tr>
@@ -211,19 +208,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.toggle-output').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const container = btn.closest('.output-preview');
-            if(container.style.maxHeight && container.style.maxHeight !== 'none') {
-                container.style.maxHeight = 'none';
-                btn.innerText = 'Show Less';
-            } else {
-                container.style.maxHeight = '100px';
-                btn.innerText = 'Show More';
-            }
-        });
-    });
-
     var popoverTriggerList = [].slice.call(
       document.querySelectorAll('[data-bs-toggle="popover"]')
     );
@@ -231,8 +215,6 @@ document.addEventListener('DOMContentLoaded', function() {
       return new bootstrap.Popover(popoverTriggerEl);
     });
 });
-</script>
-
 </script>
 
 {% endblock %}
