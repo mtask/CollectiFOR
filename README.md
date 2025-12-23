@@ -11,15 +11,15 @@ This repository is splitted in two main sections:
 * The main collect binary for triage collection and full disk captures.
 * Other tools to support the data acquisition process.
   
-See [collect/README.md](https://github.com/mtask/CollectiFOR/tree/main/collect/README.md)  
-(Remote collection: see [ansible-collect](https://github.com/mtask/CollectiFOR/tree/main/ansible_collect))
+See [collect/README.md](collect/README.md)  
+(Remote collection: see [ansible-collect](ansible_collect/README.md))
   
 **analyze/**
   
 * collectifor.py -\>  Data ingestion (collections collected with `collect` tools and JSONL timeline ingestion), analysis tools (YARA, patterns, etc.), and web based viewer component (collection navigation, search, timeline explorer, etc.)
 * helpers/ -\> Plaso, zeek, etc. docker container launch scripts, additional collectien analysis, etc.
   
-See [analyze/README.md](https://github.com/mtask/CollectiFOR/tree/main/analyze/README.md)
+See [analyze/README.md](analyze/README.md)
   
 
 ## Quick how-to
