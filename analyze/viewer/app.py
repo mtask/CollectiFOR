@@ -20,6 +20,7 @@ from lib.db import (
     FileEntry,
     ListenerEntry,
     Collections,
+    Notes,
 )
 
 
@@ -389,9 +390,37 @@ def network_search():
         flows=flows
     )
 
-@app.route("/findings")
+@app.route("/findings", methods=["GET", "POST"])
 def findings():
     db = get_session()
+
+    # Manually added finding
+    if request.method == "POST":
+        data = request.get_json() or {}
+
+        message = (data.get("message") or "").strip()
+        if not message:
+            db.close()
+            return jsonify({"error": "message required"}), 400
+
+        # Parse meta (already JSON from frontend)
+        meta = data.get("meta")
+
+        finding = Finding(
+            collection_name=session.get("collection_name"),
+            type="manual",
+            message=message,
+            meta=meta,
+            artifact=data.get("artifact"),
+            indicator=data.get("indicator"),
+        )
+
+        db.add(finding)
+        db.commit()
+        finding_id = finding.id
+        db.close()
+
+        return jsonify({"status": "ok", "id": finding_id})
 
     q = request.args.get("q", "").strip()
     type_filters = request.args.getlist("type")
@@ -440,36 +469,92 @@ def findings():
         all_rules=all_rules
     )
 
-@app.route("/findings/<int:finding_id>")
+@app.route("/findings/<int:finding_id>", methods=["GET", "POST"])
 def finding_detail(finding_id):
     db = get_session()
+
+    if request.method == "POST":
+        data = request.get_json() or {}
+
+        # CASE 1: Add comment (existing behavior)
+        if "comment" in data:
+            comment = data.get("comment", "").strip()
+            if not comment:
+                db.close()
+                return jsonify({"error": "comment required"}), 400
+
+            note = Notes(
+                finding_id=finding_id,
+                finding_comment=comment
+            )
+            db.add(note)
+            db.commit()
+            db.close()
+            return jsonify({"status": "ok"})
+
+    # GET
     finding = db.query(Finding).get(finding_id)
+    if not finding:
+        db.close()
+        return "Finding not found", 404
+
+    comments = (
+        db.query(Notes)
+        .filter(Notes.finding_id == finding_id)
+        .order_by(Notes.inserted_at.asc())
+        .all()
+    )
+
     db.close()
-    return render_template("finding_detail.html", finding=finding)
+    return render_template("finding_detail.html", finding=finding, comments=comments)
 
 @app.route("/findings/<int:finding_id>/ack", methods=["POST"])
 def update_ack(finding_id):
     db = get_session()
-    finding = db.query(Finding).get(finding_id)
-    if not finding:
-        db.close()
-        return jsonify({"error": "Finding not found"}), 404
 
-    data = request.get_json()
-    if "ack" in data:
+    try:
+        finding = db.query(Finding).get(finding_id)
+        if not finding:
+            return jsonify({"error": "Finding not found"}), 404
+
+        data = request.get_json() or {}
+
+        if "ack" not in data:
+            return jsonify({"error": "Missing ack value"}), 400
+
+        ack_comment = data.get("ack_comment")
+        if not ack_comment:
+            return jsonify({"error": "ack_comment required"}), 400
+
         finding.ack = 1 if data["ack"] else 0
+
+        note = Notes(
+            finding_id=finding_id,
+            finding_comment=ack_comment
+        )
+        db.add(note)
+
         db.commit()
-        ack_value = finding.ack  # store value while still attached
+
+        return jsonify({
+            "status": "ok",
+            "ack": finding.ack
+        })
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
         db.close()
-        return jsonify({"status": "ok", "ack": ack_value})
-    else:
-        db.close()
-        return jsonify({"error": "Missing ack value"}), 400
 
 @app.route("/findings/bulk_ack", methods=["POST"])
 def bulk_ack():
-    db = get_session()
     data = request.get_json()
+    if not data.get("ack_comment"):
+        return jsonify({"error": "ack_comment required"}), 400
+    ack_comment = data.get("ack_comment")
+    db = get_session()
     ids = data.get("ids", [])
     ack_value = 1 if data.get("ack") else 0
 
@@ -477,6 +562,17 @@ def bulk_ack():
         db.close()
         return jsonify({"error": "No IDs provided"}), 400
 
+
+    comment_stmt = insert(Notes).values([
+        {
+            "finding_id": finding_id,
+            "finding_comment": ack_comment
+        }
+        for finding_id in ids
+    ]).on_conflict_do_nothing(
+         index_elements=["finding_id", "finding_comment"]
+    )
+    db.execute(stmt)
     db.query(Finding).filter(Finding.id.in_(ids)).update(
         {Finding.ack: ack_value}, synchronize_session=False
     )

@@ -13,7 +13,8 @@ You can also launch viewer at the same time with `--init`, `--analysis`, and/or 
 Ensure you are using configuration file which database path(s) match the wanted collection and/or timeline databases.
 > [!WARNING]
 > Viewer is intended to be hosted as local web application and it's binded by default to `localhost:5000`. 
-> It's not safe to expose it to a network as many of the functionalities are intended for local use only and do not follow common web security practices by design.
+> It's not safe to expose it to a network as there's login and functionalities are intended for local use only.
+> App does not follow common web security practices by design in functionalities like direct SQL query access.
 
   
 **Functionalities:**

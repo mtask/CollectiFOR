@@ -130,6 +130,13 @@ class Finding(Base):
     ack = Column(Integer, default=0)
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
+class Notes(Base):
+    __tablename__ = "notes"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    finding_id = Column(Integer)
+    finding_comment = Column(String)
+    inserted_at = Column(DateTime, default=datetime.utcnow)
+
 class DB:
     def __init__(self, db_file, collection_name, collection_abs_path, init=False):
         self.engine = create_engine(f"sqlite:///{db_file}", echo=False, future=True)

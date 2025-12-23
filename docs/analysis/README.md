@@ -65,14 +65,14 @@ RULES_DIR
 Pattern module enables simple pattern rule checks against the collection's content. 
 Config file section `analysis.pattern` sets the path to patternss directory. Pattern files should have extension `.txt`.
 There are no existing patterns provided currently. Configured directory can contain sub-directories. Pattern files content can be anything that could be
-provided to grep command as pattern file (`grep -f patterns.txt`).
+provided to grep command as pattern file (`grep -F -f patterns.txt`). Patterns are treated as fixed strings (`grep -F`). See the next module for more complex query needs.
 
 </details>
 
 <details>
 <summary>#Files</summary>
 
-Files module runs analysis against the lines in collection's files. Module has its own YAML based rule syntax to create rules against file content.
+Files module runs analysis against the lines of specified collection's files. Module has its own YAML based rule syntax to create rules against file content.
 Detection rules are written in regular expressions.
 Here's an example rule to detect SSH failure in logs.
 
@@ -109,7 +109,7 @@ events:
       - /files_and_dirs/etc/sudoers.d/*
 ```
 
-More samples can be found here: `analyze/source/files/`.
+More samples can be found here: `analyze/source/files/`. Note that this module uses `re.VERBOSE` with its patterns, more information in [re library's docs](https://docs.python.org/3/library/re.html#re.VERBOSE).
 
 </details>
 
