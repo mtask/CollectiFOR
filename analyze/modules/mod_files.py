@@ -131,6 +131,6 @@ def analyze(rules_dir, rootdir):
                         break  # only one rule per line
         except Exception as e:
             logging.error(repr(e))
-    logging.info(f"[+] {len(results)} findings from files_and_dirs")
+    logging.info(f"[+] {len(results)} findings from files module")
     return results
 
