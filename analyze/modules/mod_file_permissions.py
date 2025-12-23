@@ -38,10 +38,10 @@ def analyze(rootdir):
     - Group
     - Reason (world-writable, suid, sgid, etc.)
     """
-    results = []
+    findings = []
     fp_file = Path(rootdir) / "file_permissions.txt"
     if not fp_file.exists():
-        return results
+        return findings
 
     with open(fp_file, "r") as f:
         for line in f:
@@ -91,5 +91,6 @@ def analyze(rootdir):
                                       "size": size,
                                       "timestamp": timestamp,
                                   }
+                findings.append(finding)
 
-    return results
+    return findings
