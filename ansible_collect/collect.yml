@@ -55,7 +55,7 @@
     become: yes
 
   - name: Run collection
-    command: /root/collect -c /root/config.yaml --collect --capture -if {{ interfaces_string }}
+    command: /root/collect -c /root/config.yaml -if {{ interfaces_string }}
     register: _collect
     become: yes
 

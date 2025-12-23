@@ -29,7 +29,7 @@ See [analyze/README.md](analyze/README.md)
 3. Run collection on the target machine:
 
 ```bash
-sudo ./collect -c ./config.yaml --collect --capture -if eth0
+sudo ./collect -c ./config.yaml -if eth0
 ```
 
 4. Move collection directory or tar.gz file to analysis machine

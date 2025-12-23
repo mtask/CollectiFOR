@@ -38,7 +38,7 @@ After building, ship `./dist/collect` and `config.yaml` to target machine and ru
 **Options:**
 
 ```
-usage: collect [-h] -c CONFIG [--collect] [--capture] [-if INTERFACES] [-dh DISK_HOST] [-d DISK]
+usage: collect.py [-h] -c CONFIG [-if INTERFACES] [-dh DISK_HOST] [-d DISK]
 
 CollectiFOR | quick triage collection
 
@@ -46,8 +46,6 @@ options:
   -h, --help            show this help message and exit
   -c CONFIG, --config CONFIG
                         Path to the YAML configuration file
-  --collect             Enable collect module
-  --capture             Enable capture module
   -if INTERFACES, --interfaces INTERFACES
                         Interfaces for capture module. Multiple interfaces can be seperated with comma
   -dh DISK_HOST, --disk-host DISK_HOST
@@ -59,7 +57,7 @@ options:
 
 
 ```bash
-sudo ./collect -c config.yaml.sample --collect --capture -if eth0,eth1
+sudo ./collect -c config.yaml.sample -if eth0,eth1
 ```
 
 Check the collection output path from the last log message. For example:
@@ -294,7 +292,7 @@ Capture disk image from a locally attached disk (DD/E01) or remotely via SSH (DD
 Only capture method "dd" supported.
 
 ```
-./dist/collect -c config.yaml --capture -d "/dev/vda" -dh "user@ip"
+./dist/collect -c config.yaml -d "/dev/vda" -dh "user@ip"
 ```
 
 Note that with remote ssh usage the module requires ssh key authentication, root login or passwordless sudo, and it skips host key verification.
@@ -304,7 +302,7 @@ Note that with remote ssh usage the module requires ssh key authentication, root
 Capture methods "dd" or "e01" are supported.
 
 ```
-./dist/collect -c config.yaml --capture -d "/dev/sda" -dh "localhost"
+./dist/collect -c config.yaml -d "/dev/sda" -dh "localhost"
 ```
 
 Module requires `pv` on the local system and `dd` on remote system when capture method is "dd". With "e01" `ewfacquire` is required. 
