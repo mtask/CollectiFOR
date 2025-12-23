@@ -54,6 +54,8 @@ def analyze(rootdir):
             if len(parts) < 6:
                 continue
             path, mode_num, perms, owner_group, size, timestamp = parts[:6]
+            if perms.startswith('l'):
+                continue
             owner, group = owner_group.split(":") if ":" in owner_group else (owner_group, "")
             reasons = []
 
