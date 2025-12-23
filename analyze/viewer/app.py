@@ -616,7 +616,7 @@ def timeline_query():
     result_df = pd.DataFrame()
     if sql_query:
         try:
-            result_df = conn.execute(sql_query).df()
+            result_df = conn.execute(sql_query).df().head(5000)
         except Exception as e:
             result_df = pd.DataFrame([{"Error": str(e)}])
     else:

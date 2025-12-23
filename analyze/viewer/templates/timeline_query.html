@@ -1,23 +1,33 @@
 {% extends "base_timeline.html" %}
 
 {% block content %}
-<h2>Timeline Query</h2>
+<div class="container bg-transparent">
+  <div class="row justify-content-center">
+    <div class="col-md-6 text-center">
 
-<!-- Saved Queries Dropdown -->
-<div class="row mb-3 justify-content-center">
-    <div class="col-md-6">
-        <div class="d-flex align-items-center gap-2">
-            <label class="mb-0 small text-muted">Saved Queries:</label>
-                Saved Queries:
-            </label>
-            <select class="form-select w-auto" id="saved-query-select">
-                <option value="">-- Select saved query --</option>
-                {% for name, query in saved_queries %}
-                    <option value="{{ query|e }}">{{ name }}</option>
-                {% endfor %}
-            </select>
-        </div>
+      <h2 class="text-light mb-3">Timeline Query</h2>
+
+      <div class="mx-auto mb-4 p-2 px-3
+                  bg-primary bg-opacity-25
+                  border-start border-3 border-primary
+                  text-light
+                  rounded"
+           style="font-size: 0.9rem;">
+        <strong>Note:</strong> Timeline selection does not affect this view as it is a direct database query interface.<br/>Shown results are limited to max 5000.
+      </div>
+
+      <!-- Saved Queries Dropdown -->
+      <div class="d-flex align-items-center justify-content-center gap-2">
+         <select id="saved-query-select" class="form-select text-center w-auto" style="max-width: 280px;">
+          <option value="">-- Select saved query --</option>
+          {% for name, query in saved_queries %}
+            <option value="{{ query|e }}">{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
     </div>
+  </div>
 </div>
 
 <!-- Query Form -->
@@ -44,6 +54,36 @@
         </div>
     </div>
 </form>
+
+<div id="loading-overlay" 
+     style="
+        display:none;
+        position:fixed;
+        top:0; left:0;
+        width:100%; height:100%;
+        background: rgba(27,39,51,0.8);
+        color:#fff;
+        font-size:1.5rem;
+        text-align:center;
+        line-height:100vh;
+        z-index:2000;
+     ">
+    Loading results...
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('query-form');
+    const overlay = document.getElementById('loading-overlay');
+
+    if (form && overlay) {
+        form.addEventListener('submit', () => {
+            overlay.style.display = 'block';
+        });
+    }
+});
+</script>
+
 
 {% if not result_df.empty %}
 <div class="row">
@@ -101,39 +141,64 @@ document.getElementById('copy-result-btn').addEventListener('click', () => {
 
 <!-- Save query + dropdown behavior -->
 <script>
-/* Save Query */
-document.getElementById('save-query-btn').addEventListener('click', () => {
-    const query = document.getElementById('sql-filter').value.trim();
-    if (!query) return;
+// Wait until DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
 
-    const name = prompt("Save query as:");
-    if (!name) return;
+    const select = document.getElementById('saved-query-select');
+    const sqlInput = document.getElementById('sql-filter');
+    const saveBtn = document.getElementById('save-query-btn');
 
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = "{{ url_for('timeline_query') }}";
-
-    const nameInput = document.createElement('input');
-    nameInput.type = 'hidden';
-    nameInput.name = 'query_name';
-    nameInput.value = name;
-
-    const queryInput = document.createElement('input');
-    queryInput.type = 'hidden';
-    queryInput.name = 'sql_filter';
-    queryInput.value = query;
-
-    form.appendChild(nameInput);
-    form.appendChild(queryInput);
-    document.body.appendChild(form);
-    form.submit();
-});
-
-/* Load saved query into input */
-document.getElementById('saved-query-select').addEventListener('change', function () {
-    if (this.value) {
-        document.getElementById('sql-filter').value = this.value;
+    // 1️⃣ Populate input when a saved query is selected
+    if (select && sqlInput) {
+        select.addEventListener('change', function () {
+            sqlInput.value = this.value || '';
+        });
     }
+
+    // 2️⃣ Handle saving a new query
+    if (saveBtn && select && sqlInput) {
+        saveBtn.addEventListener('click', async () => {
+            const query = sqlInput.value.trim();
+            if (!query) return;
+
+            const name = prompt("Save query as:");
+            if (!name) return;
+
+            try {
+                const formData = new FormData();
+                formData.append('query_name', name);
+                formData.append('sql_filter', query);
+
+                const response = await fetch("{{ url_for('timeline_query') }}", {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (!response.ok) throw new Error("Save failed");
+
+                // Check if the option already exists
+                let existingOption = Array.from(select.options).find(opt => opt.value === query);
+                if (!existingOption) {
+                    const option = document.createElement('option');
+                    option.value = query;
+                    option.textContent = name;
+                    select.appendChild(option);
+                }
+
+                // Select the newly saved query
+                select.value = query;
+
+                // Trigger the 'change' event so input is updated
+                select.dispatchEvent(new Event('change'));
+
+                alert("Query saved successfully!");
+            } catch (err) {
+                console.error(err);
+                alert("Failed to save query");
+            }
+        });
+    }
+
 });
 </script>
 
