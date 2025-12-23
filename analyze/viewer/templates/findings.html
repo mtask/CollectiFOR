@@ -41,67 +41,69 @@
 
 <div class="row mb-3 justify-content-center align-items-end">
   <div class="col-md-10">
-    <form method="get" class="d-flex gap-2 flex-wrap align-items-end">
+    <form method="get">
 
-      <!-- Input + button group -->
-<div class="input-group">
-    <input
-      type="text"
-      name="q"
-      placeholder="Search message (prefix '-' to negate)"
-      value="{{ search_query|default('') }}"
-      class="form-control"
-    >
-    <button type="submit" class="btn btn-primary">
-      Filter
-    </button>
-    <a href="{{ url_for('findings') }}" class="btn btn-secondary">
-      Reset
-    </a>
-</div>
+      <!-- Input + button group (left-aligned) -->
+      <div class="input-group mb-2">
+        <input
+          type="text"
+          name="q"
+          placeholder="Search message (prefix '-' to negate)"
+          value="{{ search_query|default('') }}"
+          class="form-control"
+        >
+        <button type="submit" class="btn btn-primary">
+          Filter
+        </button>
+        <a href="{{ url_for('findings') }}" class="btn btn-secondary">
+          Reset
+        </a>
+      </div>
 
-      <!-- Type dropdown with checkboxes -->
-      <select
-        name="type"
-        class="selectpicker form-control"
-        multiple
-        data-actions-box="true"
-        data-live-search="true"
-        title="Select type(s)"
-      >
-        {% for t in all_types %}
-          <option value="{{ t }}" {% if t in type_filter %}selected{% endif %}>{{ t }}</option>
-        {% endfor %}
-      </select>
+      <!-- Centered dropdowns -->
+      <div class="d-flex justify-content-center gap-2 flex-wrap">
+        <!-- Type dropdown -->
+        <select
+          name="type"
+          class="selectpicker"
+          multiple
+          data-actions-box="true"
+          data-live-search="true"
+          title="Select type(s)"
+          style="width: 180px; display: inline-block;"
+        >
+          {% for t in all_types %}
+            <option value="{{ t }}" {% if t in type_filter %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
 
-      <!-- Rule dropdown with checkboxes -->
-      <select
-        name="rule"
-        class="selectpicker form-control"
-        multiple
-        data-actions-box="true"
-        data-live-search="true"
-        title="Select rule(s)"
-      >
-        {% for r in all_rules %}
-          <option value="{{ r }}" {% if r in rule_filter %}selected{% endif %}>{{ r }}</option>
-        {% endfor %}
-      </select>
+        <!-- Rule dropdown -->
+        <select
+          name="rule"
+          class="selectpicker"
+          multiple
+          data-actions-box="true"
+          data-live-search="true"
+          title="Select rule(s)"
+          style="width: 180px; display: inline-block;"
+        >
+          {% for r in all_rules %}
+            <option value="{{ r }}" {% if r in rule_filter %}selected{% endif %}>{{ r }}</option>
+          {% endfor %}
+        </select>
 
-<!-- Acked filter -->
-<select
-    name="ack"
-    class="selectpicker form-control"
-    data-actions-box="true"
-    title="Acked / Unacked"
->
-    <option value="1" {% if '1' in ack_filter %}selected{% endif %}>Acked</option>
-    <option value="0" {% if '0' in ack_filter %}selected{% endif %}>Unacked</option>
-</select>
-
-        <option value="1" {% if ack_filter == '1' %}selected{% endif %}>Acked</option>
-        <option value="0" {% if ack_filter == '0' %}selected{% endif %}>Unacked</option>
-      </select>
+        <!-- Acked / Unacked dropdown -->
+        <select
+          name="ack"
+          class="selectpicker"
+          data-actions-box="true"
+          title="Acked / Unacked"
+          style="width: 140px; display: inline-block;"
+        >
+          <option value="1" {% if '1' in ack_filter %}selected{% endif %}>Acked</option>
+          <option value="0" {% if '0' in ack_filter %}selected{% endif %}>Unacked</option>
+        </select>
+      </div>
 
     </form>
   </div>
