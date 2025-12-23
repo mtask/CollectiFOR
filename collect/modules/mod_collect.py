@@ -171,7 +171,7 @@ def file_permissions(outdir, config):
             for sfp in Path(fp).rglob("*"):
                 logging.info(f"Getting file permissions for path: {sfp}")
                 try:
-                    s = os.stat(sfp)
+                    s = os.lstat(sfp)
 
                     # Numeric permissions without "0o" prefix
                     numeric = f"{s.st_mode & 0o777:o}"
