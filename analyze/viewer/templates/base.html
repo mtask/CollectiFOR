@@ -284,23 +284,57 @@ input[type="text"]:focus {
 
       <div class="modal-body">
         <form id="addFindingForm">
+
+          <!-- Collection selector -->
           <div class="mb-3">
-            <label for="findingMessage" class="form-label">Message <span class="text-danger">*</span></label>
+            <label for="findingCollection" class="form-label">
+              Collection <span class="text-danger">*</span>
+            </label>
+            <select
+              class="form-select bg-dark text-light"
+              id="findingCollection"
+              required
+            >
+              <option value="" disabled selected>Select a collection…</option>
+              {% for c in all_collections %}
+                <option value="{{ c }}"
+                  {% if c == session.get("collection_name") %}selected{% endif %}>
+                  {{ c }}
+                </option>
+              {% endfor %}
+            </select>
+            <div class="invalid-feedback">
+              Collection is required.
+            </div>
+          </div>
+
+          <!-- Message (mandatory) -->
+          <div class="mb-3">
+            <label for="findingMessage" class="form-label">
+              Message <span class="text-danger">*</span>
+            </label>
             <input type="text" class="form-control bg-dark text-light" id="findingMessage" placeholder="Required" required>
             <div class="invalid-feedback">Message is required.</div>
           </div>
+
+          <!-- Meta (JSON) -->
           <div class="mb-3">
             <label for="findingMeta" class="form-label">Meta (JSON)</label>
             <textarea class="form-control bg-dark text-light" id="findingMeta" rows="2" placeholder='e.g. {"key":"value"}'></textarea>
           </div>
+
+          <!-- Artifact -->
           <div class="mb-3">
             <label for="findingArtifact" class="form-label">Artifact</label>
             <input type="text" class="form-control bg-dark text-light" id="findingArtifact" placeholder="Optional">
           </div>
+
+          <!-- Indicator -->
           <div class="mb-3">
             <label for="findingIndicator" class="form-label">Indicator</label>
             <input type="text" class="form-control bg-dark text-light" id="findingIndicator" placeholder="Optional">
           </div>
+
         </form>
       </div>
 
@@ -320,8 +354,15 @@ $(document).ready(function () {
     const message = $('#findingMessage').val().trim();
     const metaText = $('#findingMeta').val().trim();
     const artifact = $('#findingArtifact').val().trim();
+    const collection = $('#findingCollection').val().trim();
     const indicator = $('#findingIndicator').val().trim();
 
+    // Validate required field
+    if (!collection) {
+      $('#findingCollection').addClass('is-invalid');
+      return;
+    }
+    $('#findingCollection').removeClass('is-invalid');
     // Validate required field
     if (!message) {
       $('#findingMessage').addClass('is-invalid');
@@ -341,6 +382,7 @@ $(document).ready(function () {
     }
 
     const data = {
+      collection: collection,
       message: message,
       meta: meta,
       artifact: artifact || null,

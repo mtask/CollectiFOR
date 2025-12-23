@@ -21,6 +21,7 @@ Ensure you are using configuration file which database path(s) match the wanted 
 
 By default all collections and timelines are used when the viewer is launched. File Navigator can only work with one collection at the time and enforces to select a collection.
 There's a dropdown menu at the right side of the navigation bar were you can select a specific collection/timeline or all collections/timelines depending on the current page.
+The collection list automatically includes collection "extra" which you can select if you want to add manual findings that are not directly related to a specific collection.
 
 ![](imgs/collections.png)
 ![](imgs/timelines.png)
@@ -53,7 +54,7 @@ There's a question mark icon that shows a similar help-text to indicate that the
 <details>
 <summary>Collection search</summary>
   
-* String search against the ingested data. Supports a simple query language. See its instructions by pressing the question mark icon on the page.
+String search against the ingested data. Supports a simple query language. See its instructions by pressing the question mark icon on the page.
 
 ![](imgs/search.png)
 
@@ -62,18 +63,28 @@ There's a question mark icon that shows a similar help-text to indicate that the
 <details>
 <summary>Findings</summary>
   
-* Findings from analysis. Supports a simple query language. See its instructions by pressing the question mark icon on the page.
+Findings from analysis. Supports a simple query language. See its instructions by pressing the question mark icon on the page.
 
 ![](imgs/findings.png)
 
-![](imgs/findings.png)
+Findings can be "acked" or "unacked". Acking prompts for a "reason" which is added to related finding(s). You can mass ack/unack all the findings visible in the listing and give one reson for all.
+Given reason is shown in finding's note section in its own page. There you can also add more notes.
+
+![](imgs/findings2.png)
+
+Navigation bar has button "Add finding" which can be used to add a finding manually. It will always get finding type "manual".
+![](imgs/findings3.png)
+![](imgs/findings4.png)
+![](imgs/findings5.png)
+
+The collection list automatically includes collection "extra" which you can select if the finding does not directly match with a specific collection.
 
 </details>
 
 <details>
 <summary>Network</summary>
 
-* Network data search against ingested data from collection's PCAP file.
+Network data search against ingested data from collection's PCAP file.
 
 ![](imgs/network.png)
 
@@ -84,7 +95,7 @@ There's a question mark icon that shows a similar help-text to indicate that the
 
 <summary>Checksum search</summary>
   
-* Checksum data search. Can be searched by checksum or by string.
+ Checksum data search. Can be searched by checksum or by string.
 
 ![](imgs/checksum.png)
 
@@ -93,7 +104,7 @@ There's a question mark icon that shows a similar help-text to indicate that the
 <details>
 <summary>File Navigator</summary>
   
-* Simple file navigator based on collection's `files_and_dirs`. Enforces to select a specific collection for navigation.
+Simple file navigator based on collection's `files_and_dirs`. Enforces to select a specific collection for navigation.
 
 Viewing actual file content requires that extracted collection directory is found on the same path that it was during the database initialization. 
 
@@ -104,7 +115,7 @@ Viewing actual file content requires that extracted collection directory is foun
 <details>
 <summary>Commands</summary>
   
-* View and search for command outputs. Search allows to search by command (e.g. docker, ps, iptables, etc.). You can also search only for stdout or stderr content with prefix `(stdeout|stderr).<command>`.
+View and search for command outputs. Search allows to search by command (e.g. docker, ps, iptables, etc.). You can also search only for stdout or stderr content with prefix `(stdeout|stderr).<command>`.
 
 ![](imgs/commands.png)
 
@@ -113,7 +124,7 @@ Viewing actual file content requires that extracted collection directory is foun
 <details>
 <summary>Network Listening Processes</summary>
   
-* Details about network listening processes
+Details about network listening processes
 
 ![](imgs/listeners.png)
 
@@ -122,7 +133,7 @@ Viewing actual file content requires that extracted collection directory is foun
 <details>
 <summary>Timeline Explorer</summary>
   
-* Explore data from imported JSON line formatted timeline files. 
+Explore data from imported JSON line formatted timeline files. 
 
 Supports event filtering via direct SQL query syntax. For example: `<field> ILIKE '%string%'. UI has some helper queries. Timeline database is DuckDB so adjust your filters according to that.
 
@@ -137,7 +148,7 @@ Supports event filtering via direct SQL query syntax. For example: `<field> ILIK
 <details>
 <summary>Timeline Query</summary>
   
-* Full SQL query interface to timeline database. Allows saving queries and copying output to clipboard.
+Full SQL query interface to timeline database. Allows saving queries and copying output to clipboard.
 
 ![](imgs/timeline_query.png)
 

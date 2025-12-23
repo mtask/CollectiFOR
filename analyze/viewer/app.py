@@ -49,7 +49,7 @@ def apply_collection_filter(query, model):
 @app.context_processor
 def inject_collections():
     return {
-        "all_collections": COLLECTIONS,
+        "all_collections": COLLECTIONS + ['extra'],
         "all_timelines": TIMELINES
     }
 
@@ -407,7 +407,7 @@ def findings():
         meta = data.get("meta")
 
         finding = Finding(
-            collection_name=session.get("collection_name"),
+            collection_name=data.get("collection"),
             type="manual",
             message=message,
             meta=meta,
