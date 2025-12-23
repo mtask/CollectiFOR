@@ -15,7 +15,7 @@ Modify the provided `config.yaml.sample` if needed. The `analysis` section in th
 sudo python3 collectifor.py -c config.yaml.sample --init --collection /collections/host_20251217_141749.tar.gz 
 ```
 
-You can combine `--init` with other phases like seen [here](../../README.md), but this page focuses on the initialization phase.
+You can combine `--init` with other phases like seen [here](../README.md), but this page focuses on the initialization phase.
 Initialization creates an SQLite3 database to path defined in config -> `collection_database`.
 
 Below table shows which data is currently ingested to CollectiFOR database in initialization.

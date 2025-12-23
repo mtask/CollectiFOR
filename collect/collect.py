@@ -21,14 +21,11 @@ def load_config(path):
     return data
 
 def validate_config(args, config):
-    if not args.capture and not args.collect:
-        print("No --collect or --capture specified. Nothing to do.")
+    if not args.interfaces and config['modules']['capture']['enable_network']:
+        print("-if / --interfaces is required when network capturing is enabled in configuration")
         sys.exit(1)
-    if args.capture and not args.interfaces and config['modules']['capture']['enable_network']:
-        print("-if / --interfaces is required when using --capture and network capturing is enabled in configuration")
-        sys.exit(1)
-    if args.capture and (not args.disk or not args.disk_host) and config['modules']['capture']['enable_disk']:
-        print("-d / --disk and -dh / --disk-host are required when using --capture and disk capturing is enabled in configuration")
+    if (not args.disk or not args.disk_host) and config['modules']['capture']['enable_disk']:
+        print("-d / --disk and -dh / --disk-host are required when disk capture is enabled in configuration")
         sys.exit(1)
 
 def run_collect_modules(enabled_collect_modules, outdir, config, threads=[]):
@@ -106,20 +103,18 @@ def main(args):
     os.makedirs(outdir, exist_ok=True)
     threads = []
     try:
-        if args.capture:
-            config_mod_capture = config['modules']['capture']
-            enabled_capture_modules = {
-                k: v for k, v in config['modules']['capture'].items()
-                if k.startswith("enable_") and v
-            }
-            threads = threads + run_capture_modules(enabled_capture_modules, outdir, config_mod_capture, interfaces=args.interfaces, disk=args.disk, host=args.disk_host)
-        if args.collect:
-            enabled_collect_modules = {
-                k: v for k, v in config['modules']['collect'].items()
-                if k.startswith("enable_") and v
-            }
-            config_mod_collect = config['modules']['collect']
-            threads = threads + run_collect_modules(enabled_collect_modules, outdir, config_mod_collect)
+        config_mod_capture = config['modules']['capture']
+        enabled_capture_modules = {
+            k: v for k, v in config['modules']['capture'].items()
+            if k.startswith("enable_") and v
+        }
+        threads = threads + run_capture_modules(enabled_capture_modules, outdir, config_mod_capture, interfaces=args.interfaces, disk=args.disk, host=args.disk_host)
+        enabled_collect_modules = {
+            k: v for k, v in config['modules']['collect'].items()
+            if k.startswith("enable_") and v
+        }
+        config_mod_collect = config['modules']['collect']
+        threads = threads + run_collect_modules(enabled_collect_modules, outdir, config_mod_collect)
         for thread in threads:
             logging.info("[+] Waiting for a job to finish")
             thread.join()
@@ -140,18 +135,6 @@ def parse_args():
         "-c", "--config",
         required=True,
         help="Path to the YAML configuration file"
-    )
-
-    parser.add_argument(
-        "--collect",
-        action='store_true',
-        help="Enable collect module"
-    )
-
-    parser.add_argument(
-        "--capture",
-        action='store_true',
-        help="Enable capture module"
     )
 
     parser.add_argument(

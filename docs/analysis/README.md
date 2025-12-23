@@ -65,14 +65,14 @@ RULES_DIR
 Pattern module enables simple pattern rule checks against the collection's content. 
 Config file section `analysis.pattern` sets the path to patternss directory. Pattern files should have extension `.txt`.
 There are no existing patterns provided currently. Configured directory can contain sub-directories. Pattern files content can be anything that could be
-provided to grep command as pattern file (`grep -f patterns.txt`).
+provided to grep command as pattern file (`grep -F -f patterns.txt`). Patterns are treated as fixed strings (`grep -F`). See the next module for more complex query needs.
 
 </details>
 
 <details>
 <summary>#Files</summary>
 
-Files module runs analysis against the `files_and_dirs` content if included in the collection. Module has its own YAML based rule syntax to create rules against files content.
+Files module runs analysis against the lines of specified collection's files. Module has its own YAML based rule syntax to create rules against file content.
 Detection rules are written in regular expressions.
 Here's an example rule to detect SSH failure in logs.
 
@@ -86,12 +86,13 @@ events:
     message_template: "Failed SSH login for user {user} from {ip}"
     meta_fields: [user, ip]
     filenames:
-      - /var/log/secure
-      - /var/log/auth.log
-      - /var/log/syslog
+      - /files_and_dirs/var/log/secure
+      - /files_and_dirs/var/log/auth.log
+      - /files_and_dirs/var/log/syslog
 ```
 
 Module tries to match the regexp pattern against the lines in specified file(s) if the file path found in the collection. 
+Paths in `filenames` should start with `/` from the collection's root directory. For example: `/files_and_dirs/` some file or `/file_permissions.txt`.
 Module also handles log retention naming and supports wildcard patterns like this:
 
 ```yaml
@@ -104,22 +105,15 @@ events:
     message_template: "Sudoers file contains NOPASSWD entry for {value}"
     meta_fields: [value]
     filenames:
-      - /etc/sudoers
-      - /etc/sudoers.d/*
+      - /files_and_dirs/etc/sudoers
+      - /files_and_dirs/etc/sudoers.d/*
 ```
 
-More samples can be found here: `analyze/source/files/`.
+More samples can be found here: `analyze/source/files/`. Note that this module uses `re.VERBOSE` with its patterns, more information in [re library's docs](https://docs.python.org/3/library/re.html#re.VERBOSE).
 
 </details>
 
 <details>
-
-<summary>#File permissions (PoC)</summary>
-
-Does some simple analysis against the `file_permissions.txt` content if the collection has one.
-Rule logic is in code and can't be extended currently without code modification.
-
-</details>
 
 <details>
 

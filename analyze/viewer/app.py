@@ -20,6 +20,7 @@ from lib.db import (
     FileEntry,
     ListenerEntry,
     Collections,
+    Notes,
 )
 
 
@@ -48,7 +49,7 @@ def apply_collection_filter(query, model):
 @app.context_processor
 def inject_collections():
     return {
-        "all_collections": COLLECTIONS,
+        "all_collections": COLLECTIONS + ['extra'],
         "all_timelines": TIMELINES
     }
 
@@ -389,29 +390,69 @@ def network_search():
         flows=flows
     )
 
-@app.route("/findings")
+@app.route("/findings", methods=["GET", "POST"])
 def findings():
     db = get_session()
+
+    # Manually added finding
+    if request.method == "POST":
+        data = request.get_json() or {}
+
+        message = (data.get("message") or "").strip()
+        if not message:
+            db.close()
+            return jsonify({"error": "message required"}), 400
+
+        # Parse meta (already JSON from frontend)
+        meta = data.get("meta")
+
+        finding = Finding(
+            collection_name=data.get("collection"),
+            type="manual",
+            message=message,
+            meta=meta,
+            artifact=data.get("artifact"),
+            indicator=data.get("indicator"),
+        )
+
+        db.add(finding)
+        db.commit()
+        finding_id = finding.id
+        db.close()
+
+        return jsonify({"status": "ok", "id": finding_id})
 
     q = request.args.get("q", "").strip()
     type_filters = request.args.getlist("type")
     rule_filters = request.args.getlist("rule")
+    ack_filters = request.args.getlist("ack")  # list of '0' and/or '1'
 
     query = db.query(Finding)
     query = apply_collection_filter(query, Finding)
 
+    # Apply text search
     if q:
         query = _apply_text_query(query, Finding.message, q)
 
+    # Apply type filters
     if type_filters:
         query = query.filter(Finding.type.in_(type_filters))
 
+    # Apply rule filters
     if rule_filters:
         query = query.filter(Finding.rule.in_(rule_filters))
 
+    # Apply ack/unack filter
+    if ack_filters:
+        # Convert to int and filter
+        ack_values = [int(a) for a in ack_filters if a in ('0', '1')]
+        if ack_values:
+            query = query.filter(Finding.ack.in_(ack_values))
+    # If no ack filter provided, do nothing → include both 0 and 1
+
     findings = query.order_by(Finding.type, Finding.inserted_at).all()
 
-    # For dropdowns: fetch all distinct types and rules
+    # Fetch dropdown options
     all_types = [row[0] for row in db.query(Finding.type).distinct().order_by(Finding.type)]
     all_rules = [row[0] for row in db.query(Finding.rule).distinct().order_by(Finding.rule)]
 
@@ -423,17 +464,121 @@ def findings():
         search_query=q,
         type_filter=type_filters,
         rule_filter=rule_filters,
+        ack_filter=ack_filters,  # pass current ack filter to template
         all_types=all_types,
         all_rules=all_rules
     )
 
-@app.route("/findings/<int:finding_id>")
+@app.route("/findings/<int:finding_id>", methods=["GET", "POST"])
 def finding_detail(finding_id):
     db = get_session()
-    finding = db.query(Finding).get(finding_id)
-    db.close()
-    return render_template("finding_detail.html", finding=finding)
 
+    if request.method == "POST":
+        data = request.get_json() or {}
+
+        # CASE 1: Add comment (existing behavior)
+        if "comment" in data:
+            comment = data.get("comment", "").strip()
+            if not comment:
+                db.close()
+                return jsonify({"error": "comment required"}), 400
+
+            note = Notes(
+                finding_id=finding_id,
+                finding_comment=comment
+            )
+            db.add(note)
+            db.commit()
+            db.close()
+            return jsonify({"status": "ok"})
+
+    # GET
+    finding = db.query(Finding).get(finding_id)
+    if not finding:
+        db.close()
+        return "Finding not found", 404
+
+    comments = (
+        db.query(Notes)
+        .filter(Notes.finding_id == finding_id)
+        .order_by(Notes.inserted_at.asc())
+        .all()
+    )
+
+    db.close()
+    return render_template("finding_detail.html", finding=finding, comments=comments)
+
+@app.route("/findings/<int:finding_id>/ack", methods=["POST"])
+def update_ack(finding_id):
+    db = get_session()
+
+    try:
+        finding = db.query(Finding).get(finding_id)
+        if not finding:
+            return jsonify({"error": "Finding not found"}), 404
+
+        data = request.get_json() or {}
+
+        if "ack" not in data:
+            return jsonify({"error": "Missing ack value"}), 400
+
+        ack_comment = data.get("ack_comment")
+        if not ack_comment:
+            return jsonify({"error": "ack_comment required"}), 400
+
+        finding.ack = 1 if data["ack"] else 0
+
+        note = Notes(
+            finding_id=finding_id,
+            finding_comment=ack_comment
+        )
+        db.add(note)
+
+        db.commit()
+
+        return jsonify({
+            "status": "ok",
+            "ack": finding.ack
+        })
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
+@app.route("/findings/bulk_ack", methods=["POST"])
+def bulk_ack():
+    data = request.get_json()
+    if not data.get("ack_comment"):
+        return jsonify({"error": "ack_comment required"}), 400
+    ack_comment = data.get("ack_comment")
+    db = get_session()
+    ids = data.get("ids", [])
+    ack_value = 1 if data.get("ack") else 0
+
+    if not ids:
+        db.close()
+        return jsonify({"error": "No IDs provided"}), 400
+
+
+    comment_stmt = insert(Notes).values([
+        {
+            "finding_id": finding_id,
+            "finding_comment": ack_comment
+        }
+        for finding_id in ids
+    ]).on_conflict_do_nothing(
+         index_elements=["finding_id", "finding_comment"]
+    )
+    db.execute(stmt)
+    db.query(Finding).filter(Finding.id.in_(ids)).update(
+        {Finding.ack: ack_value}, synchronize_session=False
+    )
+    db.commit()
+    db.close()
+    return jsonify({"status": "ok", "ack": ack_value, "count": len(ids)})
 
 
 # ------------------------
@@ -567,7 +712,7 @@ def timeline_query():
     result_df = pd.DataFrame()
     if sql_query:
         try:
-            result_df = conn.execute(sql_query).df()
+            result_df = conn.execute(sql_query).df().head(5000)
         except Exception as e:
             result_df = pd.DataFrame([{"Error": str(e)}])
     else:

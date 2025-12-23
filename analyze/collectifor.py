@@ -56,10 +56,6 @@ def analysis(config, collection_path):
         import modules.mod_files as ml
         logging.info("[RUN] Files module")
         findings = findings + ml.analyze(config['files'], collection_path)
-    if config['enable_file_permissions']:
-        import modules.mod_file_permissions as mf
-        logging.info("[RUN] File permissions module")
-        findings = findings + mf.analyze(collection_path)
     if config['enable_pcap']:
         import modules.mod_pcap as mpcap
         logging.info("[RUN] PCAP module")
@@ -165,17 +161,12 @@ def main():
     # -----------------------------
     # Database
     # -----------------------------
-    if args.init and os.path.isfile(config['collection_database']) and args.collection:
-        ans = input(f"{config['collection_database']} already exists. Do you want to continue with initialization?[y/n] (default: n): ")
-        if ans.lower() != "y":
-            logging.info("[-] Exiting without changes")
-            sys.exit(0)
     try:
         collection_id = os.path.join(Path(collection_dir).parts[-2], Path(collection_dir).parts[-1])
     except UnboundLocalError:
         collection_dir = None
         collection_id = None
-    db = DB(config['collection_database'], collection_id, collection_dir)
+    db = DB(config['collection_database'], collection_id, collection_dir, init=args.init)
 
     # -----------------------------
     # Run parsers

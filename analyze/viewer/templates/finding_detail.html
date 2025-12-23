@@ -1,51 +1,158 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container-fluid px-4 text-light">
-    {% if finding.rule %}
-    <h2 class="mb-3">{{ finding.type }} – {{ finding.rule }}</h2>
-    {% elif finding.indicator %}
-    <h2 class="mb-3">{{ finding.type }} – {{ finding.indicator }}</h2>
-    {% else %}
-    <h2 class="mb-3">{{ finding.type }}</h2>
-    {% endif %}
+  <div class="d-flex flex-column flex-md-row align-items-center justify-content-center justify-content-md-between mb-3 w-100">
+    <h2>
+      {% if finding.rule %}
+        {{ finding.type }} – {{ finding.rule }} (#{{ finding.id }})
+      {% elif finding.indicator %}
+        {{ finding.type }} – {{ finding.indicator }} (#{{ finding.id }})
+      {% else %}
+        {{ finding.type }} (#{{ finding.id }})
+      {% endif %}
+    </h2>
 
-    <table class="table table-dark table-striped table-sm">
-        <tbody>
-            <tr>
-                <th>Collection</th>
-                <td>{{ finding.collection_name }}</td>
-            </tr>
-            <tr>
-                <th>Message</th>
-                <td>{{ finding.message }}</td>
-            </tr>
-            <tr>
-                <th>Artifact</th>
-                <td>{{ finding.artifact }}</td>
-            </tr>
-        </tbody>
-    </table>
+    <button
+      type="button"
+      class="btn btn-lg btn-primary"
+      data-bs-toggle="modal"
+      data-bs-target="#addNoteModal"
+    >
+      <i class="bi bi-plus-circle me-1"></i> Add note
+    </button>
+  </div>
 
-    {% if finding.meta %}
-    <h3 class="mt-4">Metadata</h3>
-    <table class="table table-dark table-striped table-sm">
-        <thead class="table-secondary">
-            <tr>
-                <th>Key</th>
-                <th>Value</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for key, value in finding.meta.items() %}
-            <tr>
-                <td>{{ key }}</td>
-                <td>{{ value }}</td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p class="text-light">No metadata available.</p>
-    {% endif %}
+  <table class="table table-dark table-striped table-sm">
+      <tbody>
+          <tr>
+              <th>Collection</th>
+              <td>{{ finding.collection_name }}</td>
+          </tr>
+          <tr>
+              <th>Message</th>
+              <td>{{ finding.message }}</td>
+          </tr>
+          <tr>
+              <th>Artifact</th>
+              <td>{{ finding.artifact }}</td>
+          </tr>
+          <tr>
+              <th>Indicator</th>
+              <td>{{ finding.indicator }}</td>
+          </tr>
+      </tbody>
+  </table>
+
+  {% if finding.meta %}
+  <h3 class="mt-4">Metadata</h3>
+  <table class="table table-dark table-striped table-sm">
+      <thead class="table-secondary">
+          <tr>
+              <th>Key</th>
+              <th>Value</th>
+          </tr>
+      </thead>
+      <tbody>
+      {% for key, value in finding.meta.items() %}
+          <tr>
+              <td>{{ key }}</td>
+              <td>{{ value }}</td>
+          </tr>
+      {% endfor %}
+      </tbody>
+  </table>
+  {% else %}
+  <p class="text-light">No metadata available.</p>
+  {% endif %}
+
+  {% if comments %}
+  <h3 class="mt-4">Notes</h3>
+  <table class="table table-dark table-striped table-sm">
+      <thead class="table-secondary">
+          <tr>
+              <th>Timestamp</th>
+              <th>Comment</th>
+          </tr>
+      </thead>
+      <tbody>
+      {% for c in comments %}
+          <tr>
+              <td>{{ c.inserted_at }}</td>
+              <td>{{ c.finding_comment }}</td>
+          </tr>
+      {% endfor %}
+      </tbody>
+  </table>
+  {% else %}
+  <p class="text-light">No notes available.</p>
+  {% endif %}
 </div>
+
+<div class="modal fade" id="addNoteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Note</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="noteComment" class="form-label">
+            Comment <span class="text-danger">*</span>
+          </label>
+          <textarea
+            class="form-control bg-dark text-light"
+            id="noteComment"
+            rows="4"
+            placeholder="Write your note here…"
+            required
+          ></textarea>
+          <div class="invalid-feedback">
+            Comment is required.
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary" id="saveNoteBtn">
+          Save note
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+$(document).ready(function () {
+
+  $('#saveNoteBtn').on('click', function () {
+    const commentEl = $('#noteComment');
+    const comment = commentEl.val().trim();
+
+    if (!comment) {
+      commentEl.addClass('is-invalid');
+      return;
+    }
+
+    commentEl.removeClass('is-invalid');
+
+    $.ajax({
+      url: window.location.pathname,  // posts to current finding page
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({ comment }),
+      success: function () {
+        location.reload();  // reload to show new note
+      },
+      error: function () {
+        alert('Failed to save note');
+      }
+    });
+  });
+
+});
+</script>
 {% endblock %}

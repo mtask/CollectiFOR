@@ -41,10 +41,10 @@
 
 <div class="row mb-3 justify-content-center align-items-end">
   <div class="col-md-10">
-    <form method="get" class="d-flex gap-2 flex-wrap align-items-end">
+    <form method="get">
 
-      <!-- Input + button group -->
-      <div class="input-group">
+      <!-- Input + button group (left-aligned) -->
+      <div class="input-group mb-2">
         <input
           type="text"
           name="q"
@@ -55,39 +55,60 @@
         <button type="submit" class="btn btn-primary">
           Filter
         </button>
+        <a href="{{ url_for('findings') }}" class="btn btn-secondary">
+          Reset
+        </a>
       </div>
 
-      <!-- Type dropdown with checkboxes -->
-      <select
-        name="type"
-        class="selectpicker form-control"
-        multiple
-        data-actions-box="true"
-        data-live-search="true"
-        title="Select type(s)"
-      >
-        {% for t in all_types %}
-          <option value="{{ t }}" {% if t in type_filter %}selected{% endif %}>{{ t }}</option>
-        {% endfor %}
-      </select>
+      <!-- Centered dropdowns -->
+      <div class="d-flex justify-content-center gap-2 flex-wrap">
+        <!-- Type dropdown -->
+        <select
+          name="type"
+          class="selectpicker"
+          multiple
+          data-actions-box="true"
+          data-live-search="true"
+          title="Select type(s)"
+          style="width: 180px; display: inline-block;"
+        >
+          {% for t in all_types %}
+            <option value="{{ t }}" {% if t in type_filter %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
 
-      <!-- Rule dropdown with checkboxes -->
-      <select
-        name="rule"
-        class="selectpicker form-control"
-        multiple
-        data-actions-box="true"
-        data-live-search="true"
-        title="Select rule(s)"
-      >
-        {% for r in all_rules %}
-          <option value="{{ r }}" {% if r in rule_filter %}selected{% endif %}>{{ r }}</option>
-        {% endfor %}
-      </select>
+        <!-- Rule dropdown -->
+        <select
+          name="rule"
+          class="selectpicker"
+          multiple
+          data-actions-box="true"
+          data-live-search="true"
+          title="Select rule(s)"
+          style="width: 180px; display: inline-block;"
+        >
+          {% for r in all_rules %}
+            <option value="{{ r }}" {% if r in rule_filter %}selected{% endif %}>{{ r }}</option>
+          {% endfor %}
+        </select>
+
+        <!-- Acked / Unacked dropdown -->
+        <select
+          name="ack"
+          class="selectpicker"
+          data-actions-box="true"
+          title="Acked / Unacked"
+          style="width: 140px; display: inline-block;"
+        >
+          <option value="1" {% if '1' in ack_filter %}selected{% endif %}>Acked</option>
+          <option value="0" {% if '0' in ack_filter %}selected{% endif %}>Unacked</option>
+        </select>
+      </div>
 
     </form>
   </div>
 </div>
+
 
 <script>
   $(document).ready(function() {
@@ -106,26 +127,43 @@
 
 
 {% if findings %}
+<div class="mb-2 d-flex justify-content-end gap-1">
+    <button type="button" class="btn btn-sm btn-success" id="select-all">Ack All</button>
+    <button type="button" class="btn btn-sm btn-warning" id="deselect-all">Unack All</button>
+</div>
+
 <table class="table table-dark table-striped table-hover table-sm">
     <thead class="table-secondary">
         <tr>
+            <th>#</th>
+            <th>Collection</th>
             <th>Type</th>
             <th>Rule</th>
             <th>Message</th>
             <th>Artifact</th>
-            <th>Inserted</th>
+            <th>Acked</th> <!-- New column -->
         </tr>
     </thead>
     <tbody>
     {% for f in findings %}
         <tr class="finding-{{ f.type }}">
+            <td><a href="/findings/{{ f.id }}" class="text-info text-decoration-none">{{ f.id }}</a></td>
+            <td>{{ f.collection_name }}</td>
             <td>{{ f.type }}</td>
             <td>{{ f.rule }}</td>
             <td>
                 <a href="/findings/{{ f.id }}" class="text-info text-decoration-none">{{ f.message }}</a>
             </td>
             <td class="mono">{{ f.artifact }}</td>
-            <td>{{ f.inserted_at }}</td>
+            <td>
+<input
+    type="checkbox"
+    class="ack-checkbox"
+    data-id="{{ f.id }}"
+    {% if f.ack %}checked{% endif %}
+/>
+
+            </td>
         </tr>
     {% endfor %}
     </tbody>
@@ -133,4 +171,139 @@
 {% else %}
 <p class="text-light">No findings available.</p>
 {% endif %}
+<!-- Ack / Unack Comment Modal -->
+<div class="modal fade" id="ackCommentModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header">
+        <h5 class="modal-title">Acknowledgement Comment</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="ackComment" class="form-label">
+            Please provide a reason <span class="text-danger">*</span>
+          </label>
+          <textarea
+            class="form-control bg-dark text-light"
+            id="ackComment"
+            rows="3"
+            placeholder="e.g. False positive, Accepted risk, Investigated..."
+            required
+          ></textarea>
+          <div class="invalid-feedback">
+            Comment is required.
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary" id="confirmAck">
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).ready(function() {
+
+    let pendingAction = null;
+    const modalEl = document.getElementById('ackCommentModal');
+    const ackModal = new bootstrap.Modal(modalEl);
+
+    function openAckModal(action) {
+        pendingAction = action;
+        $('#ackComment')
+            .val('')
+            .removeClass('is-invalid');
+        ackModal.show();
+    }
+
+    $('#confirmAck').on('click', function() {
+        const comment = $('#ackComment').val().trim();
+
+        if (!comment) {
+            $('#ackComment').addClass('is-invalid');
+            return;
+        }
+
+        ackModal.hide();
+        pendingAction(comment);
+        pendingAction = null;
+    });
+
+    /* ---------- SINGLE ACK / UNACK ---------- */
+    $('.ack-checkbox').on('change', function() {
+        const checkbox = $(this);
+        const findingId = checkbox.data('id');
+        const ackValue = checkbox.is(':checked') ? 1 : 0;
+
+        // revert immediately; apply only after success
+        checkbox.prop('checked', !ackValue);
+
+        openAckModal(function(comment) {
+            $.ajax({
+                url: `/findings/${findingId}/ack`,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    ack: ackValue,
+                    ack_comment: comment
+                }),
+                success: function() {
+                    checkbox.prop('checked', ackValue);
+                },
+                error: function() {
+                    alert('Error updating ack');
+                }
+            });
+        });
+    });
+
+    /* ---------- BULK ACK / UNACK ---------- */
+    function bulkAck(setChecked) {
+        const ids = $('.ack-checkbox').map(function() {
+            return $(this).data('id');
+        }).get();
+
+        openAckModal(function(comment) {
+            $('.ack-checkbox').prop('checked', setChecked);
+
+            $.ajax({
+                url: '/findings/bulk_ack',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    ids: ids,
+                    ack: setChecked ? 1 : 0,
+                    ack_comment: comment
+                }),
+                success: function(response) {
+                    console.log('Bulk ack updated', response);
+                },
+                error: function(err) {
+                    alert('Error updating bulk ack');
+                    console.error(err);
+                }
+            });
+        });
+    }
+
+    $('#select-all').on('click', function() {
+        bulkAck(true);
+    });
+
+    $('#deselect-all').on('click', function() {
+        bulkAck(false);
+    });
+
+});
+</script>
+
 {% endblock %}

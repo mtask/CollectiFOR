@@ -6,6 +6,6 @@ events:
     message_template: "Cron job entry detected: {entry}"
     meta_fields: [entry]
     filenames:
-      - /etc/crontab
-      - /etc/cron.d/*
-      - /var/spool/cron/*
+      - /files_and_dirs/etc/crontab
+      - /files_and_dirs/etc/cron.d/*
+      - /files_and_dirs/var/spool/cron/*

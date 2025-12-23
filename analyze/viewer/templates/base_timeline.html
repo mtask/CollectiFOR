@@ -154,6 +154,17 @@
     color: #d1d9e0;
     border: 1px solid #3a4a5a;
 }
+
+select.form-select,
+select.form-select:focus,
+input.form-control:focus {
+    background-color: #0d1a26;
+    color: #d1d9e0;
+    border-color: #388bfd;
+    box-shadow: 0 0 0 0.15rem rgba(56, 139, 253, 0.25);
+}
+
+
 #start-time:focus, #end-time:focus, #sql-filter:focus, #sort-order:focus {
     background-color: #0d1a26;
     color: #00ff00;
@@ -198,7 +209,7 @@ table.dataTable tbody tr:nth-child(odd) {
     background-color: #202c3a;
 }
 
-/* Buttons */
+/** Buttons
 .btn, .dropdown-item {
     color: #d1d9e0;
     background-color: #273746;
@@ -213,6 +224,7 @@ table.dataTable tbody tr:nth-child(odd) {
     color: #00ff00;
     border-color: #00ff00;
 }
+**/
 
 /* Modal adjustments */
 .modal-content {
@@ -382,6 +394,18 @@ div.dataTables_processing {
         {% endfor %}
       </select>
     </form>
+
+<!-- Add Finding button -->
+<button
+  type="button"
+  class="btn btn-warning btn-sm d-flex align-items-center ms-3"
+  data-bs-toggle="modal"
+  data-bs-target="#addFindingModal"
+>
+  <i class="bi bi-plus-circle me-1"></i> Add finding
+</button>
+
+
   </div>
 </nav>
 </header>
@@ -389,3 +413,120 @@ div.dataTables_processing {
 <div class="container-fluid px-4 mt-4">
     {% block content %}{% endblock %}
 </div>
+<div class="modal fade" id="addFindingModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Finding</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="addFindingForm">
+          <div class="mb-3">
+            <label for="findingMessage" class="form-label">Message <span class="text-danger">*</span></label>
+            <input type="text" class="form-control bg-dark text-light" id="findingMessage" placeholder="Required" required>
+            <div class="invalid-feedback">Message is required.</div>
+          </div>
+          <div class="mb-3">
+            <label for="findingMeta" class="form-label">Meta (JSON)</label>
+            <textarea class="form-control bg-dark text-light" id="findingMeta" rows="2" placeholder='e.g. {"key":"value"}'></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="findingArtifact" class="form-label">Artifact</label>
+            <input type="text" class="form-control bg-dark text-light" id="findingArtifact" placeholder="Optional">
+          </div>
+          <div class="mb-3">
+            <label for="findingIndicator" class="form-label">Indicator</label>
+            <input type="text" class="form-control bg-dark text-light" id="findingIndicator" placeholder="Optional">
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" id="saveFindingBtn">Add Finding</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+$(document).ready(function () {
+
+  $('#saveFindingBtn').on('click', function () {
+
+    const message = $('#findingMessage').val().trim();
+    const metaText = $('#findingMeta').val().trim();
+    const artifact = $('#findingArtifact').val().trim();
+    const indicator = $('#findingIndicator').val().trim();
+
+    // Validate required field
+    if (!message) {
+      $('#findingMessage').addClass('is-invalid');
+      return;
+    }
+    $('#findingMessage').removeClass('is-invalid');
+
+    // Parse meta JSON if provided
+    let meta = null;
+    if (metaText) {
+      try {
+        meta = JSON.parse(metaText);
+      } catch (e) {
+        alert('Meta field must be valid JSON');
+        return;
+      }
+    }
+
+    const data = {
+      message: message,
+      meta: meta,
+      artifact: artifact || null,
+      indicator: indicator || null
+    };
+
+    $.ajax({
+      url: "/findings",
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify(data),
+
+      success: function (resp) {
+        const findingId = resp.id;
+        const url = `${window.location.origin}/findings/${findingId}`;
+
+        const alertHtml = `
+          <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+            <strong>Finding created.</strong>
+            <a href="${url}" class="alert-link ms-2">
+              View finding #${findingId}
+            </a>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        `;
+
+        // Show success alert near top of page content
+        $('.container-fluid.px-4.mt-4').prepend(alertHtml);
+
+        // Close modal
+        const modalEl = document.getElementById('addFindingModal');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        modal.hide();
+
+        // Reset form
+        $('#addFindingForm')[0].reset();
+      },
+
+      error: function (xhr) {
+        const msg = xhr.responseJSON?.error || 'Unknown error';
+        alert('Failed to add finding: ' + msg);
+      }
+    });
+
+  });
+
+});
+</script>
+</body>
+</html>
+

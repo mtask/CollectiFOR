@@ -1,3 +1,5 @@
+import logging
+import sys
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -125,11 +127,18 @@ class Finding(Base):
     namespace = Column(String)
     artifact = Column(String)
     indicator = Column(String)
+    ack = Column(Integer, default=0)
+    inserted_at = Column(DateTime, default=datetime.utcnow)
 
+class Notes(Base):
+    __tablename__ = "notes"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    finding_id = Column(Integer)
+    finding_comment = Column(String)
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
 class DB:
-    def __init__(self, db_file, collection_name, collection_abs_path):
+    def __init__(self, db_file, collection_name, collection_abs_path, init=False):
         self.engine = create_engine(f"sqlite:///{db_file}", echo=False, future=True)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
@@ -141,6 +150,11 @@ class DB:
                 session.add(Collections(collection_name=self.collection_name, collection_abs_path=collection_abs_path))
                 session.commit()
                 session.close()
+            elif exists and init:
+                ans = input(f'[!] Collection "{self.collection_name}" already exists in database {db_file}. Do you want to continue with initialization?[y/n] (default: n): ')
+                if ans.lower() != "y":
+                    logging.info("[-] Exiting without further changes.")
+                    sys.exit(0)
 
     #############
     # init data #
