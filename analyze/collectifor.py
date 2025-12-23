@@ -56,10 +56,6 @@ def analysis(config, collection_path):
         import modules.mod_files as ml
         logging.info("[RUN] Files module")
         findings = findings + ml.analyze(config['files'], collection_path)
-    if config['enable_file_permissions']:
-        import modules.mod_file_permissions as mf
-        logging.info("[RUN] File permissions module")
-        findings = findings + mf.analyze(collection_path)
     if config['enable_pcap']:
         import modules.mod_pcap as mpcap
         logging.info("[RUN] PCAP module")

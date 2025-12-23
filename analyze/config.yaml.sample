@@ -4,7 +4,6 @@ analysis:
   enable_yara: true
   enable_pattern: true
   enable_files: true
-  enable_file_permissions: true
   enable_pcap: true
   yara: './source/yara'
   pattern: './source/patterns/' 

@@ -7,9 +7,9 @@ events:
     message_template: "Failed SSH login for user {user} from {ip}"
     meta_fields: [user, ip]
     filenames:
-      - /var/log/secure
-      - /var/log/auth.log
-      - /var/log/syslog
+      - /files_and_dirs/var/log/secure
+      - /files_and_dirs/var/log/auth.log
+      - /files_and_dirs/var/log/syslog
 
   - name: ssh_success
     indicator: SSH login success
@@ -19,9 +19,9 @@ events:
     message_template: "Successful SSH login for user {user} from {ip}"
     meta_fields: [user, ip]
     filenames:
-      - /var/log/secure
-      - /var/log/auth.log
-      - /var/log/syslog
+      - /files_and_dirs/var/log/secure
+      - /files_and_dirs/var/log/auth.log
+      - /files_and_dirs/var/log/syslog
 
   - name: sudo_failure
     indicator: Sudo authentication failure
@@ -37,8 +37,8 @@ events:
     message_template: "Sudo authentication failed for user {user} on tty {tty}"
     meta_fields: [user, logname, tty, uid, euid, rhost]
     filenames:
-      - /var/log/secure
-      - /var/log/auth.log
+      - /files_and_dirs/var/log/secure
+      - /files_and_dirs/var/log/auth.log
 
   - name: sudo_success
     indicator: Sudo command success
@@ -49,8 +49,8 @@ events:
     message_template: "Sudo command session opened for user {user} with uid {uid}"
     meta_fields: [user, uid]
     filenames:
-      - /var/log/secure
-      - /var/log/auth.log
+      - /files_and_dirs/var/log/secure
+      - /files_and_dirs/var/log/auth.log
 
   - name: desktop_login_failure
     indicator: Desktop authentication failure
@@ -59,8 +59,8 @@ events:
     message_template: "Failed desktop login for user {user}"
     meta_fields: [user]
     filenames:
-      - /var/log/auth.log
-      - /var/log/secure
+      - /files_and_dirs/var/log/auth.log
+      - /files_and_dirs/var/log/secure
 
   - name: failed_su
     indicator: SU authentication failure
@@ -69,5 +69,5 @@ events:
     message_template: "Failed SU attempt for user {user}"
     meta_fields: [user]
     filenames:
-      - /var/log/secure
-      - /var/log/auth.log
+      - /files_and_dirs/var/log/secure
+      - /files_and_dirs/var/log/auth.log

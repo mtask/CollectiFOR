@@ -84,7 +84,7 @@ def _find_files(file_dir, prefixes):
 
 def analyze(rules_dir, rootdir):
     results = []
-    file_dir = Path(rootdir) / "files_and_dirs"
+    file_dir = Path(rootdir)
 
     rules = _load_rules(rules_dir)
 
@@ -112,7 +112,7 @@ def analyze(rules_dir, rootdir):
                             continue
                         finding = new_finding()
                         finding["type"] = "files"
-                        finding["artifact"] = current_file['path'].split('files_and_dirs')[1]
+                        finding["artifact"] = current_file['path'].split(str(rootdir))[1]
                         finding["indicator"] = rule["indicator"]
                         finding['rule'] = rule['name']
 
