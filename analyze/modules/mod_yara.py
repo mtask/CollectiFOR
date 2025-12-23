@@ -71,7 +71,6 @@ def _compile_rule_set(rule_files):
     """
     filepaths_map = {}
     externals_needed = set()
-
     for i, rf in enumerate(rule_files):
         filepaths_map[f"rule_{i}"] = rf
 
@@ -89,8 +88,7 @@ def _compile_rule_set(rule_files):
         filepaths=filepaths_map,
         externals=externals_dict
     )
-
-    logging.info("[+] Rule compiling ready")
+    logging.info(f"[+] Rule compiling ready, {len(list(rules))} loaded")
     return rules, externals_needed
 
 
@@ -175,5 +173,6 @@ def search(rules_dir, target_path):
     rules, externals_needed = _compile_rule_set(rule_files)
 
     # Run scanning
-    return _run_yara(rules, file_list, externals_needed)
-
+    findings = _run_yara(rules, file_list, externals_needed)
+    logging.info(f"[+] {len(findings)} findings from YARA check")
+    return findings

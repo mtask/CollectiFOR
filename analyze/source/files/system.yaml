@@ -32,7 +32,7 @@ events:
   - name: package_install
     indicator: Package installed
     pattern: >
-      install\s+(?P<package>\S+)
+      install(?:\s+-\S+)*\s+(?P<package>[^\s-][^\s]*)
     message_template: "Package installed: {package}"
     meta_fields: [package]
     filenames:
@@ -43,7 +43,7 @@ events:
   - name: package_remove
     indicator: Package removed
     pattern: >
-      remove\s+(?P<package>\S+)
+      remove(?:\s+-\S+)*\s+(?P<package>[^\s-][^\s]*)
     message_template: "Package removed: {package}"
     meta_fields: [package]
     filenames:

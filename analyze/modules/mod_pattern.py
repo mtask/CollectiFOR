@@ -9,12 +9,7 @@ from lib.finding import new_finding
 from pathlib import Path
 
 def search(patterns_dir, target, recursive=True, max_threads=4):
-    pattern_files = [
-        f
-        for f in glob.glob(os.path.join(patterns_dir, "**/*.txt"), recursive=True)
-        if os.path.isfile(f)
-    ]
-
+    pattern_files = [str(r) for r in Path(patterns_dir).rglob("*.txt")]
     def worker(pattern_file):
         results = match(pattern_file, target, recursive=recursive)
         return results
@@ -27,6 +22,8 @@ def search(patterns_dir, target, recursive=True, max_threads=4):
         for future in as_completed(futures):
             results = future.result()
             merged = merged + results
+
+    print(f"[+] {len(merged)} findings from pattern checks")
     return merged
 
 
@@ -37,7 +34,6 @@ def match(pattern_source, target, recursive=True):
     Returns:
         list: [findings...]
     """
-
     # Ensure patterns file exists
     if not os.path.isfile(pattern_source):
         raise FileNotFoundError(f"Pattern file '{pattern_source}' not found")
@@ -99,6 +95,7 @@ def match(pattern_source, target, recursive=True):
         finding['indicator'] = str(match)
         finding['source_file'] = str(pattern_source)
         finding['artifact'] = str(filepath)
+        finding['rule'] = "match_pattern"
         findings.append(finding)
     return findings
 
