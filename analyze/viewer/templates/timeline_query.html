@@ -30,30 +30,50 @@
   </div>
 </div>
 
-<!-- Query Form -->
 <form method="get" action="{{ url_for('timeline_query') }}" id="query-form">
-    <div class="row mb-3 justify-content-center align-items-end">
+    <div class="row mb-3 justify-content-center align-items-start">
         <div class="col-md-12">
-            <label for="sql-filter">DuckDB SQL Query</label>
-            <div class="input-group">
-                <input
-                    type="text"
+            <label for="sql-filter" class="form-label">DuckDB SQL Query</label>
+
+            <!-- Flex container for textarea + buttons -->
+            <div class="d-flex align-items-start gap-2">
+                <!-- Auto-growing textarea -->
+                <textarea
                     id="sql-filter"
                     name="sql_filter"
                     class="form-control"
+                    rows="1"
+                    style="resize: none; overflow: hidden;"
+                    spellcheck="false"
+                    autocorrect="off"
+                    autocapitalize="off"
                     placeholder="Enter full SQL query, e.g. SELECT * FROM timeline_events LIMIT 10"
-                    value="{{ sql_query|default('') }}"
-                >
-                <button type="submit" class="btn btn-primary">
-                    Run
-                </button>
-                <button type="button" class="btn btn-secondary" id="save-query-btn">
-                    Save
-                </button>
+                >{{ sql_query|default('') }}</textarea>
+
+                <!-- Buttons fixed height, won't grow with textarea -->
+                <div class="btn-group flex-shrink-0">
+                    <button type="submit" class="btn btn-primary">Run</button>
+                    <button type="button" class="btn btn-secondary" id="save-query-btn">Save</button>
+                </div>
             </div>
         </div>
     </div>
 </form>
+
+<!-- Auto-grow JS -->
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const ta = document.getElementById('sql-filter');
+
+    const resize = () => {
+        ta.style.height = 'auto';
+        ta.style.height = ta.scrollHeight + 'px';
+    };
+
+    ta.addEventListener('input', resize);
+    resize(); // Resize on page load for existing content
+});
+</script>
 
 <div id="loading-overlay" 
      style="
@@ -87,16 +107,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
 {% if not result_df.empty %}
 <div class="row">
-    <div class="col-12 position-relative">
-        <!-- Copy Button -->
-        <button
-            id="copy-result-btn"
-            class="btn btn-sm btn-outline-light position-absolute"
-            style="top:0.5rem; right:0.5rem;"
-        >
-            <i class="bi bi-clipboard"></i>
-        </button>
+    <div class="col-12">
 
+        <!-- Buttons above the pre -->
+        <div class="d-flex justify-content-end gap-2 mb-1">
+            <button
+                id="copy-result-btn"
+                class="btn btn-sm btn-outline-light"
+            >
+                <i class="bi bi-clipboard"></i> Copy
+            </button>
+
+            <button
+                id="export-result-btn"
+                class="btn btn-sm btn-outline-light"
+            >
+                <i class="bi bi-download"></i> Export
+            </button>
+        </div>
+
+        <!-- Result pre block -->
         <pre
             id="result-pre"
             class="p-3"
@@ -136,6 +166,21 @@ document.getElementById('copy-result-btn').addEventListener('click', () => {
         ).show();
     });
 });
+
+/* Export CSV including headers */
+document.getElementById('export-result-btn').addEventListener('click', () => {
+    const csvText = `{{ result_df.to_csv(index=False, header=True) | replace('\n','\\n') | replace('\r','') }}`;
+    const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'timeline_result.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+});
 </script>
 {% endif %}
 
@@ -148,14 +193,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const sqlInput = document.getElementById('sql-filter');
     const saveBtn = document.getElementById('save-query-btn');
 
-    // 1️⃣ Populate input when a saved query is selected
     if (select && sqlInput) {
         select.addEventListener('change', function () {
             sqlInput.value = this.value || '';
         });
     }
 
-    // 2️⃣ Handle saving a new query
     if (saveBtn && select && sqlInput) {
         saveBtn.addEventListener('click', async () => {
             const query = sqlInput.value.trim();

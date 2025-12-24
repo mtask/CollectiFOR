@@ -2,7 +2,7 @@ events:
   - name: world_writable_file
     indicator: File is world-writable
     pattern: >
-      ^(?P<path>\S+)\s+\d+\s+.*rwx.*w$
+      ^(?P<path>\S+)\s\d\d[6-7]\s+[^l]
     message_template: "World-writable file detected: {path}"
     meta_fields: [path]
     filenames:
@@ -11,7 +11,7 @@ events:
   - name: suid_file
     indicator: File has SUID bit set
     pattern: >
-      ^(?P<path>\S+)\s+\d+\s+-rws.*$
+      ^(?P<path>/etc/(shadow|gshadow))\s+\d\d[1-7]\s+
     message_template: "SUID file detected: {path}"
     meta_fields: [path]
     filenames:
@@ -20,7 +20,7 @@ events:
   - name: world_readable_sensitive_file
     indicator: Sensitive file is world-readable
     pattern: >
-      ^(?P<path>/etc/(shadow|gshadow))\s+\d+\s+-rw.*r..$
+      ^(?P<path>/etc/(shadow|gshadow))s+\d\d[1-7]\s+
     message_template: "Sensitive file is world-readable: {path}"
     meta_fields: [path]
     filenames:
@@ -29,7 +29,7 @@ events:
   - name: sticky_bit_directory
     indicator: Directory has sticky bit set
     pattern: >
-      ^(?P<path>\S+)\s+\d+\s+drwx..t..$
+      (?P<path>\S+)\s+\d+\s+drwx.+(w|r)?t\s.+:.+
     message_template: "Directory with sticky bit detected: {path}"
     meta_fields: [path]
     filenames:
