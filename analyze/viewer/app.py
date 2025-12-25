@@ -60,7 +60,12 @@ def inject_collections():
 
 @app.route("/")
 def index():
-    return render_template("index.html")
+    db = get_session()
+    try:
+        collections = db.query(Collections).all()
+    finally:
+        db.close()
+    return render_template("index.html", collections=collections)
 
 @app.route("/change_collection", methods=["POST"])
 def change_collection():
