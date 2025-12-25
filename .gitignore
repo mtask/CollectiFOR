@@ -9,7 +9,7 @@ analyze/report/report.html
 collect/memory/lime*
 dist
 build
-collect.spec
+*.spec
 ansible_collect/fetched_collections/*.tar.gz
 ansible_collect/fetched_collections/*2*
 analyze/report/plaso/
