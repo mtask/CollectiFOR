@@ -223,7 +223,14 @@ $(document).ready(function() {
             {
                 data: 'id',
                 orderable: false,
-                render: id => `<button class="btn btn-sm btn-primary show-event" data-id="${id}">Show Event</button>`
+                render: id => 
+`
+<div class="d-flex gap-1">
+  <button class="btn btn-sm btn-primary show-event" data-id="${id}">Show Event</button>
+  <button class="btn btn-sm btn-warning copy-finding" data-id="${id}">Make Finding</button>
+</div>
+`
+
             }
         ],
         columnDefs: [
@@ -281,6 +288,34 @@ $(document).ready(function() {
        // Focus the input:
        input.focus();
     });
+
+    $('#timeline-table').on('click', '.copy-finding', function() {
+    const id = $(this).data('id');
+
+    // Fetch the event details from the same endpoint
+    fetch(`/api/timeline_event/${id}`)
+        .then(r => r.json())
+        .then(data => {
+
+            // Autofill modal fields
+            $('#findingMessage').val(data.message || '');
+            $('#findingArtifact').val(data.filename || '');
+            $('#findingIndicator').val(data.sha256_hash || '');
+            $('#findingMeta').val(JSON.stringify(data || {}, null, 2));
+
+            // Optionally pre-select collection/timeline
+            // Example: select session defaults
+            $('#findingCollection').val('{{ session.get("collection_name") }}');
+            $('#findingTimeline').val('{{ session.get("timeline_name") }}');
+
+            // Show modal
+            const modalEl = document.getElementById('addFindingModal');
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        });
+});
+
+
 
 });
 </script>
