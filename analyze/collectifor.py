@@ -14,6 +14,7 @@ from lib.parsers import (
     PcapParser,
     FilesAndDirsParser,
     ListenersParser,
+    BasicInfoParser,
 )
 from lib.db_tl_duckdb import DB as DDB
 from lib.timeline import PlasoTimelineParser
@@ -30,6 +31,7 @@ def load_config(path):
 # Parser registry
 # -----------------------------
 PARSERS = [
+    BasicInfoParser,
     CommandsParser,
     ChecksumParser,
     PermissionsParser,
