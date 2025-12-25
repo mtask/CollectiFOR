@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, current_app, jsonify, session, redirect, abort, url_for
 from flask import session as flask_session
-from sqlalchemy import create_engine, or_, not_
+from sqlalchemy import create_engine, or_, not_, insert
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import pandas as pd
@@ -568,16 +568,13 @@ def bulk_ack():
         return jsonify({"error": "No IDs provided"}), 400
 
 
-    comment_stmt = insert(Notes).values([
-        {
-            "finding_id": finding_id,
-            "finding_comment": ack_comment
-        }
+    db.add_all([
+        Notes(
+            finding_id=finding_id,
+            finding_comment=ack_comment
+        )
         for finding_id in ids
-    ]).on_conflict_do_nothing(
-         index_elements=["finding_id", "finding_comment"]
-    )
-    db.execute(stmt)
+    ])
     db.query(Finding).filter(Finding.id.in_(ids)).update(
         {Finding.ack: ack_value}, synchronize_session=False
     )
