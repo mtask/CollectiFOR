@@ -150,6 +150,9 @@ def main():
                 sys.exit(1)
         else:
             collection_dir = collection_path
+            if not os.path.isfile(os.path.join(collection_dir, "info.json")):
+                logging.error(f"Path does not look like a collection directory (info.json not found): {collection_dir}")
+                sys.exit(1)
 
         # -----------------------------
         # Viewer
