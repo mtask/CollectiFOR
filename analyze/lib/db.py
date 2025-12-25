@@ -10,6 +10,10 @@ class Collections(Base):
     __tablename__ = "collections"
     collection_name = Column(String, primary_key=True)
     collection_abs_path = Column(String, primary_key=True)
+    collection_date = Column(DateTime)
+    collection_interfaces = Column(JSON)
+    collection_os = Column(JSON)
+    collection_hostname = Column(String)
 
 class CommandOutput(Base):
     __tablename__ = "command_output"
@@ -117,13 +121,14 @@ class Finding(Base):
     __tablename__ = "findings"
 
     id = Column(Integer, primary_key=True)
-    collection_name = Column(String, nullable=False)
+    collection_name = Column(String, nullable=True)
+    timeline_name = Column(String, nullable=True)
     type = Column(String, nullable=False)
     message = Column(String, nullable=False)
     rule = Column(String)
     source_file = Column(String)
     tags = Column(String)
-    meta = Column(JSON)  # stored as JSON
+    meta = Column(JSON)
     namespace = Column(String)
     artifact = Column(String)
     indicator = Column(String)
@@ -142,15 +147,12 @@ class DB:
         self.engine = create_engine(f"sqlite:///{db_file}", echo=False, future=True)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
+        self.collection_abs_path = collection_abs_path
         self.collection_name = collection_name
         if self.collection_name:
             session = self.Session()
-            exists = session.query(Collections).filter_by(collection_name=self.collection_name).first()
-            if not exists:
-                session.add(Collections(collection_name=self.collection_name, collection_abs_path=collection_abs_path))
-                session.commit()
-                session.close()
-            elif exists and init:
+            self.collection_exists = session.query(Collections).filter_by(collection_name=self.collection_name).first()
+            if self.collection_exists and init:
                 ans = input(f'[!] Collection "{self.collection_name}" already exists in database {db_file}. Do you want to continue with initialization?[y/n] (default: n): ')
                 if ans.lower() != "y":
                     logging.info("[-] Exiting without further changes.")
@@ -159,6 +161,20 @@ class DB:
     #############
     # init data #
     #############
+
+    def add_collection_info(self, collection_info):
+        if not self.collection_exists:
+            session = self.Session()
+            session.add(Collections(
+                collection_name=self.collection_name,
+                collection_abs_path=self.collection_abs_path,
+                collection_date=collection_info['date'],
+                collection_interfaces=collection_info['interfaces'],
+                collection_os=collection_info['os'],
+                collection_hostname=collection_info['hostname']
+            ))
+            session.commit()
+            session.close()
 
     def add_command_outputs(self, commands_dict):
         session = self.Session()

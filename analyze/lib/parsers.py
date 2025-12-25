@@ -1,11 +1,94 @@
 import os
+import re
 import json
 import logging
-from datetime import datetime
+import shlex
+from datetime import datetime, timezone
 from scapy.all import (
     rdpcap, IP, IPv6, TCP, UDP, ARP,
     Ether, ICMP, DNS, DNSQR
 )
+
+class BasicInfoParser:
+
+    def __init__(self, db):
+        self.db = db
+
+    def parse_interfaces(self, ip_a):
+        interfaces = {}
+        current_iface = None
+
+        iface_re = re.compile(r"^\d+:\s+([^:]+):")
+        mac_re = re.compile(r"link/\S+\s+([0-9a-f:]{17})")
+        inet_re = re.compile(r"\s+inet6?\s+([\da-fA-F:.]+/\d+)")
+
+        for line in ip_a.splitlines():
+            iface_match = iface_re.match(line)
+            if iface_match:
+                current_iface = iface_match.group(1)
+                interfaces[current_iface] = {
+                    "mac": None,
+                    "ip_addresses": []
+                }
+                continue
+
+            if not current_iface:
+                continue
+
+            mac_match = mac_re.search(line)
+            if mac_match:
+                interfaces[current_iface]["mac"] = mac_match.group(1)
+                continue
+
+            inet_match = inet_re.search(line)
+            if inet_match:
+                interfaces[current_iface]["ip_addresses"].append(
+                    inet_match.group(1)
+                )
+
+        return interfaces
+
+    def parse_os(self, os_release, uname):
+        os = {}
+        os['uname'] = uname
+
+        for line in os_release.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            if "=" not in line:
+                continue
+
+            key, value = line.split("=", 1)
+
+            try:
+                value = shlex.split(value)[0]
+            except ValueError:
+                value = value.strip('"')
+
+            os[key] = value.replace('\n', '')
+        return os
+
+    def parse_dir(self, collection_dir):
+        binfo = os.path.join(collection_dir, 'info.json')
+
+        if not os.path.isfile(binfo):
+            logging.error('[-] "info.json" not found')
+            return
+
+        try:
+            with open(binfo, 'r') as f:
+                jbinfo = json.load(f)
+        except Exception as e:
+            logging.erro(f"[-] Failed to load info.json: {repr(e)}")
+        entry = {
+                    "hostname": jbinfo['hostname'],
+                    "date": datetime.fromtimestamp(jbinfo["date"], tz=timezone.utc),
+                    "interfaces": self.parse_interfaces(jbinfo['ips']),
+                    "os": self.parse_os(jbinfo['os_release'], jbinfo['uname'])
+                }
+        self.db.add_collection_info(entry)
 
 class CommandsParser:
     def __init__(self, db):
@@ -22,7 +105,7 @@ class CommandsParser:
         """
         cmd_dir = os.path.join(collection_dir, "commands")
         if not os.path.isdir(cmd_dir):
-            logging.warning('[-] "checksums" directory not found')
+            logging.warning('[-] "commands" directory not found')
             return
         result = {}
         for fname in os.listdir(cmd_dir):

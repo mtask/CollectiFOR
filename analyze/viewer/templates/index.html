@@ -1,10 +1,121 @@
 {% extends "base.html" %}
+{% block style %}
+/* =========================================================
+   Collections accordion width behavior
+   ========================================================= */
+
+/* Base state — closed */
+.collections-accordion {
+  max-width: 50%;
+  margin-left: auto;
+  margin-right: auto;
+  transition: max-width 0.35s ease;
+}
+
+/* ---------- Modern browsers (Chrome, Edge, Safari) ---------- */
+@supports selector(:has(*)) {
+  /* Expanded */
+  .collections-accordion:has(.accordion-button:not(.collapsed)) {
+    max-width: 100%;
+  }
+
+  /* Closed (explicit for clarity) */
+  .collections-accordion:has(.accordion-button.collapsed) {
+    max-width: 50%;
+  }
+}
+
+/* ---------- Fallback (Firefox & older browsers) ---------- */
+@supports not selector(:has(*)) {
+  .collections-accordion .accordion-button:not(.collapsed) {
+    width: 100%;
+  }
+
+  .collections-accordion {
+    max-width: 50%;
+  }
+}
+
+/* =========================================================
+   Optional polish (safe to keep or remove)
+   ========================================================= */
+
+/* Center the accordion header text like your links */
+.collections-accordion .accordion-button {
+  justify-content: center;
+  font-weight: 600;
+}
+
+/* Prevent visual jump when width animates */
+.collections-accordion .accordion-item {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Keep table readable when expanded */
+.collections-accordion .accordion-body {
+  overflow-x: auto;
+}
+{% endblock %}
 {% block content %}
 <div class="text-center my-5">
     <!-- Logo -->
     <img src="{{ url_for('static', filename='img/collectifor.png') }}" 
          alt="CollectiFOR Logo" 
          class="img-fluid mb-4" style="height: 400px;">
+
+    <!-- Collections -->
+{% if collections %}
+<div class="accordion mb-3 collections-accordion" id="collectionsAccordion">
+  <div class="accordion-item bg-dark border-secondary">
+    <h2 class="accordion-header" id="headingCollections">
+      <button class="accordion-button collapsed bg-dark text-light"
+              type="button"
+              data-bs-toggle="collapse"
+              data-bs-target="#collapseCollections">
+        📁 Collections
+      </button>
+    </h2>
+
+    <div id="collapseCollections"
+         class="accordion-collapse collapse"
+         data-bs-parent="#collectionsAccordion">
+      <div class="accordion-body p-2">
+        <table class="table table-dark table-striped table-hover table-sm mb-0">
+          <thead class="table-secondary text-dark">
+            <tr>
+              <th>Collection</th>
+              <th>Date</th>
+              <th>Hostname</th>
+              <th>OS</th>
+              <th>Interfaces</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for c in collections %}
+            <tr>
+              <td>{{ c.collection_name }}</td>
+              <td>{{ c.collection_date }}</td>
+              <td>{{ c.collection_hostname }}</td>
+              <td>
+                {% for key, value in c.collection_os.items() %}
+                  <pre><strong>{{ key|upper }}:</strong> {{ value }}</pre>
+                {% endfor %}
+              </td>
+              <td>
+                {% for key, iface in c.collection_interfaces.items() %}
+                  <pre><strong>{{ key }}</strong><br>MAC: {{ iface.mac }}<br>IPs: {{ iface.ip_addresses | join(', ') }}</pre>
+                {% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
     <!-- Links -->
 	<div class="list-group w-50 mx-auto">

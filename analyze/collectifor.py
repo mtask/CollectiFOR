@@ -14,6 +14,7 @@ from lib.parsers import (
     PcapParser,
     FilesAndDirsParser,
     ListenersParser,
+    BasicInfoParser,
 )
 from lib.db_tl_duckdb import DB as DDB
 from lib.timeline import PlasoTimelineParser
@@ -30,6 +31,7 @@ def load_config(path):
 # Parser registry
 # -----------------------------
 PARSERS = [
+    BasicInfoParser,
     CommandsParser,
     ChecksumParser,
     PermissionsParser,
@@ -148,6 +150,9 @@ def main():
                 sys.exit(1)
         else:
             collection_dir = collection_path
+            if not os.path.isfile(os.path.join(collection_dir, "info.json")):
+                logging.error(f"Path does not look like a collection directory (info.json not found): {collection_dir}")
+                sys.exit(1)
 
         # -----------------------------
         # Viewer
