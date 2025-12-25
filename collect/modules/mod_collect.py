@@ -9,6 +9,8 @@ import stat
 import pwd
 import grp
 import json
+import socket
+from datetime import datetime
 from pathlib import Path
 
 def _command(cmd):
@@ -24,6 +26,18 @@ def _command(cmd):
     except Exception as e:
         raise RuntimeError(f"Failed to execute grep: {e}")
     return proc.stdout, proc.stderr
+
+
+def basic_info(outdir):
+    logging.info("Gather basic information for info.json")
+    ip_stdout, ip_stderr  = _command('ip a')
+    uname_stdout, uname_stderr  = _command('uname -a')
+    os_stdout, os_stderr  = _command('cat /etc/os-release')
+    now = datetime.now().strftime('%s')
+    hostname  = socket.gethostname()
+    with open(os.path.join(outdir, "info.json"), 'w+') as f:
+         f.write(json.dumps({"date": int(now), "hostname": hostname, "ips": ip_stdout, "uname": uname_stdout, 'os_release': os_stdout}))
+
 
 def _store_output(outdir, outfile, cmd, stdout, stderr):
     logging.info(f"Store command output: {outfile}")

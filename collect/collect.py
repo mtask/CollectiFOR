@@ -7,6 +7,8 @@ import sys
 import logging
 import shutil
 import socket
+import modules.mod_collect as mc
+import modules.mod_capture as mcap
 from datetime import datetime
 
 logging.basicConfig(
@@ -30,7 +32,6 @@ def validate_config(args, config):
 
 def run_collect_modules(enabled_collect_modules, outdir, config, threads=[]):
     logging.info("[+] Running collect modules")
-    import modules.mod_collect as mc
     for cm in enabled_collect_modules:
         logging.info(f"[+] Running module {cm}")
         current_module = cm.replace('enable_', '')
@@ -54,7 +55,6 @@ def run_collect_modules(enabled_collect_modules, outdir, config, threads=[]):
 
 def run_capture_modules(enabled_capture_modules, outdir, config, interfaces="", threads=[], disk="", host=""):
     logging.info("[+] Running capture modules")
-    import modules.mod_capture as mcap
     for cm in enabled_capture_modules:
         current_module = cm.replace('enable_', '')
         logging.info(f"[+] Running module {current_module}")
@@ -101,6 +101,7 @@ def main(args):
         hostname = socket.gethostname()
         outdir = os.path.join(config['outdir'], f"{hostname}_{dir_timestamp}/{dir_timestamp}")
     os.makedirs(outdir, exist_ok=True)
+    mc.basic_info(outdir)
     threads = []
     try:
         config_mod_capture = config['modules']['capture']
