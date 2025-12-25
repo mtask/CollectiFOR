@@ -121,7 +121,8 @@ class Finding(Base):
     __tablename__ = "findings"
 
     id = Column(Integer, primary_key=True)
-    collection_name = Column(String, nullable=False)
+    collection_name = Column(String, nullable=True)
+    timeline_name = Column(String, nullable=True)
     type = Column(String, nullable=False)
     message = Column(String, nullable=False)
     rule = Column(String)
