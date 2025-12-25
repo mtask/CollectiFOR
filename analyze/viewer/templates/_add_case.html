@@ -1,0 +1,107 @@
+<!-- Add to Case Modal -->
+<div class="modal fade" id="addToCaseModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header">
+        <h5 class="modal-title">Assign Finding to Case</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="addToCaseForm">
+          <div class="mb-3">
+            <label for="selectCase" class="form-label">Select Case</label>
+            <select class="form-select bg-dark text-light" id="selectCase" required>
+              <option value="" disabled selected>Select a case…</option>
+              {% for case in all_cases %}
+                <option value="{{ case.id }}">{{ case.case_name }}</option>
+              {% endfor %}
+            </select>
+            <div class="invalid-feedback">Case is required.</div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-warning" id="saveCaseBtn">Assign</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+  <div id="caseToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="caseToastBody">
+        <!-- message will be inserted here -->
+      </div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Toast container (place once in the page, e.g., near </body>) -->
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+  <div id="caseToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="caseToastBody"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+$(document).ready(function() {
+
+  let currentFindingId = null;
+  const modalEl = document.getElementById('addToCaseModal');
+  const addCaseModal = new bootstrap.Modal(modalEl);
+
+  // Open modal when Add Case button clicked
+  $(document).on('click', '.add-case-btn', function() {
+    currentFindingId = $(this).data('id');
+    $('#selectCase').val(''); // Reset dropdown
+    addCaseModal.show();
+  });
+
+  // Save button click
+  $('#saveCaseBtn').on('click', function() {
+    const selectedCaseId = $('#selectCase').val();
+    if (!selectedCaseId) {
+      $('#selectCase').addClass('is-invalid');
+      return;
+    }
+    $('#selectCase').removeClass('is-invalid');
+
+    $.ajax({
+      url: '/cases/assign',
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({
+        finding_id: currentFindingId,
+        case_id: selectedCaseId
+      }),
+      success: function(resp) {
+        // Use Bootstrap toast instead of alert
+        const caseText = $('#selectCase option:selected').text();
+        $('#caseToastBody').text(`Finding #${currentFindingId} assigned to case "${caseText}"`);
+        const toastEl = document.getElementById('caseToast');
+        const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+        toast.show();
+
+        addCaseModal.hide();
+      },
+      error: function(err) {
+        $('#caseToastBody').text('Error assigning finding to case');
+        const toastEl = document.getElementById('caseToast');
+        const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+        toast.show();
+        console.error(err);
+      }
+    });
+  });
+
+});
+</script>

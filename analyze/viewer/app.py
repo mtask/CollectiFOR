@@ -1,8 +1,10 @@
 from flask import Flask, render_template, request, current_app, jsonify, session, redirect, abort, url_for
+from viewer.cases import cases_bp
 from flask import session as flask_session
 from sqlalchemy import create_engine, or_, not_, insert
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
+from viewer.database import get_session
 import pandas as pd
 import duckdb
 import os
@@ -20,25 +22,19 @@ from lib.db import (
     FileEntry,
     ListenerEntry,
     Collections,
-    Notes,
+    FindingNotes,
+    Cases,
 )
 
 
 app = Flask(__name__)
+app.register_blueprint(cases_bp)
 app.secret_key = "super-secret-key"
 
 
 # ----------------------------------------------------------------------
 # Database helpers
 # ----------------------------------------------------------------------
-
-def get_session():
-    engine = create_engine(
-        f"sqlite:///{DB_FILE}",
-        future=True
-    )
-    Session = sessionmaker(bind=engine)
-    return Session()
 
 def apply_collection_filter(query, model):
     collection = flask_session.get("collection_name")
@@ -461,6 +457,9 @@ def findings():
     all_types = [row[0] for row in db.query(Finding.type).distinct().order_by(Finding.type)]
     all_rules = [row[0] for row in db.query(Finding.rule).distinct().order_by(Finding.rule)]
 
+    # For adding finding to a case
+    all_cases = db.query(Cases).order_by(Cases.inserted_at.desc()).all()
+
     db.close()
 
     return render_template(
@@ -471,7 +470,8 @@ def findings():
         rule_filter=rule_filters,
         ack_filter=ack_filters,  # pass current ack filter to template
         all_types=all_types,
-        all_rules=all_rules
+        all_rules=all_rules,
+        all_cases=all_cases
     )
 
 @app.route("/findings/<int:finding_id>", methods=["GET", "POST"])
@@ -488,7 +488,7 @@ def finding_detail(finding_id):
                 db.close()
                 return jsonify({"error": "comment required"}), 400
 
-            note = Notes(
+            note = FindingNotes(
                 finding_id=finding_id,
                 finding_comment=comment
             )
@@ -504,9 +504,9 @@ def finding_detail(finding_id):
         return "Finding not found", 404
 
     comments = (
-        db.query(Notes)
-        .filter(Notes.finding_id == finding_id)
-        .order_by(Notes.inserted_at.asc())
+        db.query(FindingNotes)
+        .filter(FindingNotes.finding_id == finding_id)
+        .order_by(FindingNotes.inserted_at.asc())
         .all()
     )
 
@@ -533,7 +533,7 @@ def update_ack(finding_id):
 
         finding.ack = 1 if data["ack"] else 0
 
-        note = Notes(
+        note = FindingNotes(
             finding_id=finding_id,
             finding_comment=ack_comment
         )
@@ -569,7 +569,7 @@ def bulk_ack():
 
 
     db.add_all([
-        Notes(
+        FindingNotes(
             finding_id=finding_id,
             finding_comment=ack_comment
         )
@@ -840,9 +840,8 @@ def get_timelines():
     conn.close()
     return timeline_files
 
-def run_viewer(db_file="collectifor.db", duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
-    global DB_FILE, DUCKDB_FILE, COLLECTIONS, TIMELINES
-    DB_FILE = db_file
+def run_viewer(duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
+    global DUCKDB_FILE, COLLECTIONS, TIMELINES
     DUCKDB_FILE = duckdb_file
     COLLECTIONS = get_collections()
     TIMELINES = get_timelines()

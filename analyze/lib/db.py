@@ -121,6 +121,7 @@ class Finding(Base):
     __tablename__ = "findings"
 
     id = Column(Integer, primary_key=True)
+    case_id = Column(Integer, nullable=True)
     collection_name = Column(String, nullable=True)
     timeline_name = Column(String, nullable=True)
     type = Column(String, nullable=False)
@@ -135,11 +136,24 @@ class Finding(Base):
     ack = Column(Integer, default=0)
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
-class Notes(Base):
-    __tablename__ = "notes"
+class FindingNotes(Base):
+    __tablename__ = "finding_notes"
     id = Column(Integer, primary_key=True, autoincrement=True)
     finding_id = Column(Integer)
     finding_comment = Column(String)
+    inserted_at = Column(DateTime, default=datetime.utcnow)
+
+class Cases(Base):
+    __tablename__ = "cases"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    case_name = Column(String, nullable=False)
+    inserted_at = Column(DateTime, default=datetime.utcnow)
+
+class CaseNotes(Base):
+    __tablename__ = "case_notes"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    case_id = Column(Integer)
+    case_comment = Column(String)
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
 class DB:

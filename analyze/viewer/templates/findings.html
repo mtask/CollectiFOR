@@ -141,7 +141,8 @@
             <th>Rule</th>
             <th>Message</th>
             <th>Artifact</th>
-            <th>Acked</th> <!-- New column -->
+            <th>Acked</th>
+            <th>Case</th>
         </tr>
     </thead>
     <tbody>
@@ -163,6 +164,11 @@
     {% if f.ack %}checked{% endif %}
 />
 
+            </td>
+            <td>
+  <button class="btn btn-sm btn-info add-case-btn" data-id="{{ f.id }}">
+    Add Case
+  </button>
             </td>
         </tr>
     {% endfor %}
@@ -305,5 +311,7 @@ $(document).ready(function() {
 
 });
 </script>
+
+{% include "_add_case.html" %}
 
 {% endblock %}

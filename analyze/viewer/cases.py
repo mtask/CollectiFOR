@@ -1,0 +1,72 @@
+from flask import Blueprint, render_template, request, jsonify
+from sqlalchemy.orm import Session
+from datetime import datetime
+from lib.db import Cases, CaseNotes, Finding, FindingNotes
+from viewer.database import get_session
+
+cases_bp = Blueprint("cases", __name__, url_prefix="/cases")
+
+@cases_bp.route("/")
+def cases_index():
+    db = get_session()
+    all_cases = db.query(Cases).order_by(Cases.inserted_at.desc()).all()
+    db.close()
+    return render_template("cases.html", all_cases=all_cases)
+
+@cases_bp.route("/case/<int:case_id>")
+def case_detail(case_id):
+    db = get_session()
+    case = db.query(Cases).get(case_id)
+    case_notes = db.query(CaseNotes).filter_by(case_id=case_id).order_by(CaseNotes.inserted_at.desc()).all()
+    findings = db.query(Finding).filter_by(case_id=case_id).all()
+    for f in findings:
+        f.notes = db.query(FindingNotes).filter_by(finding_id=f.id).order_by(FindingNotes.inserted_at.desc()).all()
+    db.close()
+    return render_template("case_detail.html", case=case, case_notes=case_notes, findings=findings)
+
+@cases_bp.route("/case/<int:case_id>/note/add", methods=["POST"])
+def add_case_note(case_id):
+    data = request.get_json()
+    db = get_session()
+    note = CaseNotes(case_id=case_id, case_comment=data['case_comment'])
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+    db.close()
+    return jsonify({
+        "id": note.id,
+        "case_comment": note.case_comment,
+        "inserted_at": note.inserted_at.isoformat()
+    })
+
+@cases_bp.route("/case/add", methods=["POST"])
+def new_case():
+    data = request.get_json()
+    db = get_session()
+    c = Cases(case_name=data['case_name'])
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    db.close()
+    return jsonify({"id": c.id, "case_name": c.case_name})
+
+@cases_bp.route('/assign', methods=['POST'])
+def assign_finding_to_case():
+    data = request.get_json()
+    finding_id = data.get('finding_id')
+    case_id = data.get('case_id')
+
+    if not finding_id or not case_id:
+        return jsonify({"error": "finding_id and case_id required"}), 400
+
+    session = get_session()
+    finding = session.query(Finding).filter_by(id=finding_id).first()
+    if not finding:
+        session.close()
+        return jsonify({"error": "Finding not found"}), 404
+
+    finding.case_id = int(case_id)
+    session.commit()
+    session.close()
+
+    return jsonify({"success": True, "finding_id": finding_id, "case_id": case_id})

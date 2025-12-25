@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="text-light mb-3">Cases</h2>
+
+<!-- New Case Button -->
+<div class="mb-3">
+  <a href="{{ url_for('cases.new_case') }}" class="btn btn-success">New Case</a>
+</div>
+
+<!-- Cases List -->
+<ul class="list-group mb-3" id="cases-list">
+  {% for case in all_cases %}
+  <li class="list-group-item list-group-item-action bg-dark text-light d-flex justify-content-between align-items-center">
+    <a href="{{ url_for('cases.case_detail', case_id=case.id) }}" class="text-light">
+      {{ case.case_name }}
+    </a>
+    <span class="text-light small">{{ case.inserted_at.strftime('%Y-%m-%d %H:%M') }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% endblock %}
