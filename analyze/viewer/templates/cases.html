@@ -2,9 +2,8 @@
 {% block content %}
 <h2 class="text-light mb-3">Cases</h2>
 
-<!-- New Case Button -->
 <div class="mb-3">
-  <a href="{{ url_for('cases.new_case') }}" class="btn btn-success">New Case</a>
+  <button class="btn btn-success" id="new-case-btn">New Case</button>
 </div>
 
 <!-- Cases List -->
@@ -18,4 +17,60 @@
   </li>
   {% endfor %}
 </ul>
+
+<script>
+$(document).ready(function () {
+
+  // Add new case note
+  $('#save-case-note').on('click', function() {
+    const comment = $('#new-case-note').val().trim();
+    if (!comment || !currentCaseId) return;
+
+    fetch(`/cases/case/${currentCaseId}/note/add`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ case_comment: comment })
+    })
+    .then(r => r.json())
+    .then(note => {
+      const html = `
+        <div class="mb-2 p-2 border rounded">
+          <div class="small text-muted">
+            ${new Date(note.inserted_at).toLocaleString()}
+          </div>
+          <div>${note.case_comment}</div>
+        </div>`;
+      $('#case-notes-timeline').append(html);
+      $('#new-case-note').val('');
+    });
+  });
+
+  // ✅ Add new case (POST JSON {"case_name": ...})
+  $('#new-case-btn').on('click', function() {
+    const caseName = prompt("Enter new case name:");
+    if (!caseName) return;
+
+    fetch("/cases/case/add", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ case_name: caseName })
+    })
+    .then(r => r.json())
+    .then(newCase => {
+      const html = `
+        <li class="list-group-item list-group-item-action bg-dark text-light d-flex justify-content-between align-items-center">
+          <a href="/cases/case/${newCase.id}" class="text-light">
+            ${newCase.case_name}
+          </a>
+          <span class="text-light small">
+            ${new Date(newCase.inserted_at).toLocaleString()}
+          </span>
+        </li>`;
+      $('#cases-list').prepend(html);
+    });
+  });
+
+});
+</script>
+
 {% endblock %}

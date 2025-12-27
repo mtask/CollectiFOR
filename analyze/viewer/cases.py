@@ -48,7 +48,7 @@ def new_case():
     db.commit()
     db.refresh(c)
     db.close()
-    return jsonify({"id": c.id, "case_name": c.case_name})
+    return jsonify({"id": c.id, "case_name": c.case_name, "inserted_at": c.inserted_at.isoformat()})
 
 @cases_bp.route('/assign', methods=['POST'])
 def assign_finding_to_case():
