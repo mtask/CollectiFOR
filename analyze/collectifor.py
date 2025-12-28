@@ -19,6 +19,7 @@ from lib.parsers import (
 from lib.db_tl_duckdb import DB as DDB
 from lib.timeline import PlasoTimelineParser
 from viewer.app import run_viewer
+from viewer.database import init_db
 from pathlib import Path
 
 def load_config(path):
@@ -205,7 +206,8 @@ def main():
             collection_dir
         except NameError:
             collection_dir = None
-        run_viewer(db_file=config['collection_database'])
+        init_db(config['collection_database'])
+        run_viewer()
         return
 
 if __name__ == "__main__":

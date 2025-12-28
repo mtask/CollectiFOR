@@ -44,7 +44,7 @@ function fetchChartData() {
     const start_time = $('#start-time').val();
     const end_time = $('#end-time').val();
 
-    fetch(`/timeline_chart/data?start_time=${encodeURIComponent(start_time)}&end_time=${encodeURIComponent(end_time)}`)
+    fetch(`/timeline/chart/data?start_time=${encodeURIComponent(start_time)}&end_time=${encodeURIComponent(end_time)}`)
         .then(r => r.json())
         .then(data => {
             $('#loading').hide();

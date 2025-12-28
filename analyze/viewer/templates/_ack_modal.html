@@ -1,0 +1,39 @@
+<!-- Ack / Unack Comment Modal -->
+<div class="modal fade" id="ackCommentModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark text-light">
+      <div class="modal-header">
+        <h5 class="modal-title">Acknowledgement Comment</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="ackComment" class="form-label">
+            Please provide a reason <span class="text-danger">*</span>
+          </label>
+          <textarea
+            class="form-control bg-dark text-light"
+            id="ackComment"
+            rows="3"
+            placeholder="e.g. False positive, Accepted risk, Investigated..."
+            required
+          ></textarea>
+          <div class="invalid-feedback">
+            Comment is required.
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary" id="confirmAck">
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+

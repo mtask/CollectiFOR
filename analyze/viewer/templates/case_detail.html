@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block style %}
+#case-notes-timeline .border,
+#case-notes-timeline .border div {
+    color: #ffffff;
+}
+{% endblock %}
+{% block content %}
+<h2 class="text-light mb-3">Case: {{ case.case_name }}</h2>
+
+<!-- Add new case note -->
+<div class="mb-3">
+  <form id="add-case-note-form">
+    <textarea id="new-case-note" class="form-control bg-dark text-light mb-2" rows="2" placeholder="Add new comment…"></textarea>
+    <button type="submit" class="btn btn-warning">Add Comment</button>
+  </form>
+</div>
+
+<!-- Timeline style case notes -->
+<div id="case-notes-timeline" class="mb-4">
+  {% for note in case_notes %}
+  <div class="mb-2 p-2 border rounded">
+    <div class="small text-light-muted">{{ note.inserted_at.strftime('%Y-%m-%d %H:%M') }}</div>
+    <div>{{ note.case_comment }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<h4 class="text-light">Findings</h4>
+<div id="case-findings" class="accordion accordion-flush">
+  {% for f in findings %}
+  <div class="accordion-item">
+    <h2 class="accordion-header d-flex align-items-center">
+
+      <!-- Smaller, subtle link -->
+      <a href="/findings/{{ f.id }}" class="fw-normal text-info text-decoration-none me-2 small">
+        #{{ f.id }}
+      </a>
+
+      <!-- Accordion toggle button -->
+      <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#finding-{{ f.id }}">
+        {{ f.message }}
+      </button>
+    </h2>
+
+    <div id="finding-{{ f.id }}" class="accordion-collapse collapse">
+      <div class="accordion-body bg-secondary text-light">
+        {% if f.notes %}
+          {% for n in f.notes %}
+          <div class="small text-light-muted">{{ n.inserted_at.strftime('%Y-%m-%d %H:%M') }}</div>
+          <div>{{ n.finding_comment }}</div>
+          <hr>
+          {% endfor %}
+        {% else %}
+          <em>No notes</em>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<script>
+$(document).ready(function() {
+  $('#add-case-note-form').on('submit', function(e) {
+    e.preventDefault();
+    const comment = $('#new-case-note').val().trim();
+    if (!comment) return;
+
+    fetch("{{ url_for('cases.add_case_note', case_id=case.id) }}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ case_comment: comment })
+    }).then(r => r.json()).then(note => {
+      const html = `
+        <div class="mb-2 p-2 border rounded">
+          <div class="small text-light-muted">${new Date(note.inserted_at).toLocaleString()}</div>
+          <div>${note.case_comment}</div>
+        </div>`;
+      $('#case-notes-timeline').prepend(html);
+      $('#new-case-note').val('');
+    });
+  });
+});
+</script>
+
+<style>
+.text-light-muted { color: #c0c0c0; }
+</style>
+
+{% endblock %}

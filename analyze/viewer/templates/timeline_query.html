@@ -30,7 +30,7 @@
   </div>
 </div>
 
-<form method="get" action="{{ url_for('timeline_query') }}" id="query-form">
+<form method="get" action="{{ url_for('timelines.timeline_query') }}" id="query-form">
     <div class="row mb-3 justify-content-center align-items-start">
         <div class="col-md-12">
             <label for="sql-filter" class="form-label">DuckDB SQL Query</label>
@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 formData.append('query_name', name);
                 formData.append('sql_filter', query);
 
-                const response = await fetch("{{ url_for('timeline_query') }}", {
+                const response = await fetch("{{ url_for('timelines.timeline_query') }}", {
                     method: 'POST',
                     body: formData,
                 });
