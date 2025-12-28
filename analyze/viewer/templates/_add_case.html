@@ -75,13 +75,16 @@ $(document).ready(function() {
     }
     $('#selectCase').removeClass('is-invalid');
 
+    const caseName = $('#selectCase option:selected').text();
+
     $.ajax({
       url: '/cases/assign',
       type: 'POST',
       contentType: 'application/json',
       data: JSON.stringify({
         finding_id: currentFindingId,
-        case_id: selectedCaseId
+        case_id: selectedCaseId,
+        case_name: caseName
       }),
       success: function(resp) {
         // Use Bootstrap toast instead of alert
@@ -92,6 +95,11 @@ $(document).ready(function() {
         toast.show();
 
         addCaseModal.hide();
+
+        // Reload page after toast closes
+        toastEl.addEventListener('hidden.bs.toast', () => {
+          location.reload();
+        }, { once: true });
       },
       error: function(err) {
         $('#caseToastBody').text('Error assigning finding to case');

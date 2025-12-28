@@ -12,15 +12,34 @@
       {% endif %}
     </h2>
 
-    <button
-      type="button"
-      class="btn btn-lg btn-primary"
-      data-bs-toggle="modal"
-      data-bs-target="#addNoteModal"
-    >
-      <i class="bi bi-plus-circle me-1"></i> Add note
-    </button>
+    <div class="d-flex flex-wrap gap-2">
+      <button
+        type="button"
+        class="btn btn-lg btn-primary"
+        data-bs-toggle="modal"
+        data-bs-target="#addNoteModal"
+      >
+        <i class="bi bi-plus-circle me-1"></i> Add note
+      </button>
+
+      {% if finding.case_id %}
+        <a
+          href="{{ url_for('cases.case_detail', case_id=finding.case_id) }}"
+          class="btn btn-lg btn-primary"
+        >
+          CASE: {{ finding.case_name }}
+        </a>
+        <button class="btn btn-lg btn-primary add-case-btn" data-id="{{ finding.id }}">
+          Change Case
+        </button>
+      {% else %}
+        <button class="btn btn-lg btn-info add-case-btn" data-id="{{ finding.id }}">
+          Add Case
+        </button>
+      {% endif %}
+    </div>
   </div>
+</div>
 
   <table class="table table-dark table-striped table-sm">
       <tbody>
@@ -159,4 +178,5 @@ $(document).ready(function () {
 
 });
 </script>
+{% include "_add_case.html" %}
 {% endblock %}

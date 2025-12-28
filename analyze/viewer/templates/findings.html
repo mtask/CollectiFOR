@@ -55,7 +55,7 @@
         <button type="submit" class="btn btn-primary">
           Filter
         </button>
-        <a href="{{ url_for('findings') }}" class="btn btn-secondary">
+        <a href="{{ url_for('findings.findings') }}" class="btn btn-secondary">
           Reset
         </a>
       </div>
@@ -165,11 +165,27 @@
 />
 
             </td>
-            <td>
-  <button class="btn btn-sm btn-info add-case-btn" data-id="{{ f.id }}">
-    Add Case
-  </button>
-            </td>
+<td>
+  {% if f.case_id %}
+    <div class="d-flex flex-column gap-1">
+      <a
+        href="{{ url_for('cases.case_detail', case_id=f.case_id) }}"
+        class="btn btn-sm btn-primary"
+      >
+        {{ f.case_name }}
+      </a>
+      <button class="btn btn-sm btn-warning add-case-btn" data-id="{{ f.id }}">
+        Change Case
+      </button>
+    </div>
+  {% else %}
+    <div class="d-flex flex-column gap-1">
+    <button class="btn btn-sm btn-info add-case-btn" data-id="{{ f.id }}">
+      Add Case
+    </button>
+    </div>
+  {% endif %}
+</td>
         </tr>
     {% endfor %}
     </tbody>
