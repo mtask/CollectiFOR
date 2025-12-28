@@ -53,22 +53,18 @@ def new_case():
 @cases_bp.route('/assign', methods=['POST'])
 def assign_finding_to_case():
     data = request.get_json()
-    finding_id = data.get('finding_id')
+    findings = data.get('findings')
     case_id = data.get('case_id')
     case_name = data.get('case_name')
-
-    if not finding_id or not case_id or not case_name:
-        return jsonify({"error": "finding_id, case_name, and case_id required"}), 400
+    if not findings or not case_id or not case_name:
+        return jsonify({"error": "findings, case_name, and case_id required"}), 400
 
     session = get_session()
-    finding = session.query(Finding).filter_by(id=finding_id).first()
-    if not finding:
-        session.close()
-        return jsonify({"error": "Finding not found"}), 404
-
-    finding.case_id = int(case_id)
-    finding.case_name = case_name
+    for finding_id in findings:
+        finding = session.query(Finding).filter_by(id=finding_id).first()
+        finding.case_id = int(case_id)
+        finding.case_name = case_name
     session.commit()
     session.close()
 
-    return jsonify({"success": True, "finding_id": finding_id, "case_id": case_id, "case_name": case_name})
+    return jsonify({"success": True, "findings": findings, "case_id": case_id, "case_name": case_name})

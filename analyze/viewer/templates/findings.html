@@ -92,6 +92,20 @@
           {% endfor %}
         </select>
 
+        <select
+          name="case"
+          class="selectpicker"
+          multiple
+          data-actions-box="true"
+          data-live-search="true"
+          title="Select case(s)"
+          style="width: 180px; display: inline-block;"
+        >
+          {% for c in all_cases_filter %}
+            <option value="{{ c }}" {% if c in case_filter %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+
         <!-- Acked / Unacked dropdown -->
         <select
           name="ack"
@@ -100,6 +114,7 @@
           title="Acked / Unacked"
           style="width: 140px; display: inline-block;"
         >
+          <option value="">Acked/Unacked</option>
           <option value="1" {% if '1' in ack_filter %}selected{% endif %}>Acked</option>
           <option value="0" {% if '0' in ack_filter %}selected{% endif %}>Unacked</option>
         </select>
@@ -127,9 +142,18 @@
 
 
 {% if findings %}
-<div class="mb-2 d-flex justify-content-end gap-1">
-    <button type="button" class="btn btn-sm btn-success" id="select-all">Ack All</button>
-    <button type="button" class="btn btn-sm btn-warning" id="deselect-all">Unack All</button>
+<div class="mb-3 d-flex justify-content-end gap-2">
+  <div class="btn-group" role="group" aria-label="Ack/Unack/Assign all">
+    <button type="button" class="btn btn-sm btn-success" id="select-all">
+      <i class="bi bi-check-circle me-1"></i> Ack All
+    </button>
+    <button type="button" class="btn btn-sm btn-warning" id="deselect-all">
+      <i class="bi bi-x-circle me-1"></i> Unack All
+    </button>
+    <button type="button" class="btn btn-sm btn-primary" id="assign-all">
+      <i class="bi bi-diagram-3 me-1"></i> Assign All
+    </button>
+  </div>
 </div>
 
 <table class="table table-dark table-striped table-hover table-sm">
@@ -181,7 +205,7 @@
   {% else %}
     <div class="d-flex flex-column gap-1">
     <button class="btn btn-sm btn-info add-case-btn" data-id="{{ f.id }}">
-      Add Case
+      Assign Case
     </button>
     </div>
   {% endif %}

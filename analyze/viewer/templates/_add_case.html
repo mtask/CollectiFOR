@@ -30,19 +30,7 @@
   </div>
 </div>
 
-<div class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
-  <div id="caseToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-    <div class="d-flex">
-      <div class="toast-body" id="caseToastBody">
-        <!-- message will be inserted here -->
-      </div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-    </div>
-  </div>
-</div>
-
-
-<!-- Toast container (place once in the page, e.g., near </body>) -->
+<!-- Toast -->
 <div class="position-fixed top-0 end-0 p-3" style="z-index: 1080;">
   <div id="caseToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
     <div class="d-flex">
@@ -56,17 +44,37 @@
 $(document).ready(function() {
 
   let currentFindingId = null;
+  let bulkAssignFindingIds = null; // Store IDs for bulk assignment
   const modalEl = document.getElementById('addToCaseModal');
   const addCaseModal = new bootstrap.Modal(modalEl);
 
-  // Open modal when Add Case button clicked
+  // --- SINGLE ASSIGN ---
   $(document).on('click', '.add-case-btn', function() {
     currentFindingId = $(this).data('id');
+    bulkAssignFindingIds = null; // Reset bulk
     $('#selectCase').val(''); // Reset dropdown
     addCaseModal.show();
   });
 
-  // Save button click
+  // --- ASSIGN ALL BUTTON ---
+  $(document).on('click', '#assign-all', function() {
+    // Get all finding IDs on the page
+    const allIds = $('.add-case-btn').map(function() {
+      return $(this).data('id');
+    }).get();
+
+    if (!allIds.length) {
+      alert('No findings available to assign.');
+      return;
+    }
+
+    bulkAssignFindingIds = allIds;
+    currentFindingId = null; // reset single
+    $('#selectCase').val(''); // Reset dropdown
+    addCaseModal.show();
+  });
+
+  // --- SAVE ASSIGN ---
   $('#saveCaseBtn').on('click', function() {
     const selectedCaseId = $('#selectCase').val();
     if (!selectedCaseId) {
@@ -74,35 +82,38 @@ $(document).ready(function() {
       return;
     }
     $('#selectCase').removeClass('is-invalid');
-
     const caseName = $('#selectCase option:selected').text();
+
+    // Decide which IDs to send
+    const findingsToAssign = bulkAssignFindingIds || [currentFindingId];
 
     $.ajax({
       url: '/cases/assign',
       type: 'POST',
       contentType: 'application/json',
       data: JSON.stringify({
-        finding_id: currentFindingId,
+        findings: findingsToAssign,
         case_id: selectedCaseId,
         case_name: caseName
       }),
       success: function(resp) {
-        // Use Bootstrap toast instead of alert
-        const caseText = $('#selectCase option:selected').text();
-        $('#caseToastBody').text(`Finding #${currentFindingId} assigned to case "${caseText}"`);
+        $('#caseToastBody').text(
+          findingsToAssign.length > 1
+            ? `Assigned ${findingsToAssign.length} findings to case "${caseName}"`
+            : `Finding #${findingsToAssign[0]} assigned to case "${caseName}"`
+        );
         const toastEl = document.getElementById('caseToast');
         const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
         toast.show();
 
         addCaseModal.hide();
+        bulkAssignFindingIds = null;
+        currentFindingId = null;
 
-        // Reload page after toast closes
-        toastEl.addEventListener('hidden.bs.toast', () => {
-          location.reload();
-        }, { once: true });
+        toastEl.addEventListener('hidden.bs.toast', () => location.reload(), { once: true });
       },
       error: function(err) {
-        $('#caseToastBody').text('Error assigning finding to case');
+        $('#caseToastBody').text('Error assigning findings to case');
         const toastEl = document.getElementById('caseToast');
         const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
         toast.show();

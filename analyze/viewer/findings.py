@@ -44,6 +44,7 @@ def findings():
     q = request.args.get("q", "").strip()
     type_filters = request.args.getlist("type")
     rule_filters = request.args.getlist("rule")
+    case_filters = request.args.getlist("case")
     ack_filters = request.args.getlist("ack")  # list of '0' and/or '1'
 
     query = db.query(Finding)
@@ -61,6 +62,10 @@ def findings():
     if rule_filters:
         query = query.filter(Finding.rule.in_(rule_filters))
 
+    # Apply case filters
+    if case_filters:
+        query = query.filter(Finding.case_name.in_(case_filters))
+
     # Apply ack/unack filter
     if ack_filters:
         # Convert to int and filter
@@ -77,6 +82,7 @@ def findings():
 
     # For adding finding to a case
     all_cases = db.query(Cases).order_by(Cases.inserted_at.desc()).all()
+    all_cases_filter = [row[0] for row in db.query(Cases.case_name).distinct().order_by(Cases.case_name)]
 
     db.close()
 
@@ -86,10 +92,12 @@ def findings():
         search_query=q,
         type_filter=type_filters,
         rule_filter=rule_filters,
+        case_filter=case_filters,
         ack_filter=ack_filters,  # pass current ack filter to template
         all_types=all_types,
         all_rules=all_rules,
-        all_cases=all_cases
+        all_cases=all_cases,
+        all_cases_filter=all_cases_filter
     )
 
 @findings_bp.route("/<int:finding_id>", methods=["GET", "POST"])

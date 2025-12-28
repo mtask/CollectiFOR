@@ -221,51 +221,6 @@ $(document).ready(function () {
     });
   }
 
-  // --- Add Case ---
-  const caseModalEl = document.getElementById('addToCaseModal');
-  if (caseModalEl) {
-    const addCaseModal = new bootstrap.Modal(caseModalEl);
-    let currentCaseFindingId = null;
-
-    $(document).on('click', '.add-case-btn', function() {
-      currentCaseFindingId = $(this).data('id');
-      $('#selectCase').val(''); // Reset dropdown
-      addCaseModal.show();
-    });
-
-    $('#saveCaseBtn').on('click', function() {
-      const selectedCaseId = $('#selectCase').val();
-      if (!selectedCaseId) { $('#selectCase').addClass('is-invalid'); return; }
-      $('#selectCase').removeClass('is-invalid');
-
-      const caseName = $('#selectCase option:selected').text();
-      $.ajax({
-        url: '/cases/assign',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({
-          finding_id: currentCaseFindingId,
-          case_id: selectedCaseId,
-          case_name: caseName
-        }),
-        success: function(resp) {
-          $('#caseToastBody').text(`Finding #${currentCaseFindingId} assigned to case "${caseName}"`);
-          const toastEl = document.getElementById('caseToast');
-          const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
-          toast.show();
-          addCaseModal.hide();
-          toastEl.addEventListener('hidden.bs.toast', () => location.reload(), { once: true });
-        },
-        error: function(err) {
-          $('#caseToastBody').text('Error assigning finding to case');
-          const toastEl = document.getElementById('caseToast');
-          const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
-          toast.show();
-          console.error(err);
-        }
-      });
-    });
-  }
 });
 </script>
 {% include "_add_case.html" %}
