@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, jsonify, current_app
 from flask import session as flask_session
 from datetime import datetime
 import pandas as pd
+import json
 import duckdb
 
 timelines_bp = Blueprint("timelines", __name__, url_prefix="/timeline")
@@ -124,7 +125,7 @@ def timeline_event(event_id):
         event_dict['inserted_at'] = event_dict['inserted_at'].isoformat()
     conn.close()
 
-    return app.response_class(
+    return current_app.response_class(
         response=json.dumps(event_dict, indent=2),
         mimetype='application/json'
     )
