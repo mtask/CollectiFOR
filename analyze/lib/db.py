@@ -122,6 +122,7 @@ class Finding(Base):
 
     id = Column(Integer, primary_key=True)
     case_id = Column(Integer, nullable=True)
+    case_name = Column(String, nullable=True)
     collection_name = Column(String, nullable=True)
     timeline_name = Column(String, nullable=True)
     type = Column(String, nullable=False)

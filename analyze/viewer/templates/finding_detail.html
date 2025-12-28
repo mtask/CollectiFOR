@@ -4,40 +4,52 @@
   <div class="d-flex flex-column flex-md-row align-items-center justify-content-center justify-content-md-between mb-3 w-100">
     <h2>
       {% if finding.rule %}
-        {{ finding.type }} – {{ finding.rule }} (#{{ finding.id }})
+        {% if finding.ack %}✅{% else %}⚠️ {%endif%} {{ finding.type }} – {{ finding.rule }} (#{{ finding.id }})
       {% elif finding.indicator %}
-        {{ finding.type }} – {{ finding.indicator }} (#{{ finding.id }})
+        {% if finding.ack %}✅{% else %}⚠️ {%endif%} {{ finding.type }} – {{ finding.indicator }} (#{{ finding.id }})
       {% else %}
-        {{ finding.type }} (#{{ finding.id }})
+        {% if finding.ack %}✅{% else %}⚠️ {%endif%} {{ finding.type }} (#{{ finding.id }})
       {% endif %}
     </h2>
 
-    <div class="d-flex flex-wrap gap-2">
-      <button
-        type="button"
-        class="btn btn-lg btn-primary"
-        data-bs-toggle="modal"
-        data-bs-target="#addNoteModal"
-      >
-        <i class="bi bi-plus-circle me-1"></i> Add note
-      </button>
+<div class="d-flex flex-wrap gap-2">
+  <!-- Add Note Button -->
+  <button
+    type="button"
+    class="btn btn-lg btn-primary"
+    data-bs-toggle="modal"
+    data-bs-target="#addNoteModal"
+  >
+    <i class="bi bi-plus-circle me-1"></i> Add note
+  </button>
 
-      {% if finding.case_id %}
-        <a
-          href="{{ url_for('cases.case_detail', case_id=finding.case_id) }}"
-          class="btn btn-lg btn-primary"
-        >
-          CASE: {{ finding.case_name }}
-        </a>
-        <button class="btn btn-lg btn-primary add-case-btn" data-id="{{ finding.id }}">
-          Change Case
-        </button>
-      {% else %}
-        <button class="btn btn-lg btn-info add-case-btn" data-id="{{ finding.id }}">
-          Add Case
-        </button>
-      {% endif %}
-    </div>
+  {% if finding.case_id %}
+    <a
+      href="{{ url_for('cases.case_detail', case_id=finding.case_id) }}"
+      class="btn btn-lg btn-primary"
+    >
+      CASE: {{ finding.case_name }}
+    </a>
+    <button class="btn btn-lg btn-primary add-case-btn" data-id="{{ finding.id }}">
+      Change Case
+    </button>
+  {% else %}
+    <button class="btn btn-lg btn-info add-case-btn" data-id="{{ finding.id }}">
+      Add Case
+    </button>
+  {% endif %}
+<button
+  type="button"
+  class="btn btn-lg {{ 'btn-outline-secondary' if finding.ack else 'btn-success' }} ack-btn"
+  data-id="{{ finding.id }}"
+  data-ack="{{ 'true' if finding.ack else 'false' }}"
+>
+  <i class="bi {{ 'bi-check-circle' if finding.ack else 'bi-circle' }} me-1"></i>
+  {{ 'Unack' if finding.ack else 'Ack' }}
+</button>
+</div>
+
+
   </div>
 </div>
 
@@ -150,33 +162,113 @@
 </div>
 <script>
 $(document).ready(function () {
-
+  // --- Add Note ---
   $('#saveNoteBtn').on('click', function () {
-    const commentEl = $('#noteComment');
-    const comment = commentEl.val().trim();
-
-    if (!comment) {
-      commentEl.addClass('is-invalid');
-      return;
-    }
-
-    commentEl.removeClass('is-invalid');
-
+    const comment = $('#noteComment').val().trim();
+    if (!comment) { $('#noteComment').addClass('is-invalid'); return; }
+    $('#noteComment').removeClass('is-invalid');
     $.ajax({
-      url: window.location.pathname,  // posts to current finding page
+      url: window.location.pathname,
       type: 'POST',
       contentType: 'application/json',
       data: JSON.stringify({ comment }),
-      success: function () {
-        location.reload();  // reload to show new note
-      },
-      error: function () {
-        alert('Failed to save note');
-      }
+      success: function () { location.reload(); },
+      error: function () { alert('Failed to save note'); }
     });
   });
 
+  // --- Ack / Unack ---
+  let currentFindingId = null;
+  const ackModalEl = document.getElementById('ackCommentModal');
+  if (ackModalEl) {
+    const ackModal = new bootstrap.Modal(ackModalEl);
+
+    $(document).on('click', '.ack-btn', function() {
+      currentFindingId = $(this).data('id');
+      $('#ackComment').val('');
+      $('#ackComment').removeClass('is-invalid');
+      ackModal.show();
+    });
+
+    $('#confirmAck').on('click', function() {
+      const comment = $('#ackComment').val().trim();
+      if (!comment) { $('#ackComment').addClass('is-invalid'); return; }
+      $('#ackComment').removeClass('is-invalid');
+
+      const button = $(`.ack-btn[data-id='${currentFindingId}']`);
+      const ackValue = button.data('ack') === true || button.data('ack') === 'true';
+      const newAckValue = !ackValue;
+
+      $.ajax({
+        url: `/findings/${currentFindingId}/ack`,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ ack: newAckValue, ack_comment: comment }),
+        success: function() {
+          button.data('ack', newAckValue);
+          if (newAckValue) {
+            button.removeClass('btn-success').addClass('btn-outline-secondary');
+            button.html('<i class="bi bi-check-circle me-1"></i> Unack');
+          } else {
+            button.removeClass('btn-outline-secondary').addClass('btn-success');
+            button.html('<i class="bi bi-circle me-1"></i> Ack');
+          }
+          ackModal.hide();
+          location.reload();
+        },
+        error: function() { alert('Error updating acknowledgement'); }
+      });
+    });
+  }
+
+  // --- Add Case ---
+  const caseModalEl = document.getElementById('addToCaseModal');
+  if (caseModalEl) {
+    const addCaseModal = new bootstrap.Modal(caseModalEl);
+    let currentCaseFindingId = null;
+
+    $(document).on('click', '.add-case-btn', function() {
+      currentCaseFindingId = $(this).data('id');
+      $('#selectCase').val(''); // Reset dropdown
+      addCaseModal.show();
+    });
+
+    $('#saveCaseBtn').on('click', function() {
+      const selectedCaseId = $('#selectCase').val();
+      if (!selectedCaseId) { $('#selectCase').addClass('is-invalid'); return; }
+      $('#selectCase').removeClass('is-invalid');
+
+      const caseName = $('#selectCase option:selected').text();
+      $.ajax({
+        url: '/cases/assign',
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+          finding_id: currentCaseFindingId,
+          case_id: selectedCaseId,
+          case_name: caseName
+        }),
+        success: function(resp) {
+          $('#caseToastBody').text(`Finding #${currentCaseFindingId} assigned to case "${caseName}"`);
+          const toastEl = document.getElementById('caseToast');
+          const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+          toast.show();
+          addCaseModal.hide();
+          toastEl.addEventListener('hidden.bs.toast', () => location.reload(), { once: true });
+        },
+        error: function(err) {
+          $('#caseToastBody').text('Error assigning finding to case');
+          const toastEl = document.getElementById('caseToast');
+          const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+          toast.show();
+          console.error(err);
+        }
+      });
+    });
+  }
 });
 </script>
 {% include "_add_case.html" %}
+{% include "_ack_modal.html" %}
 {% endblock %}
+
