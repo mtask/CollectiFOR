@@ -196,7 +196,7 @@ $(document).ready(function() {
         searching: false,
         ordering: false,
         ajax: {
-            url: "{{ url_for('timeline_data') }}",
+            url: "{{ url_for('timelines.timeline_data') }}",
             data: function(d) {
                 d.start_time = startPicker.selectedDates.length
                     ? Math.floor(startPicker.selectedDates[0].getTime() / 1000)
@@ -255,7 +255,7 @@ $(document).ready(function() {
 
     $('#timeline-table').on('click', '.show-event', function() {
         const id = $(this).data('id');
-        fetch(`/api/timeline_event/${id}`)
+        fetch(`/timeline/event/${id}`)
             .then(r => r.json())
             .then(data => {
                 // Pretty-print JSON
@@ -293,7 +293,7 @@ $(document).ready(function() {
     const id = $(this).data('id');
 
     // Fetch the event details from the same endpoint
-    fetch(`/api/timeline_event/${id}`)
+    fetch(`/timeline/event/${id}`)
         .then(r => r.json())
         .then(data => {
 
