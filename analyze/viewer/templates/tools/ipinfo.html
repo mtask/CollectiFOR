@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4 text-center text-light">🔍 IP Info Lookup</h2>
+
+<form method="post" class="mb-4">
+  <div class="input-group w-50 mx-auto">
+    <input
+      type="text"
+      name="ip"
+      class="form-control"
+      placeholder="Enter IP address"
+      aria-label="IP address"
+      required
+      value="{{ request.form.ip or '' }}"
+    />
+    <button class="btn btn-primary" type="submit">Search</button>
+  </div>
+</form>
+
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="row justify-content-center">
+  {% if result_ipinfo %}
+    <div class="col-md-6 mb-4">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <strong>IPInfo Results</strong>
+        </div>
+        <ul class="list-group list-group-flush">
+          {% for key, value in result_ipinfo.items() %}
+            <li class="list-group-item">
+              <strong>{{ key|capitalize }}:</strong>
+              {{ value }}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

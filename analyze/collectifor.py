@@ -207,7 +207,7 @@ def main():
         except NameError:
             collection_dir = None
         init_db(config['collection_database'])
-        run_viewer()
+        run_viewer(api_keys=config.get('api_keys', {}))
         return
 
 if __name__ == "__main__":

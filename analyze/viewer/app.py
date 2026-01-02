@@ -37,6 +37,13 @@ app.register_blueprint(tools_bp)
 app.secret_key = secrets.token_hex(64)
 
 
+@app.template_filter('datetimeformat')
+def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
+    try:
+        return datetime.utcfromtimestamp(value).strftime(format)
+    except:
+        return value
+
 
 @app.context_processor
 def inject_collections():
@@ -334,11 +341,12 @@ def get_collections():
     return collection_names
 
 
-def run_viewer(duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
+def run_viewer(api_keys={}, duckdb_file="timeline.duckdb", host="127.0.0.1", port=5000, debug=True):
     with app.app_context():
         app.config["DUCKDB_FILE"] = duckdb_file
         app.config["COLLECTIONS"] = get_collections()
         app.config["TIMELINES"] = get_timelines()
+        app.config["API_KEYS"] = api_keys
     print(f"[+] Viewer started")
     print(f"[+] URL: http://{host}:{port}")
     app.run(host=host, port=port, debug=debug, use_reloader=False)

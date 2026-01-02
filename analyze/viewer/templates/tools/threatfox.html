@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4 text-center text-light">🔍 ThreatFox IOC Search</h2>
+
+<form method="post" class="mb-4">
+  <div class="input-group w-50 mx-auto">
+    <input
+      type="text"
+      name="query"
+      class="form-control"
+      placeholder="Enter search term"
+      aria-label="IP address"
+      required
+      value="{{ request.form.query or '' }}"
+    />
+    <button class="btn btn-primary" type="submit">Search</button>
+  </div>
+</form>
+
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% else %}
+{% if result.data %}
+  <div class="mt-4">
+    <h4 class="text-light mb-3">
+      Threat Intelligence Results ({{ result.data | length }})
+    </h4>
+
+    <div class="list-group">
+      {% for item in result.data %}
+        <div class="list-group-item bg-dark text-light border-secondary mb-3 rounded">
+
+          <!-- Header -->
+<div class="d-flex justify-content-between align-items-start mb-2">
+  <div>
+    <h5 class="mb-1">{{ item.ioc }}</h5>
+    <div class="small text-muted">{{ item.threat_type_desc }}</div>
+  </div>
+
+  <div class="d-flex gap-2 align-items-center">
+    <span class="badge
+      {% if item.confidence_level >= 90 %} bg-danger
+      {% elif item.confidence_level >= 70 %} bg-warning text-dark
+      {% else %} bg-secondary
+      {% endif %}
+    ">
+      {{ item.confidence_level }}%
+    </span>
+
+    <button
+      type="button"
+      class="btn btn-sm btn-warning make-finding-btn"
+      data-item='{{ item | tojson }}'
+    >
+      <i class="bi bi-plus-circle me-1"></i> Make Finding
+    </button>
+  </div>
+</div>
+
+          <!-- Details -->
+          <div class="row small mb-2">
+            <div class="col-md-6">
+              <strong>Type:</strong> {{ item.ioc_type_desc }}
+            </div>
+            <div class="col-md-6">
+              <strong>Malware:</strong>
+              {{ item.malware_printable or item.malware }}
+            </div>
+          </div>
+
+          <!-- Dates -->
+          <div class="row small mb-2 text-muted">
+            <div class="col-md-6">
+              First seen: {{ item.first_seen }}
+            </div>
+            <div class="col-md-6">
+              Last seen: {{ item.last_seen }}
+            </div>
+          </div>
+
+          <!-- Tags -->
+          {% if item.tags %}
+            <div class="mb-2">
+              {% for tag in item.tags %}
+                <span class="badge bg-secondary me-1">{{ tag }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <!-- Links -->
+          <div class="d-flex gap-3 small">
+            {% if item.reference %}
+              <a href="{{ item.reference }}" target="_blank" class="link-info">
+                Reference
+              </a>
+            {% endif %}
+            {% if item.malware_malpedia %}
+              <a href="{{ item.malware_malpedia }}" target="_blank" class="link-info">
+                Malpedia
+              </a>
+            {% endif %}
+            <span class="text-muted ms-auto">
+              Reporter: {{ item.reporter }}
+            </span>
+          </div>
+
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% else %}
+  <p class="text-muted mt-4">No threat intelligence data found.</p>
+{% endif %}
+{% endif %}
+<script>
+$(document).on('click', '.make-finding-btn', function () {
+  const item = $(this).data('item');
+
+  // Autofill modal fields
+  $('#findingMessage').val(
+    `${item.threat_type_desc || ''}\nIOC: ${item.ioc}`
+  );
+
+  $('#findingArtifact').val(item.ioc || '');
+  $('#findingIndicator').val(item.ioc || '');
+
+  $('#findingMeta').val(
+    JSON.stringify(item, null, 2)
+  );
+
+  // Optional defaults from session
+  $('#findingCollection').val('{{ session.get("collection_name") }}');
+  $('#findingTimeline').val('{{ session.get("timeline_name") }}');
+
+  // Show modal
+  const modalEl = document.getElementById('addFindingModal');
+  const modal = new bootstrap.Modal(modalEl);
+  modal.show();
+});
+</script>
+{% endblock %}

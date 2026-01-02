@@ -18,4 +18,5 @@ analyze/report/zeek/
 *.duckdb
 hosts.ini
 collect/config.yaml
+analyze/config.yaml
 collect.sh

@@ -8,3 +8,12 @@ analysis:
   yara: './source/yara'
   pattern: './source/patterns/' 
   files: './source/files/'
+# API keys are only used by viewer's online tools
+# Not used or attempted to use without user's UI interaction with the relevant tool page
+api_keys:
+  # https://www.virustotal.com/    
+  virustotal: ''
+  # https://ipinfo.io/
+  ipinfo: ''
+  # https://threatfox.abuse.ch/
+  threatfox: ''

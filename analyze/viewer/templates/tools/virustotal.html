@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 class="mb-5 text-center text-light">🔍 VirusTotal Lookup</h2>
+
+<form method="post" class="mb-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-8 col-xl-7">
+      <div class="row g-2 align-items-center">
+        <div class="col-12 col-sm-6">
+          <input
+            type="text"
+            name="query"
+            class="form-control form-control-lg"
+            placeholder="Enter file hash (SHA256, SHA1, MD5)"
+            required
+            value="{{ request.form.query or '' }}"
+            aria-label="Search query"
+          />
+        </div>
+
+        <div class="col-12 col-sm-4">
+          <select
+            name="query_type"
+            class="form-select form-select-lg"
+            aria-label="Select query type"
+            required
+          >
+            <option value="filehash"
+              {% if request.form.query_type == 'filehash' or not request.form.query_type %}selected{% endif %}
+            >File Hash</option>
+            <option value="domain"
+              {% if request.form.query_type == 'domain' %}selected{% endif %}
+            >Domain</option>
+            <option value="ip"
+              {% if request.form.query_type == 'ip' %}selected{% endif %}
+            >IP Address</option>
+          </select>
+        </div>
+
+        <div class="col-12 col-sm-2 d-grid">
+          <button class="btn btn-primary btn-lg" type="submit">Search</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+{% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if result and result_type == "ip" %}
+<div class="card mb-4">
+  <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">📡 IP Address Info</h5>
+    <button
+      type="button"
+      class="btn btn-sm btn-warning make-finding-btn"
+      data-finding='{
+        "indicator": "{{ result.data.id }}",
+        "artifact": "{{ result.data.id }}",
+        "message": "VirusTotal IP lookup",
+        "meta": {{ result.data | tojson }}
+      }'
+    >
+      <i class="bi bi-plus-circle me-1"></i> Make Finding
+    </button>
+  </div>
+  <div class="card-body">
+    <p><strong>IP Address:</strong> {{ result.data.id }}</p>
+    <p><strong>Country:</strong> {{ result.data.attributes.country or 'Unknown' }}</p>
+    <p><strong>ASN:</strong> {{ result.data.attributes.as_owner or 'Unknown' }}</p>
+  </div>
+</div>
+{% endif %}
+
+{% if result and result_type == "domain" %}
+<div class="card mb-4">
+  <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">🌐 Domain Info</h5>
+    <button
+      type="button"
+      class="btn btn-sm btn-warning make-finding-btn"
+      data-finding='{
+        "indicator": "{{ result.data.id }}",
+        "artifact": "{{ result.data.id }}",
+        "message": "VirusTotal domain lookup",
+        "meta": {{ result.data | tojson }}
+      }'
+    >
+      <i class="bi bi-plus-circle me-1"></i> Make Finding
+    </button>
+  </div>
+  <div class="card-body">
+    <p><strong>Domain:</strong> {{ result.data.id }}</p>
+  </div>
+</div>
+{% endif %}
+
+{% if result and result_type == "filehash" %}
+{% set attr = result.data.attributes %}
+<div class="card mb-4 shadow-sm">
+  <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">📄 File Metadata</h5>
+    <button
+      type="button"
+      class="btn btn-sm btn-warning make-finding-btn"
+      data-finding='{
+        "indicator": "{{ attr.sha256 }}",
+        "artifact": "{{ attr.meaningful_name or attr.sha256 }}",
+        "message": "VirusTotal file hash lookup",
+        "meta": {{ result.data | tojson }}
+      }'
+    >
+      <i class="bi bi-plus-circle me-1"></i> Make Finding
+    </button>
+  </div>
+  <div class="card-body">
+    <ul class="list-group list-group-flush">
+      <li class="list-group-item"><strong>SHA256:</strong> {{ attr.sha256 }}</li>
+      <li class="list-group-item"><strong>MD5:</strong> {{ attr.md5 }}</li>
+      <li class="list-group-item"><strong>SHA1:</strong> {{ attr.sha1 }}</li>
+    </ul>
+  </div>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('click', function (e) {
+  const btn = e.target.closest('.make-finding-btn');
+  if (!btn) return;
+
+  const data = JSON.parse(btn.dataset.finding);
+
+  document.getElementById('findingMessage').value =
+    data.message + "\nIndicator: " + data.indicator;
+
+  document.getElementById('findingArtifact').value = data.artifact || '';
+  document.getElementById('findingIndicator').value = data.indicator || '';
+  document.getElementById('findingMeta').value =
+    JSON.stringify(data.meta, null, 2);
+
+  document.getElementById('findingCollection').value =
+    "{{ session.get('collection_name') }}";
+  document.getElementById('findingTimeline').value =
+    "{{ session.get('timeline_name') }}";
+
+  const modal = new bootstrap.Modal(
+    document.getElementById('addFindingModal')
+  );
+  modal.show();
+});
+</script>
+
+{% endblock %}
