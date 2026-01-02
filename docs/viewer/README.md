@@ -105,7 +105,7 @@ You can add comments to cases as well as to a single finding. When the case is o
 <details>
 <summary>Tools</summary>
 
-Some additional tools. Includes offline and online tools. Note that online tools require API keys which are set in config.
+Some additional tools. Includes offline and online tools. Note that online tools require API keys which are set in config. 
 
 ```yaml
 api_keys:
@@ -118,6 +118,8 @@ api_keys:
 ```
 
 ![](imgs/tools.png)
+
+Copy of Cyberchef tool is embedded so it works offline and doesn't use the hosted Cyberchef instance.
 
 </details>
 
