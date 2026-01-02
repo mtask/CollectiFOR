@@ -13,16 +13,63 @@ def cases_index():
     db.close()
     return render_template("cases.html", all_cases=all_cases)
 
-@cases_bp.route("/case/<int:case_id>")
+@cases_bp.route("/case/<int:case_id>", methods=["GET", "DELETE"])
 def case_detail(case_id):
     db = get_session()
+
+    # --- DELETE ---
+    if request.method == "DELETE":
+        case = db.query(Cases).get(case_id)
+        if not case:
+            db.close()
+            return jsonify({"error": "Case not found"}), 404
+
+        # Optional but recommended: unlink findings from this case
+        db.query(Finding).filter(
+            Finding.case_id == case_id
+        ).update({Finding.case_id: None})
+
+        # Delete case notes
+        db.query(CaseNotes).filter(
+            CaseNotes.case_id == case_id
+        ).delete()
+
+        # Delete the case itself
+        db.delete(case)
+        db.commit()
+        db.close()
+
+        return "", 204
+
+    # --- GET ---
     case = db.query(Cases).get(case_id)
-    case_notes = db.query(CaseNotes).filter_by(case_id=case_id).order_by(CaseNotes.inserted_at.desc()).all()
+    if not case:
+        db.close()
+        return "Case not found", 404
+
+    case_notes = (
+        db.query(CaseNotes)
+        .filter_by(case_id=case_id)
+        .order_by(CaseNotes.inserted_at.desc())
+        .all()
+    )
+
     findings = db.query(Finding).filter_by(case_id=case_id).all()
     for f in findings:
-        f.notes = db.query(FindingNotes).filter_by(finding_id=f.id).order_by(FindingNotes.inserted_at.desc()).all()
+        f.notes = (
+            db.query(FindingNotes)
+            .filter_by(finding_id=f.id)
+            .order_by(FindingNotes.inserted_at.desc())
+            .all()
+        )
+
     db.close()
-    return render_template("case_detail.html", case=case, case_notes=case_notes, findings=findings)
+    return render_template(
+        "case_detail.html",
+        case=case,
+        case_notes=case_notes,
+        findings=findings
+    )
 
 @cases_bp.route("/case/<int:case_id>/note/add", methods=["POST"])
 def add_case_note(case_id):

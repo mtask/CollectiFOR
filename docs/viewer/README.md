@@ -13,9 +13,13 @@ You can also launch viewer at the same time with `--init`, `--analysis`, and/or 
 Ensure you are using configuration file which database path(s) match the wanted collection and/or timeline databases.
 > [!WARNING]
 > Viewer is intended to be hosted as local web application and it's binded by default to `localhost:5000`. 
-> It's not safe to expose it to a network as there's login and functionalities are intended for local use only.
-> App does not follow common web security practices by design in functionalities like direct SQL query access.
+> It's not safe to expose it to a network as there's no login requirement and its functionalities are intended for local use only.
+> App does not follow common web security practices by design in functionalities like direct SQL query access etc.
+  
+**Findings and Cases: **
 
+There's a simple Case management which allows to link findings together. Findings can also be "acked" and "unacked" which can be used to indicate that a finding is false positive, checked, or what ever suites the workflow.
+Findings page allows then filtering based on ack status or based on case. More details about this in below sections.
   
 **Functionalities:**
 
@@ -68,7 +72,7 @@ Findings from analysis. Supports a simple query language. See its instructions b
 ![](imgs/findings.png)
 
 Findings can be "acked" or "unacked". Acking prompts for a "reason" which is added to related finding(s). You can mass ack/unack all the findings visible in the listing and give one reson for all.
-Given reason is shown in finding's note section in its own page. There you can also add more notes.
+Given reason is shown in finding's note section in its own page. There you can also add more notes. Findings can also be linked together with cases. More about this below.
 
 ![](imgs/findings2.png)
 
@@ -82,6 +86,30 @@ The collection list automatically includes collection "extra" which you can sele
 </details>
 
 <details>
+<summary>Cases</summary>
+
+Simple case management that allows linking findings together.
+
+![](imgs/cases1.png)
+
+You can assing a finding to case
+
+![](imgs/cases2.png)
+
+You can add comments to cases as well as to a single finding. When the case is opened it shows the case's comments and findings assigned to that case.
+
+![](imgs/cases3.png)
+
+</details>
+
+<details>
+<summary>Tools</summary>
+
+Link to some additional tools. Currently includes embedded Cyberchef (local copy).
+
+</details>
+
+<details>
 <summary>Network</summary>
 
 Network data search against ingested data from collection's PCAP file.
@@ -89,7 +117,6 @@ Network data search against ingested data from collection's PCAP file.
 ![](imgs/network.png)
 
 </details>
-
 
 <details>
 

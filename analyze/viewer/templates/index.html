@@ -60,9 +60,9 @@
 {% block content %}
 <div class="text-center my-5">
     <!-- Logo -->
-    <img src="{{ url_for('static', filename='img/collectifor.png') }}" 
+    <img src="{{ url_for('static', filename='img/logo.png') }}" 
          alt="CollectiFOR Logo" 
-         class="img-fluid mb-4" style="height: 400px;">
+         class="img-fluid mb-4" width="900" height="200">
 
     <!-- Collections -->
 {% if collections %}
@@ -137,6 +137,15 @@
 	    <a href="/listeners" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
 	        Listeners <i class="bi bi-broadcast ms-2"></i>
 	    </a>
+           <a href="/findings" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
+               Findings <i class="bi bi-shield-exclamation ms-2"></i>
+           </a>
+           <a href="/cases" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
+               Cases <i class="bi bi-briefcase ms-2"></i>
+           </a>
+           <a href="/tools" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
+               Tools <i class="bi bi-gear ms-2"></i>
+           </a>
 	    <a href="/timeline" class="list-group-item list-group-item-action bg-dark text-light mb-2 text-center">
 	        Timeline Explorer <i class="bi bi-clock-history ms-2"></i>
 	    </a>

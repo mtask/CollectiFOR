@@ -100,14 +100,32 @@ def findings():
         all_cases_filter=all_cases_filter
     )
 
-@findings_bp.route("/<int:finding_id>", methods=["GET", "POST"])
+@findings_bp.route("/<int:finding_id>", methods=["GET", "POST", "DELETE"])
 def finding_detail(finding_id):
     db = get_session()
 
+    # --- DELETE ---
+    if request.method == "DELETE":
+        finding = db.query(Finding).get(finding_id)
+        if not finding:
+            db.close()
+            return jsonify({"error": "Finding not found"}), 404
+
+        # Optional: delete related notes first if no cascade
+        db.query(FindingNotes).filter(
+            FindingNotes.finding_id == finding_id
+        ).delete()
+
+        db.delete(finding)
+        db.commit()
+        db.close()
+
+        return "", 204  # No Content
+
+    # --- POST ---
     if request.method == "POST":
         data = request.get_json() or {}
 
-        # CASE 1: Add comment (existing behavior)
         if "comment" in data:
             comment = data.get("comment", "").strip()
             if not comment:
@@ -123,7 +141,7 @@ def finding_detail(finding_id):
             db.close()
             return jsonify({"status": "ok"})
 
-    # GET
+    # --- GET ---
     finding = db.query(Finding).get(finding_id)
     if not finding:
         db.close()
@@ -136,11 +154,15 @@ def finding_detail(finding_id):
         .all()
     )
 
-    # For adding finding to a case
     all_cases = db.query(Cases).order_by(Cases.inserted_at.desc()).all()
 
     db.close()
-    return render_template("finding_detail.html", finding=finding, comments=comments, all_cases=all_cases)
+    return render_template(
+        "finding_detail.html",
+        finding=finding,
+        comments=comments,
+        all_cases=all_cases
+    )
 
 @findings_bp.route("/<int:finding_id>/ack", methods=["POST"])
 def update_ack(finding_id):

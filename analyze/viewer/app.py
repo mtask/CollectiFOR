@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, current_app, jsonify, session
 from viewer.cases import cases_bp
 from viewer.timelines import timelines_bp
 from viewer.findings import findings_bp
+from viewer.tools import tools_bp
 from viewer.filters import apply_collection_filter, apply_text_query
 from flask import session as flask_session
 from sqlalchemy import create_engine, or_, not_, insert
@@ -11,6 +12,7 @@ from viewer.database import get_session
 from viewer.timelines import get_timelines
 import os
 import html
+import secrets
 
 from lib.db import (
     CommandOutput,
@@ -31,7 +33,8 @@ app = Flask(__name__)
 app.register_blueprint(cases_bp)
 app.register_blueprint(timelines_bp)
 app.register_blueprint(findings_bp)
-app.secret_key = "super-secret-key"
+app.register_blueprint(tools_bp)
+app.secret_key = secrets.token_hex(64)
 
 
 

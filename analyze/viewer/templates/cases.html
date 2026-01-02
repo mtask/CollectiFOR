@@ -9,11 +9,28 @@
 <!-- Cases List -->
 <ul class="list-group mb-3" id="cases-list">
   {% for case in all_cases %}
-  <li class="list-group-item list-group-item-action bg-dark text-light d-flex justify-content-between align-items-center">
+  <li
+    class="list-group-item bg-dark text-light d-flex justify-content-between align-items-center"
+    data-id="{{ case.id }}"
+  >
     <a href="{{ url_for('cases.case_detail', case_id=case.id) }}" class="text-light">
       {{ case.case_name }}
     </a>
-    <span class="text-light small">{{ case.inserted_at.strftime('%Y-%m-%d %H:%M') }}</span>
+
+    <div class="d-flex align-items-center gap-2">
+      <span class="text-light small">
+        {{ case.inserted_at.strftime('%Y-%m-%d %H:%M') }}
+      </span>
+
+      <button
+        type="button"
+        class="btn btn-sm btn-danger delete-case-btn"
+        data-id="{{ case.id }}"
+        title="Delete case"
+      >
+        <i class="bi bi-trash"></i>
+      </button>
+    </div>
   </li>
   {% endfor %}
 </ul>
@@ -21,7 +38,7 @@
 <script>
 $(document).ready(function () {
 
-  // Add new case note
+  // --- Add new case note ---
   $('#save-case-note').on('click', function() {
     const comment = $('#new-case-note').val().trim();
     if (!comment || !currentCaseId) return;
@@ -45,7 +62,7 @@ $(document).ready(function () {
     });
   });
 
-  // ✅ Add new case (POST JSON {"case_name": ...})
+  // --- Add new case ---
   $('#new-case-btn').on('click', function() {
     const caseName = prompt("Enter new case name:");
     if (!caseName) return;
@@ -58,16 +75,50 @@ $(document).ready(function () {
     .then(r => r.json())
     .then(newCase => {
       const html = `
-        <li class="list-group-item list-group-item-action bg-dark text-light d-flex justify-content-between align-items-center">
+        <li
+          class="list-group-item bg-dark text-light d-flex justify-content-between align-items-center"
+          data-id="${newCase.id}"
+        >
           <a href="/cases/case/${newCase.id}" class="text-light">
             ${newCase.case_name}
           </a>
-          <span class="text-light small">
-            ${new Date(newCase.inserted_at).toLocaleString()}
-          </span>
+
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-light small">
+              ${new Date(newCase.inserted_at).toLocaleString()}
+            </span>
+            <button
+              type="button"
+              class="btn btn-sm btn-danger delete-case-btn"
+              data-id="${newCase.id}"
+            >
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
         </li>`;
       $('#cases-list').prepend(html);
     });
+  });
+
+  // --- Delete case ---
+  $(document).on('click', '.delete-case-btn', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const caseId = $(this).data('id');
+
+    if (!confirm('Delete this case? This action cannot be undone.')) {
+      return;
+    }
+
+    fetch(`/cases/case/${caseId}`, {
+      method: 'DELETE'
+    })
+    .then(res => {
+      if (!res.ok) throw new Error();
+      $(`li[data-id="${caseId}"]`).remove();
+    })
+    .catch(() => alert('Failed to delete case'));
   });
 
 });

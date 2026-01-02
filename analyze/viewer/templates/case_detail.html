@@ -39,7 +39,7 @@
 
       <!-- Accordion toggle button -->
       <button class="accordion-button collapsed flex-grow-1" type="button" data-bs-toggle="collapse" data-bs-target="#finding-{{ f.id }}">
-        {{ f.message }}
+        {% if f.ack %}✅{% else %}⚠️ {%endif%} {{ f.message }}
       </button>
     </h2>
 
