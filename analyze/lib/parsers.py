@@ -374,16 +374,16 @@ class PcapParser:
         self.db.add_pcap_packets(rows)
 
 class FilesAndDirsParser:
-    SUBDIR = "files_and_dirs"
 
-    def __init__(self, db):
+    def __init__(self, db, subdir="files_and_dirs"):
         self.db = db
+        self.subdir = subdir
 
     def parse_dir(self, collection_dir):
-        base_dir = os.path.join(collection_dir, self.SUBDIR)
+        base_dir = os.path.join(collection_dir, self.subdir)
 
         if not os.path.isdir(base_dir):
-            logging.error('[-] "files_and_dirs" directory not found')
+            logging.error(f'[-] "{base_dir}" directory not found')
             return
 
         collection_realpath = os.path.realpath(collection_dir)
