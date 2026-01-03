@@ -1,4 +1,7 @@
 {% extends "base.html" %}
+{% block style %}
+{% include '_markdown_style.html' %}
+{% endblock %}
 {% block content %}
 <div class="container-fluid px-4 text-light">
   <div class="d-flex flex-column flex-md-row align-items-center justify-content-center justify-content-md-between mb-3 w-100">
@@ -120,7 +123,7 @@
       {% for c in comments %}
           <tr>
               <td>{{ c.inserted_at }}</td>
-              <td>{{ c.finding_comment }}</td>
+              <td class="markdown">{{ c.finding_comment|render_markdown }}</td>
           </tr>
       {% endfor %}
       </tbody>

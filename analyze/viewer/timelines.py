@@ -164,7 +164,13 @@ def timeline_query():
         except Exception as e:
             result_df = pd.DataFrame([{"Error": str(e)}])
     else:
-        result_df = conn.execute("PRAGMA table_info('timeline_events')").df()
+        try:
+            result_df = conn.execute("PRAGMA table_info('timeline_events')").df()
+        except Exception as e:
+            if "timeline_events does not exist" in str(e):
+                result_df = pd.DataFrame([{"Error": "No timeline data"}])
+            else:
+                result_df = pd.DataFrame([{"Error": str(e)}])
 
     saved_queries = conn.execute(
         "SELECT name, query FROM saved_queries ORDER BY name"
@@ -217,43 +223,49 @@ def timeline_chart_data():
 
     where_sql = f"WHERE {' AND '.join(filters)}" if filters else ""
 
-    # Min/Max timestamps
-    min_ts, max_ts = conn.execute(
-        f"SELECT MIN(timestamp), MAX(timestamp) FROM timeline_events {where_sql}"
-    ).fetchone()
-    if min_ts is None or max_ts is None:
-        return jsonify({"labels": [], "counts": []})
+    try:
+        # Min/Max timestamps
+        min_ts, max_ts = conn.execute(
+            f"SELECT MIN(timestamp), MAX(timestamp) FROM timeline_events {where_sql}"
+        ).fetchone()
+        if min_ts is None or max_ts is None:
+            return jsonify({"labels": [], "counts": []})
 
-    span_seconds = (max_ts - min_ts)/1_000_000
-    bucket = get_bucket_from_span(span_seconds)
+        span_seconds = (max_ts - min_ts)/1_000_000
+        bucket = get_bucket_from_span(span_seconds)
 
-    # Fixed aggregation: divide by 1_000_000.0 to make float for TO_TIMESTAMP
-    data_sql = f"""
-        SELECT
-            DATE_TRUNC('{bucket}', TO_TIMESTAMP(timestamp / 1000000.0)) AS bucket,
-            COUNT(*) AS count
-        FROM timeline_events
-        {where_sql}
-        GROUP BY bucket
-        ORDER BY bucket
-    """
-    rows = conn.execute(data_sql).fetchall()
+        # Fixed aggregation: divide by 1_000_000.0 to make float for TO_TIMESTAMP
+        data_sql = f"""
+            SELECT
+                DATE_TRUNC('{bucket}', TO_TIMESTAMP(timestamp / 1000000.0)) AS bucket,
+                COUNT(*) AS count
+            FROM timeline_events
+            {where_sql}
+            GROUP BY bucket
+            ORDER BY bucket
+        """
+        rows = conn.execute(data_sql).fetchall()
 
-    # Labels, counts
-    labels = []
-    counts = []
-    for r in rows:
-        dt = r[0]
-        if bucket == 'YEAR':
-            labels.append(dt.strftime("%Y"))
-        elif bucket == 'MONTH':
-            labels.append(dt.strftime("%b %Y"))
-        elif bucket == 'DAY':
-            labels.append(dt.strftime("%d %b %Y"))
-        elif bucket == 'HOUR':
-            labels.append(dt.strftime("%d %b %H:%M"))
+        # Labels, counts
+        labels = []
+        counts = []
+        for r in rows:
+            dt = r[0]
+            if bucket == 'YEAR':
+                labels.append(dt.strftime("%Y"))
+            elif bucket == 'MONTH':
+                labels.append(dt.strftime("%b %Y"))
+            elif bucket == 'DAY':
+                labels.append(dt.strftime("%d %b %Y"))
+            elif bucket == 'HOUR':
+                labels.append(dt.strftime("%d %b %H:%M"))
+            else:
+                labels.append(dt.strftime("%d %b %H:%M"))
+            counts.append(r[1])
+    except Exception as e:
+        if "name timeline_events does not exist" in str(e):
+            labels = []
+            counts = []
         else:
-            labels.append(dt.strftime("%d %b %H:%M"))
-        counts.append(r[1])
-
+            raise e
     return jsonify({"labels": labels, "counts": counts})

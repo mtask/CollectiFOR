@@ -10,6 +10,9 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 from viewer.database import get_session
 from viewer.timelines import get_timelines
+import markdown
+import bleach
+from markupsafe import Markup
 import os
 import html
 import secrets
@@ -36,6 +39,35 @@ app.register_blueprint(findings_bp)
 app.register_blueprint(tools_bp)
 app.secret_key = secrets.token_hex(64)
 
+@app.template_filter("render_markdown")
+def render_markdown(text):
+    if not text:
+        return ""
+
+    html = markdown.markdown(
+        text,
+        extensions=["extra", "nl2br", "fenced_code"]
+    )
+
+    allowed_tags = bleach.sanitizer.ALLOWED_TAGS.union({
+        "p", "pre", "code", "blockquote",
+        "h1", "h2", "h3", "h4", "h5", "h6",
+        "ul", "ol", "li", "strong", "em",
+        "a", "br"
+    })
+
+    allowed_attrs = {
+        "a": ["href", "title", "rel"]
+    }
+
+    clean_html = bleach.clean(
+        html,
+        tags=allowed_tags,
+        attributes=allowed_attrs,
+        strip=True
+    )
+
+    return Markup(clean_html)
 
 @app.template_filter('datetimeformat')
 def datetimeformat(value, format='%Y-%m-%d %H:%M:%S'):
