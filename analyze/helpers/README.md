@@ -2,6 +2,18 @@
 
 Scripts assume that CWD is `analyze` directory.
 
+## ingest_disk.py
+
+Ingest checksums and file and directory paths from a mounted disk image.
+
+```bash
+python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/4Dell.E01-p1/ --checksums --files
+```
+
+Last two arguments (`--checksums --files`) define the initialization modules to enable. Data is added to a new collection that is named based on mount directory and prefixed with "DISK_". For example, `DISK_4Dell.E01-p1`.
+
+You can also target only a sub-directory path within the mounted disk image with argument `--subdir / -s <path inside the disk mount>`. Provided path can be the absolute path to sub-directory or relative path from the mountpoint.
+
 ## analyze_disk.py
 
 Run analysis modules with a mounted disk image. (check disk helpers for mounting raw or E01 images)

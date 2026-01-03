@@ -58,7 +58,7 @@ if __name__=="__main__":
     args = parser.parse_args()
     config = load_config(args.config)
     findings = []
-    db = DB(config['collection_database'], f"DISK_{pathlib.Path(args.disk).name}", args.disk, init=True)
+    db = DB(config['collection_database'], f"DISK_{pathlib.Path(args.disk).name}", args.disk, init=False)
     if args.subdir:
         if args.subdir.startswith(args.disk):
             target_path = args.subdir
@@ -82,5 +82,4 @@ if __name__=="__main__":
         findings = findings + mp.search(config['analysis']['pattern'], target_path)
     if findings:
         logging.info(f"Adding {len(findings)} findings to database.")
-        db.add_collection_info({"date": datetime.now(), "interfaces": {}, "os": {}, "hostname": ""})
         db.add_finding_entries(findings)

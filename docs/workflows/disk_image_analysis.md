@@ -20,12 +20,26 @@ helpers/disk_e01.sh /tmp/sample/sample.E01
 
 </details>
 
-
 <details>
-<summary>3. Run analyze_disk helper script</summary>
+<summary>4. Init collection from disk image</summary>
 
 ```bash
-python3 -m helpers.analyze_disk -c config.yaml -d /mnt/forensic/sample.E01-p1/ --yara --files --patterns
+python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/sample.E01-p1/ --checksums --files
+```
+
+In case you want to target only specific sub-directory inside the mounted image use `--subdir`:
+
+```bash
+python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/4Dell.E01-p1/ --checksums --files --subdir 'sub/path'
+```
+
+</details>
+
+<details>
+<summary>4. Run analyze_disk helper script</summary>
+
+```bash
+python3 -m helpers.analyze_disk -c config.yaml -d /mnt/forensic/sample.E01-p1/ --yara --files --pattern
 ```
 
 In case you want to target only specific sub-directory inside the mounted image use `--subdir`:
@@ -37,7 +51,7 @@ python3 -m helpers.analyze_disk -c config.yaml -d /mnt/forensic/sample.E01-p1/ -
 </details>
 
 <details>
-<summary>4. Run viewer to see added findings</summary>
+<summary>5. Run viewer to see added findings and ingested data</summary>
 
 The helper script outputs if there wer findings added. You can then view the findings with CollectionFOR's viewer:
   
