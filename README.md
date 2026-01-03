@@ -4,6 +4,7 @@
 CollectiFOR is a digital forensics and incident response (DFIR) toolkit to collect and analyze system and network artifacts from Linux based target machines.
 Supports file collection, disk acquisition, memory acquisition, network capture, checksum calculation, and analysis of indicators of compromise. 
 
+## Reposity structure
 This repository is splitted in two main sections:
 
 **collect/**:
@@ -14,7 +15,7 @@ This repository is splitted in two main sections:
 See [collect/README.md](collect/README.md)  
 (Remote collection: see [ansible-collect](ansible_collect/README.md))
   
-**analyze/**
+**analyze/**:
   
 * collectifor.py -\>  Data ingestion (collections collected with `collect` tools and JSONL timeline ingestion), analysis tools (YARA, patterns, etc.), and web based viewer component (collection navigation, search, timeline explorer, etc.)
 * helpers/ -\> Plaso, zeek, etc. docker container launch scripts, additional collectien analysis, etc.
