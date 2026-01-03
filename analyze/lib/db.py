@@ -183,10 +183,10 @@ class DB:
             session.add(Collections(
                 collection_name=self.collection_name,
                 collection_abs_path=self.collection_abs_path,
-                collection_date=collection_info['date'],
-                collection_interfaces=collection_info['interfaces'],
-                collection_os=collection_info['os'],
-                collection_hostname=collection_info['hostname']
+                collection_date=collection_info.get('date', datetime.now()),
+                collection_interfaces=collection_info.get('interfaces', {}),
+                collection_os=collection_info.get('os', {}),
+                collection_hostname=collection_info.get('hostname', "")
             ))
             session.commit()
             session.close()
