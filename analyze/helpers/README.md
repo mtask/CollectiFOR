@@ -1,5 +1,20 @@
 # Helper scripts
 
+Scripts assume that CWD is `analyze` directory.
+
+## analyze_disk.py
+
+Run analysis modules with a mounted disk image. (check disk helpers for mounting raw or E01 images)
+
+```bash
+python3 -m helpers.analyze_disk -c config.yaml -d /mnt/forensic/4Dell.E01-p1/ --pattern --yara --files
+```
+
+Last three (`--pattern --yara --files`) define the analysis modules you want to enable. Findings are added to collection named based on mount directory and prefixed with "DISK_". For examp, `DISK_4Dell.E01-p1`.
+
+You can target sub-directory only, within the disk mount paht, with argument `--subdir / -s <path inside the disk mount>`. Provided path can be absolute path or relative path from the mountpoint.
+
+
 ## hasher.py 
 
 TBD -> ingest collection findings ?
