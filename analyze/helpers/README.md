@@ -62,6 +62,16 @@ root@ee4c81067f78:/out# ls /data/20251218_092648/
 capture  checksums  commands  file_permissions.txt  files_and_dirs  listeners.json
 ```
 
+## Threatofx | threatfox_to_yara.py
+
+Generate YARA rules from Threatfox's CSV exports.
+
+Download CSV files from: https://threatfox.abuse.ch/export/
+  
+```
+python3 -m helpers.threatfox_to_yara path/to/full.csv
+```
+
 ## Zeek | zeek.sh
 
 Runs zeek/zeek docker container and runs analysis with the collecntion's PCAP file.
