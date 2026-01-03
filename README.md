@@ -4,7 +4,7 @@
 CollectiFOR is a digital forensics and incident response (DFIR) toolkit to collect and analyze system and network artifacts from Linux based target machines.
 Supports file collection, disk acquisition, memory acquisition, network capture, checksum calculation, and analysis of indicators of compromise. 
 
-## Reposity structure
+## Repository structure
 This repository is splitted in two main sections:
 
 **collect/**:
