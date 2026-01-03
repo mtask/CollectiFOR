@@ -2,9 +2,11 @@
 
 <details>
 <summary>1. Mount disk image</summary>
+
 ```bash
 helpers/disk_e01.sh /tmp/sample/sample.E01 
 ```
+
 </details>
 
 
