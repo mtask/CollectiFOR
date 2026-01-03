@@ -22,7 +22,7 @@ if __name__=="__main__":
         format="%(asctime)s %(levelname)s %(message)s",
     )
     parser = argparse.ArgumentParser(
-        description="Compare collections"
+        description="Analyze mounted disk image and ingest findings to CollectiFOR's database"
     )
 
     parser.add_argument(
