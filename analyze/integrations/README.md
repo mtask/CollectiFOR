@@ -1,4 +1,4 @@
-You can quite easily integrate findings from other tools as long as you can support the schema for the findings database table.
+You can quite easily integrate findings from other tools with python code as long as you can modify results to support schema of the `findings` database table.
 
 ```sql
 CREATE TABLE findings (
@@ -19,6 +19,7 @@ CREATE TABLE findings (
 	ack INTEGER, 
 	inserted_at DATETIME, 
 	PRIMARY KEY (id)
+);
 ```
 
 `sample.py` file shows an sample "integration" where `get_findings` function mimics the 3rd party tool results. Sample script can be launched like this: `python3 -m integrations.sample -c config.yaml`.
