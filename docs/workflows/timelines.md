@@ -1,7 +1,7 @@
 
 # Super Timelines | PLASO
 
-These examples use a script from [helpers dict](../../helpers/README.md).
+These examples use a script from [helpers dict](../../analyze/helpers/README.md).
 
 ## Collection -> Plaso -> JSONL -> Explore
 
