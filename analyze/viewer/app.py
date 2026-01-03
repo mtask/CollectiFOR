@@ -215,11 +215,14 @@ def view_file():
         return render_template("file_view.html", path=rel_path, content="Collection directory not found from the database", parent_dir=parent_dir)
     if not os.path.isdir(collection_dir):
         return render_template("file_view.html", path=rel_path, content=f"Collection directory {collection_dir} not found", parent_dir=parent_dir)
-    file_path = os.path.join(collection_dir, "files_and_dirs", rel_path.lstrip("/"))
-
-    if not os.path.isfile(file_path):
+    fp1 = os.path.join(collection_dir, "files_and_dirs", rel_path.lstrip("/"))
+    fp2 = os.path.join(collection_dir, rel_path.lstrip("/"))
+    if os.path.isfile(fp1):
+        file_path = fp1
+    elif os.path.isfile(fp2):
+        file_path = fp2
+    else:
         return "File not found", 404
-
     with open(file_path, "r", errors="replace") as f:
         content = f.read()
 
