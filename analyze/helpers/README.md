@@ -10,9 +10,9 @@ Run analysis modules with a mounted disk image. (check disk helpers for mounting
 python3 -m helpers.analyze_disk -c config.yaml -d /mnt/forensic/4Dell.E01-p1/ --pattern --yara --files
 ```
 
-Last three (`--pattern --yara --files`) define the analysis modules you want to enable. Findings are added to collection named based on mount directory and prefixed with "DISK_". For examp, `DISK_4Dell.E01-p1`.
+Last three arguments (`--pattern --yara --files`) define the analysis modules to enable. Findings are added to a new collection that is named based on mount directory and prefixed with "DISK_". For example, `DISK_4Dell.E01-p1`.
 
-You can target sub-directory only, within the disk mount paht, with argument `--subdir / -s <path inside the disk mount>`. Provided path can be absolute path or relative path from the mountpoint.
+You can also target only a sub-directory path within the mounted disk image with argument `--subdir / -s <path inside the disk mount>`. Provided path can be the absolute path to sub-directory or relative path from the mountpoint.
 
 
 ## hasher.py 

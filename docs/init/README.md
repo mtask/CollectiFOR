@@ -6,6 +6,9 @@ After collection database initialization (data ingestion)  move to [analysis](..
 > Do not remove your extracted collection if you want to run automatic analysis against it. Some viewer funcationalities (File Navigator) will also not fully work without access the original collection.
 > If you do not need access to files via viewer's file navigator then it's safe to remove or move the original extracted path (after analysis if used).
 
+> [!TIP]
+> collectifor.py does not directly support analysis of disk images, but you can use helper scripts to analyze disk image contents. More information [here](../workflows/disk_image_analysis.md).
+
 ## Collections
 
 Collection ingestion is launched with the `--init` option. In addition you need to provide path to collection directory or tar.gz file with `--collection <path>` and path to configuration file with `-c <config>.yaml`.

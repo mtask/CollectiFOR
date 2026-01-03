@@ -1,7 +1,7 @@
 
 # Super Timelines | PLASO
 
-These examples use a script from [helpers dict](../../analyze/helpers/README.md).
+These workflows use provided [helper scripts](../../analyze/helpers/README.md).
 
 ## Collection -> Plaso -> JSONL -> Explore
 

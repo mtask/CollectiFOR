@@ -12,6 +12,9 @@ python3 collectifor.py -c config.yaml.sample --init --analysis --collection /col
 > If you provide collection path to already extracted tar.gz file, the collectifor.py will automatically use the existing directory.
 > Manually providing directory path (instead of tar.gz) needs to be pointed to `<path>/<hostname>_<ts>/<ts>/` -> collection files like `files_and_dirs` directory are in this path.
 
+> [!TIP]
+> collectifor.py does not directly support analysis of disk images, but you can use helper scripts to analyze disk image contents. More information [here](../workflows/disk_image_analysis.md).
+
 Modify the config.yaml.sample file to match your needs before running the analysis. Module details are listed below, but here's a short overview of the configuration options:
 
 * Database paths are defined at top-level. These should be the same as during the `--init` run.

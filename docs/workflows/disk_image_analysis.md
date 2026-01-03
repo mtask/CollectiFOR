@@ -1,5 +1,7 @@
 ## Run analysis modules against mounted disk image
 
+This workflow uses provided [helper scripts](../../analyze/helpers/README.md).
+
 <details>
 <summary>1. Navigate to analyze directory</summary>
 
@@ -23,7 +25,25 @@ helpers/disk_e01.sh /tmp/sample/sample.E01
 <summary>3. Run analyze_disk helper script</summary>
 
 ```bash
-python3 -m helpers.analyze_disk -c config.yaml -d /mnt/forensic/sample.E01-p1/
+python3 -m helpers.analyze_disk -c config.yaml -d /mnt/forensic/sample.E01-p1/ --yara --files --patterns
 ```
 
+In case you want to target only specific sub-directory inside the mounted image use `--subdir`:
+
+```bash
+python3 -m helpers.analyze_disk -c config.yaml -d /mnt/forensic/sample.E01-p1/ --yara --files --patterns --subdir 'sub/path'
+```
+
+</details>
+
+<details>
+<summary>4. Run viewer to see added findings</summary>
+
+The helper script outputs if there wer findings added. You can then view the findings with CollectionFOR's viewer:
+  
+```
+python3 collectifor.py -c config.yaml.sample --viewer
+```
+  
+Open browser -\> `127.0.0.1:5000`.
 </details>
