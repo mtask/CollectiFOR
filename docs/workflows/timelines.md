@@ -3,7 +3,7 @@
 
 These examples use a script from [helpers dict](../../helpers/README.md).
 
-## Plaso -> JSONL -> Explore
+## Collection -> Plaso -> JSONL -> Explore
 
 <details>
 <summary> 1. Run collect and fetch the collection</summary>
@@ -22,6 +22,60 @@ mkdir -p /cases/$CASE/plaso
 helpers/plaso.sh ../ansible_collect/fetched_collections/rl_20251217_200032/20251217_200032/ /cases/$CASE/plaso
 # drops you in docker container with Plaso tools
 log2timeline.py /data/files_and_dirs/var/log/
+```
+Without specifying `--storage_file <output>.plaso` log2timeline will generate file with name pattern `<timestamp>-log.plaso`
+</details>
+
+<details>
+<summary> 3. Create JSON lines output log</summary>
+
+```bash
+psort.py -o json_line -w x.timeline.jsonl <created-timeline>.plaso
+# exit from the container
+exit
+```
+</details>
+
+<details>
+<summary> 4. Load JSONL to CollectiFOR</summary>
+
+```bash
+python3 collectifor.py -c config.yaml.sample -tf x.timeline.jsonl
+```
+</details>
+
+<details>
+<summary> 5. Analyze data in CollectiFOR Viewer</summary>
+
+```bash
+python3 collectifor.py -c config.yaml.sample --viewer
+```
+
+* Open 127.0.0.1:5000 in browser.
+
+</details>
+
+
+## Disk image -> Plaso -> JSONL -> Explore
+
+<details>
+<summary> 1. Mount disk image</summary>
+
+```bash
+cd <collectifor path>/analyze/
+helpers/disk_e01.sh /tmp/sample/sample.E01
+```
+</details>
+
+<details>
+<summary> 2. Use log2timeline to generate timeline</summary>
+
+```bash
+read -p "Case: " CASE
+mkdir -p /cases/$CASE/plaso
+helpers/plaso.sh /mnt/forensic/sample.E01-p1/ /cases/$CASE/plaso
+# drops you in docker container with Plaso tools
+log2timeline.py /data/
 ```
 Without specifying `--storage_file <output>.plaso` log2timeline will generate file with name pattern `<timestamp>-log.plaso`
 </details>
