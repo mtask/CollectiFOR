@@ -197,6 +197,10 @@ Directories are always recursive. Md5, sha1, and sha256 outputs are stored in se
 md5.txt  sha1.txt  sha256.txt
 ```
 
+Note that CollectiFOR's analysis tools has option to populate checksums from files copied to `files_and_dirs` (see below). Based on what you want it's possible to use both types to populate checksums.
+For example, you may want to have checksums for some files without copying the actual file. Then this module is ideal for that. If you are copying all the relevant paths with `files_and_dirs` it might be enough to calculate checksums in analysis phases and disable this module.
+
+
 </details>
 
 <details>

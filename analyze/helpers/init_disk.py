@@ -6,36 +6,12 @@ import os
 import sys
 from pathlib import Path
 from lib.db import DB
-from lib.hash import get_sha1, get_sha256, get_md5
-from lib.parsers import FilesAndDirsParser, BasicInfoParser
+from lib.parsers import FilesAndDirsParser, BasicInfoParser, FilesAndDirsChecksumParser
 
 def load_config(path):
     with open(path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
     return data
-
-
-def generate_hashes(file_path):
-    _sha1 = get_sha1(file_path)
-    _sha256 = get_sha256(file_path)
-    _md5 = get_md5(file_path)
-
-def ingest_checksums(dir_path):
-    checksums = []
-    for f in Path(dir_path).rglob("*"):
-        if not os.path.isfile(f):
-            continue
-        logging.info(f'[+] Generating checksums for file "{f}"')
-        md5 = get_md5(f)
-        sha1 = get_sha1(f)
-        sha256 = get_sha256(f)
-        if sha256:
-            checksums.append({"filepath": str(f), "checksum": sha256, "algorithm": "sha256"})
-        if sha1:
-            checksums.append({"filepath": str(f), "checksum": sha1, "algorithm": "sha1"})
-        if md5:
-            checksums.append({"filepath": str(f), "checksum": md5, "algorithm": "md5"})
-    return checksums
 
 if __name__=="__main__":
     logging.basicConfig(
@@ -99,10 +75,9 @@ if __name__=="__main__":
     else:
         db.add_collection_info({"date": datetime.now(), "interfaces": {}, "os": {}, "hostname": ""})
     if args.checksums:
+        fpc = FilesAndDirsChecksumParser(db, subdir="")
         logging.info("[+] Running checksums")
-        checksums = ingest_checksums(target_path)
-        if checksums:
-            db.add_checksums(checksums)
+        fpc.parse_dir(target_path)
     if args.files:
         logging.info("[+] Running files and dirs")
         fp = FilesAndDirsParser(db, subdir="")

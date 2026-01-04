@@ -1,5 +1,9 @@
 collection_database: './collectifor.db'
 timeline_database: './timeline.duckdb'
+init:
+  # Populate checksums from files_and_dirs and add to collection databases
+  # When false only checksums from "checksums/*.txt" content is added
+  files_and_dirs_checksums: true
 analysis:
   enable_yara: true
   enable_pattern: true

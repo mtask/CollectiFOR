@@ -12,7 +12,7 @@ After collection database initialization (data ingestion)  move to [analysis](..
 ## Collections
 
 Collection ingestion is launched with the `--init` option. In addition you need to provide path to collection directory or tar.gz file with `--collection <path>` and path to configuration file with `-c <config>.yaml`.
-Modify the provided `config.yaml.sample` if needed. The `analysis` section in the configuration file does not matter in this phase. Only the database location(s) matter.
+Modify the provided `config.yaml.sample` if needed. The `analysis` section in the configuration file does not matter in this phase. Only the database location(s) and `init` section matter.
 
 ```
 sudo python3 collectifor.py -c config.yaml.sample --init --collection /collections/host_20251217_141749.tar.gz 
@@ -20,7 +20,16 @@ sudo python3 collectifor.py -c config.yaml.sample --init --collection /collectio
 
 You can combine `--init` with other phases like seen [here](../README.md), but this page focuses on the initialization phase.
 Initialization creates an SQLite3 database to path defined in config -> `collection_database`.
-
+  
+The below configuration defines if you want to populate checksums from collection's `files_and_dirs` content.
+When set to true, checksums are calculated from all files under the `files_and_dirs` and added to database.
+When setting is false only checksums from "checksums/*.txt" content is added to database.
+  
+```
+init:
+  files_and_dirs_checksums: true/false
+```
+  
 Below table shows which data is currently ingested to CollectiFOR database in initialization.
 
 
@@ -28,6 +37,7 @@ Below table shows which data is currently ingested to CollectiFOR database in in
 |----------------------|--------------------|------------------|
 | commands/            | CommandsParser     | command_output   |
 | checksums/           | ChecksumParser     | checksums        |
+| files_and_dirs/      | FilesAndDirsChecksumParser | checksums   |
 | files_and_dirs/      | FilesAndDirsParser | files_and_dirs   |
 | capture/*.pcap       | PcapParser         | pcap_packets     |
 | capture/*.pcap       | PcapParser         | network_flows    |

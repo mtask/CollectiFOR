@@ -4,6 +4,8 @@ import json
 import logging
 import shlex
 from datetime import datetime, timezone
+from lib.hash import get_sha1, get_sha256, get_md5
+from pathlib import Path
 from scapy.all import (
     rdpcap, IP, IPv6, TCP, UDP, ARP,
     Ether, ICMP, DNS, DNSQR
@@ -206,6 +208,40 @@ class ChecksumParser:
                     logging.warning(f"Failed to parse checksum line in {filepath}: {line} ({e})")
         return entries
 
+class FilesAndDirsChecksumParser:
+    """
+    Populate checksums from files_and_dirs content
+    """
+    def __init__(self, db, subdir="files_and_dirs"):
+        self.db = db
+        self.subdir = subdir
+
+    def ingest_checksums(self, dir_path):
+        checksums = []
+        for f in Path(dir_path).rglob("*"):
+            if not os.path.isfile(f):
+                continue
+            logging.info(f'[+] Generating checksums for file "{f}"')
+            md5 = get_md5(f)
+            sha1 = get_sha1(f)
+            sha256 = get_sha256(f)
+            if sha256:
+                checksums.append({"filepath": str(f), "checksum": sha256, "algorithm": "sha256"})
+            if sha1:
+                checksums.append({"filepath": str(f), "checksum": sha1, "algorithm": "sha1"})
+            if md5:
+                checksums.append({"filepath": str(f), "checksum": md5, "algorithm": "md5"})
+        return checksums
+
+    def parse_dir(self, collection_dir):
+        base_dir = os.path.join(collection_dir, self.subdir)
+        if not os.path.isdir(base_dir):
+            logging.error(f'[-] "{base_dir}" directory not found')
+            return
+
+        checksums = self.ingest_checksums(base_dir)
+        if checksums:
+            self.db.add_checksums(checksums)
 
 class PermissionsParser:
     """

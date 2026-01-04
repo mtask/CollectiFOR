@@ -15,6 +15,7 @@ from lib.parsers import (
     FilesAndDirsParser,
     ListenersParser,
     BasicInfoParser,
+    FilesAndDirsChecksumParser,
 )
 from lib.db_tl_duckdb import DB as DDB
 from lib.timeline import PlasoTimelineParser
@@ -39,6 +40,7 @@ PARSERS = [
     PcapParser,
     FilesAndDirsParser,
     ListenersParser,
+    FilesAndDirsChecksumParser,
 ]
 
 # -----------------------------
@@ -182,6 +184,9 @@ def main():
         for ParserCls in PARSERS:
             logging.info(f"[RUN] {ParserCls.__name__}")
             try:
+                if ParserCls.__name__ == "FilesAndDirsChecksumParser" and not config['init']['files_and_dirs_checksums']:
+                    logging.info("[-] FilesAndDirsChecksumParser not enabled")
+                    continue
                 parser = ParserCls(db)
                 parser.parse_dir(collection_dir)
             except Exception:
