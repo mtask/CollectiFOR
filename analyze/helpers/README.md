@@ -2,32 +2,24 @@
 
 Scripts assume that CWD is `analyze` directory.
 
-## ingest_disk.py
+## init_disk.py
 
-Ingest checksums and file and directory paths from a mounted disk image.
-
-```bash
-python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/4Dell.E01-p1/ --checksums --files
-```
-
-Last two arguments (`--checksums --files`) define the initialization modules to enable. Data is added to a new collection that is named based on mount directory and prefixed with "DISK_". For example, `DISK_4Dell.E01-p1`.
-  
-You can also target only a sub-directory path within the mounted disk image with argument `--subdir / -s <path inside the disk mount>`. Provided path can be the absolute path to sub-directory or relative path from the mountpoint.
-  
-If the disk image was captured with CollectiFOR's `collect` tool then path to collection dir can be optionally given with `--collection <collection_dir>`. This only adds details from `info.json` to collection details.
-  
-## analyze_disk.py
-
-Run analysis modules with a mounted disk image. (check disk helpers for mounting raw or E01 images)
+Ingest checksums and file and directory paths from a mounted disk image and analyze for findings. Run everything like this:
 
 ```bash
-python3 -m helpers.analyze_disk -c config.yaml -d /mnt/forensic/4Dell.E01-p1/ --pattern --yara --files
+python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/dev_vda.img-p1/  --all
 ```
 
-Last three arguments (`--pattern --yara --files`) define the analysis modules to enable. Findings are added to a new collection that is named based on mount directory and prefixed with "DISK_". For example, `DISK_4Dell.E01-p1`.
+Instead of `--all` you can also specify specific init or analysis modules.
 
+* `--checksums` -> Calculate checksums from the contents.
+* ` --ifiles` -> Index files and directories. Can be then navigated in CollectiFOR's viewer as long as the file path is still mounted on the same location.
+* `--pattern` -> Run Pattern analysis module
+* `--yara` -> Run Yara analysis module
+* `--files` -> Run Files analysis module
+
+Init data and findings are added to a new collection that is named based on mount directory and prefixed with "DISK_". For example, `DISK_4Dell.E01-p1_<TIMESTAMP>`.
 You can also target only a sub-directory path within the mounted disk image with argument `--subdir / -s <path inside the disk mount>`. Provided path can be the absolute path to sub-directory or relative path from the mountpoint.
-
 
 ## hasher.py 
 

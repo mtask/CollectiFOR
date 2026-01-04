@@ -7,6 +7,10 @@ import sys
 from pathlib import Path
 from lib.db import DB
 from lib.parsers import FilesAndDirsParser, BasicInfoParser, FilesAndDirsChecksumParser
+from modules import mod_files as mf
+from modules import mod_pattern as mp
+from modules import mod_yara as my
+
 
 def load_config(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -33,14 +37,14 @@ if __name__=="__main__":
         required=True
     )
     parser.add_argument(
-        "--collection",
-        help="Optionally provide path to collection directory with info.json if available from collect usage. Info.json data is parsed to collection details.",
-        required=False
-    )
-    parser.add_argument(
         "-s", "--subdir",
         help="Path to subdir inside the disk where to target the initialization. Can be full path or relative path from the disk mount path. Init is run against the full disk mount path if left empty.",
         required=False
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Run all ingest and analysis modules. No need to provide specific module options."
     )
     parser.add_argument(
         "--checksums",
@@ -48,9 +52,24 @@ if __name__=="__main__":
         help="Ingest checksums"
     )
     parser.add_argument(
-        "--files",
+        "--ifiles",
         action="store_true",
         help="Ingest file and directory paths"
+    )
+    parser.add_argument(
+        "--yara",
+        action="store_true",
+        help="Run YARA analysis module"
+    )
+    parser.add_argument(
+        "--files",
+        action="store_true",
+        help="Run Files analysis module"
+    )
+    parser.add_argument(
+        "--pattern",
+        action="store_true",
+        help="Run Pattern module"
     )
     args = parser.parse_args()
     config = load_config(args.config)
@@ -69,16 +88,28 @@ if __name__=="__main__":
         sys.exit(1)
     else:
        logging.info(f'[+] Running initialization with target path: "{target_path}"')
-    if args.collection and os.path.isfile(os.path.join(args.collection, "info.json")):
-        pi = BasicInfoParser(db)
-        pi.parse_dir(args.collection)
-    else:
-        db.add_collection_info({"date": datetime.now(), "interfaces": {}, "os": {}, "hostname": ""})
-    if args.checksums:
+    db.add_collection_info({"date": datetime.now(), "interfaces": {}, "os": {}, "hostname": ""})
+    if args.checksums or args.all:
         fpc = FilesAndDirsChecksumParser(db, subdir="")
         logging.info("[+] Running checksums")
         fpc.parse_dir(target_path)
-    if args.files:
+    if args.files or args.all:
         logging.info("[+] Running files and dirs")
         fp = FilesAndDirsParser(db, subdir="")
         fp.parse_dir(target_path)
+    ###
+    # Analysis
+    ###
+    findings = []
+    if args.yara or args.all:
+        logging.info("[+] Running YARA module")
+        findings = findings + my.search(config['analysis']['yara']['rule_source'], target_path, exclude_dirs=config['analysis']['yara'].get('exclude_dirs', None), include_dirs=config['analysis']['yara'].get('include_dirs', None))
+    if args.files or args.all:
+        logging.info("[+] Running Files module")
+        findings = findings + mf.analyze(config['analysis']['files'], target_path)
+    if args.pattern or args.all:
+        logging.info("[+] Running Pattern module")
+        findings = findings + mp.search(config['analysis']['pattern'], target_path)
+    if findings:
+        logging.info(f"Adding {len(findings)} findings to database.")
+        db.add_finding_entries(findings)

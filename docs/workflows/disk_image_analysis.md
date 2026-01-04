@@ -39,41 +39,17 @@ helpers/disk_dd.sh /srv/rl_20251225_194124/20251225_194124/capture/<image>.E01
 </details>
 
 <details>
-<summary>4. Init collection from disk image</summary>
+<summary>4. Init collection from disk image and run analysis</summary>
 
 ```bash
-python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/sample.E01-p1/ --checksums --files
+python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/dev_vda.img-p1/  --all
 ```
 
 In case you want to target only specific sub-directory inside the mounted image use `--subdir`:
 
 ```bash
-python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/4Dell.E01-p1/ --checksums --files --subdir 'sub/path'
+python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/4Dell.E01-p1/ --all --subdir 'sub/path'
 ```
-
-If CollectiFOR's `collect` tool was used to capture the disk image, then you can optionally provide argument `--collection <path to collection>`. For example:
-
-```bash
-python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/sample.E01-p1/ --checksums --files --collection /srv/rl_20251225_194124/20251225_194124/
-```
-
-This just populates `info.json` to collection details similarly as with `collectifor.py --init`.
-
-</details>
-
-<details>
-<summary>4. Run analyze_disk helper script</summary>
-
-```bash
-python3 -m helpers.analyze_disk -c config.yaml -d /mnt/forensic/sample.E01-p1/ --yara --files --pattern
-```
-
-In case you want to target only specific sub-directory inside the mounted image use `--subdir`:
-
-```bash
-python3 -m helpers.analyze_disk -c config.yaml -d /mnt/forensic/sample.E01-p1/ --yara --files --patterns --subdir 'sub/path'
-```
-
 </details>
 
 <details>
