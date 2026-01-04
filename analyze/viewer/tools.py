@@ -85,12 +85,9 @@ def tool_checksum_search():
 
     if request.method == "POST":
         db = get_session()
-
         checksums = set()
-
-        # ----------------------------
-        # 1. Pasted checksums
-        # ----------------------------
+        negate = bool(request.form.get("negate"))
+        algorithm = request.form.get("algorithm")
         pasted = request.form.get("checksums_text", "").strip()
         if pasted:
             for line in pasted.splitlines():
@@ -98,32 +95,21 @@ def tool_checksum_search():
                 if val:
                     checksums.add(val)
 
-        # ----------------------------
-        # 2. Uploaded file
-        # ----------------------------
-        uploaded = request.files.get("checksums_file")
-        if uploaded and uploaded.filename:
-            for line in uploaded.stream.read().decode("utf-8", errors="ignore").splitlines():
-                val = line.split(' ')[0]
-                if val:
-                    checksums.add(val)
-
-        # ----------------------------
-        # Validation
-        # ----------------------------
         if not checksums:
             errors.append("No checksums provided.")
 
-        # ----------------------------
-        # Database query
-        # ----------------------------
         if not errors:
-            results = (
-                db.query(Checksum)
-                .filter(Checksum.checksum.in_(checksums))
-                .all()
+            if negate:
+                query = db.query(Checksum).filter(
+                    ~Checksum.checksum.in_(checksums)
+                )
+            else:
+                query = db.query(Checksum).filter(
+                    Checksum.checksum.in_(checksums)
             )
-
+            if algorithm:
+                query = query.filter(Checksum.algorithm == algorithm)
+            results = query.all()
     return render_template(
         "tools/checksum_search.html",
         results=results,

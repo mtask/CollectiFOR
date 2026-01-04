@@ -34,8 +34,7 @@ textarea.checksum-input:focus {
                   rounded"
            style="font-size: 1.0rem;">
         <strong>
-          Provide checksums to search from collections' database content.
-          Choose one input method below.
+          Provide checksums to compare with the current database content.
         </strong>
       </div>
 
@@ -52,27 +51,42 @@ textarea.checksum-input:focus {
   rows="6"
   placeholder="e.g.
 d41d8cd98f00b204e9800998ecf8427e
-44d88612fea8a8f36de82e1278abb02f filename">
-</textarea>
-
+44d88612fea8a8f36de82e1278abb02f filename">{{ request.form.get("checksums_text", "") }}</textarea>
         </div>
 
-        <hr class="border-secondary">
+<!-- Algorithm selection -->
+<div class="mb-3">
+  <label class="form-label text-light" for="algorithmSelect">
+    🧮 Algorithm (optional)
+  </label>
+  <select
+    class="form-select bg-dark text-light border-secondary"
+    name="algorithm"
+    id="algorithmSelect"
+  >
+    <option value="" selected>All</option>
+    <option value="md5" {% if request.form.get("algorithm") == "md5" %}selected{% endif %}>MD5</option>
+    <option value="sha1" {% if request.form.get("algorithm") == "sha1" %}selected{% endif %}>SHA1</option>
+    <option value="sha256" {% if request.form.get("algorithm") == "sha256" %}selected{% endif %}>SHA256</option>
+  </select>
+  <div class="form-text text-light">
+    Only search for checksums with the selected algorithm, or All to include everything.
+  </div>
+</div>
 
-        <!-- Upload file -->
-        <div class="mb-4">
-          <label class="form-label text-light">
-            📁 Upload checksum file
-          </label>
-          <input
-            type="file"
-            name="checksums_file"
-            class="form-control bg-black text-light border-secondary"
-            accept=".txt,.list,.hashes">
-          <div class="form-text text-light">
-            Text file containing one checksum per line. Checksum needs to be followed by whitespace if other content on the same line.
-          </div>
-        </div>
+<!-- Negate option -->
+<div class="form-check mb-3">
+  <input
+    class="form-check-input"
+    type="checkbox"
+    name="negate"
+    id="negate"
+    {% if request.form.get("negate") %}checked{% endif %}
+  >
+  <label class="form-check-label text-light" for="negate">
+    Return files <strong>NOT matching</strong> provided checksums
+  </label>
+</div>
 
         <div class="d-grid">
           <button type="submit" class="btn btn-primary btn-lg">
@@ -90,12 +104,17 @@ d41d8cd98f00b204e9800998ecf8427e
   <div class="alert alert-danger">{{ errors|join('\n') }}</div>
 {% endif %}
 {% if results|length == 0 %}
-  <div class="alert alert-success">No matches with provided checksums</div>
+  <div class="alert alert-success">
+    No {{ "non-matching" if request.form.get("negate") else "matching" }}
+    checksums found
+  </div>
 {% endif %}
 {% if results %}
 <div class="mt-4">
 
-  <h4 class="text-light mb-3">🔎 Matching Checksums</h4>
+<h4 class="text-light mb-3">
+  {{ "Non-matching" if request.form.get("negate") else "Matching" }} Checksums
+</h4>
 
   <div class="table-responsive">
     <table class="table table-dark table-hover table-sm align-middle">
@@ -183,6 +202,8 @@ document.addEventListener('click', function (e) {
   }, { once: true });
 
 });
+
 </script>
 
 {% endblock %}
+

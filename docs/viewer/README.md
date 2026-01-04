@@ -119,7 +119,9 @@ api_keys:
 
 ![](imgs/tools.png)
 
-Copy of Cyberchef tool is embedded so it works offline and doesn't use the hosted Cyberchef instance.
+Copy of Cyberchef tool is embedded so it works offline and doesn't use the hosted Cyberchef instance. The Checksum Search tool allows providing list of checksums and searching matching or not-matching checksums from the current CollectiFOR's database.
+
+![](imgs/tool_checksum_search.png )
 
 </details>
 
