@@ -1,5 +1,8 @@
 from flask import Blueprint, send_from_directory, render_template, request, current_app
+from sqlalchemy.orm import Session
 from modules import ipinfo, virustotal,threatfox
+from lib.db import Checksum
+from viewer.database import get_session
 import os
 
 tools_bp = Blueprint("tools", __name__, url_prefix="/tools")
@@ -74,3 +77,56 @@ def tool_virustotal():
             if 'error' in result_virustotal:
                 error = result_virustotal['error']['message']
     return render_template("tools/virustotal.html", result=result_virustotal, result_type=q_type, error=error)
+
+@tools_bp.route("/checksum_search", methods=["GET", "POST"])
+def tool_checksum_search():
+    results = []
+    errors = []
+
+    if request.method == "POST":
+        db = get_session()
+
+        checksums = set()
+
+        # ----------------------------
+        # 1. Pasted checksums
+        # ----------------------------
+        pasted = request.form.get("checksums_text", "").strip()
+        if pasted:
+            for line in pasted.splitlines():
+                val = line.split(' ')[0]
+                if val:
+                    checksums.add(val)
+
+        # ----------------------------
+        # 2. Uploaded file
+        # ----------------------------
+        uploaded = request.files.get("checksums_file")
+        if uploaded and uploaded.filename:
+            for line in uploaded.stream.read().decode("utf-8", errors="ignore").splitlines():
+                val = line.split(' ')[0]
+                if val:
+                    checksums.add(val)
+
+        # ----------------------------
+        # Validation
+        # ----------------------------
+        if not checksums:
+            errors.append("No checksums provided.")
+
+        # ----------------------------
+        # Database query
+        # ----------------------------
+        if not errors:
+            results = (
+                db.query(Checksum)
+                .filter(Checksum.checksum.in_(checksums))
+                .all()
+            )
+
+    return render_template(
+        "tools/checksum_search.html",
+        results=results,
+        errors=errors
+    )
+
