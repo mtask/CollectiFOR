@@ -70,10 +70,8 @@ def _find_files(file_dir, prefixes):
             # Rotated files
             p = Path(prefix)
             base_name = p.name
-            test_dir = os.path.join(file_dir, str(Path(prefix).parent).lstrip('/'))
-            if not os.path.isdir(test_dir):
-                continue
-            for f in file_dir.rglob("*"):
+            for f in glob.glob(str(Path(file_dir) / f"{prefix.lstrip('/')}*")):
+                f = Path(f)
                 if f.is_file():
                     try:
                         relative_path = f.relative_to(file_dir)
