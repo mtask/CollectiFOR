@@ -14,8 +14,26 @@ cd <path>/CollectiFOR/analyze/
 <details>
 <summary>2. Mount disk image</summary>
 
+* E01
+
 ```bash
 helpers/disk_e01.sh /tmp/sample/sample.E01 
+```
+
+* RAW (DD)
+
+```bash
+helpers/disk_e01.sh /tmp/sample/sample.img
+```
+
+If RAW disk image is gzip compressed the helper disk automatically extracts the image when the file extension is `.gz`.
+If the disk was capture with CollectiFOR's `collect` tool then you can use `extract_collection.sh` to extract collection first.
+
+```bash
+helpers/extract_collection.sh /srv/rl_20251225_194124.tar.gz
+helpers/disk_dd.sh /srv/rl_20251225_194124/20251225_194124/capture/<image>.gz
+# OR
+helpers/disk_dd.sh /srv/rl_20251225_194124/20251225_194124/capture/<image>.E01
 ```
 
 </details>
@@ -32,6 +50,14 @@ In case you want to target only specific sub-directory inside the mounted image 
 ```bash
 python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/4Dell.E01-p1/ --checksums --files --subdir 'sub/path'
 ```
+
+If CollectiFOR's `collect` tool was used to capture the disk image, then you can optionally provide argument `--collection <path to collection>`. For example:
+
+```bash
+python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/sample.E01-p1/ --checksums --files --collection /srv/rl_20251225_194124/20251225_194124/
+```
+
+This just populates `info.json` to collection details similarly as with `collectifor.py --init`.
 
 </details>
 

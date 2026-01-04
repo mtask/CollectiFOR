@@ -8,6 +8,10 @@ events:
     filenames:
       - /files_and_dirs/etc/ssh/sshd_config
       - /files_and_dirs/etc/ssh/sshd_config.d/*.conf
+      - /etc/ssh/sshd_config
+      - /etc/ssh/sshd_config.d/*.conf
+      - /sshd_config
+      - /sshd_config.d/*.conf
 
   - name: sshd_password_auth_enabled
     indicator: PasswordAuthentication enabled
@@ -18,6 +22,10 @@ events:
     filenames:
       - /files_and_dirs/etc/ssh/sshd_config
       - /files_and_dirs/etc/ssh/sshd_config.d/*.conf
+      - /etc/ssh/sshd_config
+      - /etc/ssh/sshd_config.d/*.conf
+      - /sshd_config
+      - /sshd_config.d/*.conf
 
   - name: sudo_nopasswd_detected
     indicator: Sudoers NOPASSWD entry detected
@@ -28,4 +36,7 @@ events:
     filenames:
       - /files_and_dirs/etc/sudoers
       - /files_and_dirs/etc/sudoers.d/*
-
+      - /etc/sudoers
+      - /etc/sudoers.d/*
+      - /sudoers
+      - /sudoers.d/*

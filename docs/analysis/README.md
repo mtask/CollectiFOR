@@ -34,10 +34,13 @@ analysis:
   enable_pcap: true
 ```
 
-* Below the `enable_<module>` definitions are some source file paths for a few modules. These are explained later in this document.
+* Below the `enable_<module>` definitions are some source file paths and other settings for analysis modules. These are explained later in this document.
 
 ```yaml
-  yara: './source/yara'
+  yara: 
+    rule_source: './source/yara'
+    include_dirs: []
+    exclude_dirs: []
   pattern: './source/pattern/'
   files: './source/files/'
 ``` 
@@ -51,7 +54,7 @@ All analysis results are stored in "findings" table of the collection database.
  <summary>#YARA</summary>
 
 YARA module enables YARA rule checks against the collection's content. 
-Config file section `analysis.yara` sets the path to YARA rules directory. Rule files should have extension `.yar`.
+Config file section `analysis.yara.rule_source` sets the path to YARA rules directory. Rule files should have extension `.yar`.
 There are no existing rules provided currently. Configured directory can contain sub-directories, so you can hava structure like:
 
 ```
@@ -59,6 +62,17 @@ RULES_DIR
   myrules/*.yar
   rule_provider_Z/*.yar
 ```
+
+You can also include or exclude paths in configuration:
+
+```yaml
+  yara: 
+    rule_source: './source/yara'
+    include_dirs: ['/opt']
+    exclude_dirs: []
+```
+
+Note that exclude wins, so having include within path that is excluded upper level does not work.
 
 </details>
 

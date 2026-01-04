@@ -11,9 +11,11 @@ python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/4Dell.E01-p1/ --che
 ```
 
 Last two arguments (`--checksums --files`) define the initialization modules to enable. Data is added to a new collection that is named based on mount directory and prefixed with "DISK_". For example, `DISK_4Dell.E01-p1`.
-
+  
 You can also target only a sub-directory path within the mounted disk image with argument `--subdir / -s <path inside the disk mount>`. Provided path can be the absolute path to sub-directory or relative path from the mountpoint.
-
+  
+If the disk image was captured with CollectiFOR's `collect` tool then path to collection dir can be optionally given with `--collection <collection_dir>`. This only adds details from `info.json` to collection details.
+  
 ## analyze_disk.py
 
 Run analysis modules with a mounted disk image. (check disk helpers for mounting raw or E01 images)

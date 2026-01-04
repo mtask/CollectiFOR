@@ -54,7 +54,7 @@ def analysis(config, collection_path):
     if config['enable_yara']:
         logging.info("[RUN] YARA module")
         import modules.mod_yara as my
-        findings = findings + my.search(config['yara'], collection_path)
+        findings = findings + my.search(config['yara']['rule_source'], collection_path, exclude_dirs=config['yara'].get('exclude_dirs', None), include_dirs=config['yara'].get('include_dirs', None))
     if config['enable_files']:
         import modules.mod_files as ml
         logging.info("[RUN] Files module")

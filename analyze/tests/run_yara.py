@@ -30,5 +30,5 @@ if __name__=="__main__":
     args = parser.parse_args()
     config = load_config(args.config)
     logging.info("[+] Running YARA module")
-    findings = my.search(config['analysis']['yara'], args.path)
+    findings = my.search(config['analysis']['yara']['rule_source'], args.path, exclude_dirs=config['analysis']['yara'].get('exclude_dirs', None), include_dirs=config['analysis']['yara'].get('include_dirs', None))
     print(json.dumps(findings, indent=2))

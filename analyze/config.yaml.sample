@@ -5,7 +5,10 @@ analysis:
   enable_pattern: true
   enable_files: true
   enable_pcap: true
-  yara: './source/yara'
+  yara: 
+    rule_source: './source/yara'
+    include_dirs: []
+    exclude_dirs: []
   pattern: './source/patterns/' 
   files: './source/files/'
 # API keys are only used by viewer's online tools

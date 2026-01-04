@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from lib.db import DB
 from lib.hash import get_sha1, get_sha256, get_md5
-from lib.parsers import FilesAndDirsParser
+from lib.parsers import FilesAndDirsParser, BasicInfoParser
 
 def load_config(path):
     with open(path, "r", encoding="utf-8") as f:
@@ -26,9 +26,15 @@ def ingest_checksums(dir_path):
         if not os.path.isfile(f):
             continue
         logging.info(f'[+] Generating checksums for file "{f}"')
-        checksums.append({"filepath": str(f), "checksum": get_sha256(f), "algorithm": "sha256"})
-        checksums.append({"filepath": str(f), "checksum": get_sha1(f), "algorithm": "sha1"})
-        checksums.append({"filepath": str(f), "checksum": get_md5(f), "algorithm": "md5"})
+        md5 = get_md5(f)
+        sha1 = get_sha1(f)
+        sha256 = get_sha256(f)
+        if sha256:
+            checksums.append({"filepath": str(f), "checksum": sha256, "algorithm": "sha256"})
+        if sha1:
+            checksums.append({"filepath": str(f), "checksum": sha1, "algorithm": "sha1"})
+        if md5:
+            checksums.append({"filepath": str(f), "checksum": md5, "algorithm": "md5"})
     return checksums
 
 if __name__=="__main__":
@@ -51,6 +57,11 @@ if __name__=="__main__":
         required=True
     )
     parser.add_argument(
+        "--collection",
+        help="Optionally provide path to collection directory with info.json if available from collect usage. Info.json data is parsed to collection details.",
+        required=False
+    )
+    parser.add_argument(
         "-s", "--subdir",
         help="Path to subdir inside the disk where to target the initialization. Can be full path or relative path from the disk mount path. Init is run against the full disk mount path if left empty.",
         required=False
@@ -68,7 +79,8 @@ if __name__=="__main__":
     args = parser.parse_args()
     config = load_config(args.config)
     findings = []
-    db = DB(config['collection_database'], f"DISK_{Path(args.disk).name}", args.disk, init=True)
+    name_timestamp =  datetime.now().strftime("%Y%m%d_%H%M%S")
+    db = DB(config['collection_database'], f"DISK_{Path(args.disk).name}_{name_timestamp}", args.disk, init=True)
     if args.subdir:
         if args.subdir.startswith(args.disk):
             target_path = args.subdir
@@ -81,7 +93,11 @@ if __name__=="__main__":
         sys.exit(1)
     else:
        logging.info(f'[+] Running initialization with target path: "{target_path}"')
-    db.add_collection_info({"date": datetime.now(), "interfaces": {}, "os": {}, "hostname": ""})
+    if args.collection and os.path.isfile(os.path.join(args.collection, "info.json")):
+        pi = BasicInfoParser(db)
+        pi.parse_dir(args.collection)
+    else:
+        db.add_collection_info({"date": datetime.now(), "interfaces": {}, "os": {}, "hostname": ""})
     if args.checksums:
         logging.info("[+] Running checksums")
         checksums = ingest_checksums(target_path)

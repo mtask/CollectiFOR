@@ -8,6 +8,10 @@ events:
     filenames:
       - /files_and_dirs/var/log/kern.log
       - /files_and_dirs/var/log/messages
+      - /var/log/kern.log
+      - /var/log/messages
+      - /kern.log
+      - /messages
 
   - name: disk_full
     indicator: Disk full
@@ -18,6 +22,10 @@ events:
     filenames:
       - /files_and_dirs/var/log/syslog
       - /files_and_dirs/var/log/messages
+      - /var/log/syslog
+      - /var/log/messages
+      - /syslog
+      - /messages
 
   - name: auth_log_rotate
     indicator: Log rotation
@@ -28,6 +36,10 @@ events:
     filenames:
       - /files_and_dirs/var/log/syslog
       - /files_and_dirs/var/log/messages
+      - /var/log/syslog
+      - /var/log/messages
+      - /syslog
+      - /messages
 
   - name: package_install
     indicator: Package installed
@@ -39,6 +51,12 @@ events:
       - /files_and_dirs/var/log/dpkg.log
       - /files_and_dirs/var/log/apt/history.log
       - /files_and_dirs/var/log/yum.log
+      - /var/log/dpkg.log
+      - /var/log/apt/history.log
+      - /var/log/yum.log
+      - /dpkg.log
+      - /apt/history.log
+      - /yum.log
 
   - name: package_remove
     indicator: Package removed
@@ -50,3 +68,9 @@ events:
       - /files_and_dirs/var/log/dpkg.log
       - /files_and_dirs/var/log/apt/history.log
       - /files_and_dirs/var/log/yum.log
+      - /var/log/dpkg.log
+      - /var/log/apt/history.log
+      - /var/log/yum.log
+      - /dpkg.log
+      - /apt/history.log
+      - /yum.log

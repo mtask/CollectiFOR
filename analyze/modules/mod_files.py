@@ -70,6 +70,9 @@ def _find_files(file_dir, prefixes):
             # Rotated files
             p = Path(prefix)
             base_name = p.name
+            test_dir = os.path.join(file_dir, str(Path(prefix).parent).lstrip('/'))
+            if not os.path.isdir(test_dir):
+                continue
             for f in file_dir.rglob("*"):
                 if f.is_file():
                     try:
@@ -92,8 +95,9 @@ def analyze(rules_dir, rootdir):
     prefixes = set()
     for d in rules:
         prefixes.update(d["filenames"])
-
+    logging.info("[+] Searching for relevant file paths")
     files_lst = _find_files(file_dir, prefixes)
+    logging.info("[+] File list is ready")
 
     for current_file in files_lst:
         logging.info(f"Checking file: {current_file['path']}")

@@ -73,7 +73,7 @@ if __name__=="__main__":
        logging.info(f'[+] Running analysis with target path: "{target_path}"')
     if args.yara:
         logging.info("[+] Running YARA module")
-        findings = findings + my.search(config['analysis']['yara'], target_path)
+        findings = findings + my.search(config['analysis']['yara']['rule_source'], target_path, exclude_dirs=config['analysis']['yara'].get('exclude_dirs', None), include_dirs=config['analysis']['yara'].get('include_dirs', None))
     if args.files:
         logging.info("[+] Running Files module")
         findings = findings + mf.analyze(config['analysis']['files'], target_path)

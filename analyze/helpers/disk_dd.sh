@@ -35,7 +35,7 @@ cleanup() {
     while read -r mountpoint loopdev; do
         if mountpoint -q "$mountpoint"; then
             echo "[-] Unmounting $mountpoint"
-            umount "$mountpoint"
+            umount "$mountpoint" && rm -rf "$mountpoint"
         fi
         if losetup "$loopdev" &>/dev/null; then
             echo "[-] Detaching $loopdev"
@@ -100,7 +100,7 @@ main() {
         mkdir -p "$mnt"
 
         loopdev=$(losetup --find --read-only --show --offset "$offset" "$IMAGE")
-        mount -o ro "$loopdev" "$mnt"
+        mount -o ro,norecovery "$loopdev" "$mnt"
 
         echo "$mnt $loopdev" >> "$STATE_FILE"
         echo "[+] Mounted partition $num at $mnt"

@@ -10,6 +10,14 @@ events:
       - /files_and_dirs/var/log/secure
       - /files_and_dirs/var/log/auth.log
       - /files_and_dirs/var/log/syslog
+      # Support non collection source like disk
+      - /var/log/secure
+      - /var/log/auth.log
+      - /var/log/syslog
+      # Sample syntax to allow testing directly from local path /var/log/
+      - /secure
+      - /auth.log
+      - /syslog
 
   - name: ssh_success
     indicator: SSH login success
@@ -22,6 +30,12 @@ events:
       - /files_and_dirs/var/log/secure
       - /files_and_dirs/var/log/auth.log
       - /files_and_dirs/var/log/syslog
+      - /var/log/secure
+      - /var/log/auth.log
+      - /var/log/syslog
+      - /secure
+      - /auth.log
+      - /syslog
 
   - name: sudo_failure
     indicator: Sudo authentication failure
@@ -39,6 +53,10 @@ events:
     filenames:
       - /files_and_dirs/var/log/secure
       - /files_and_dirs/var/log/auth.log
+      - /var/log/secure
+      - /var/log/auth.log
+      - /secure
+      - /auth.log
 
   - name: sudo_success
     indicator: Sudo command success
@@ -51,6 +69,10 @@ events:
     filenames:
       - /files_and_dirs/var/log/secure
       - /files_and_dirs/var/log/auth.log
+      - /var/log/secure
+      - /var/log/auth.log
+      - /secure
+      - /auth.log
 
   - name: desktop_login_failure
     indicator: Desktop authentication failure
@@ -61,6 +83,10 @@ events:
     filenames:
       - /files_and_dirs/var/log/auth.log
       - /files_and_dirs/var/log/secure
+      - /var/log/auth.log
+      - /var/log/secure
+      - /auth.log
+      - /secure
 
   - name: failed_su
     indicator: SU authentication failure
@@ -71,3 +97,7 @@ events:
     filenames:
       - /files_and_dirs/var/log/secure
       - /files_and_dirs/var/log/auth.log
+      - /var/log/secure
+      - /var/log/auth.log
+      - /secure
+      - /auth.log

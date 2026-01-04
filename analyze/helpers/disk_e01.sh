@@ -36,7 +36,7 @@ cleanup() {
     while read -r mountpoint loopdev ewf_mount; do
         if mountpoint -q "$mountpoint"; then
             echo "[-] Unmounting $mountpoint"
-            umount "$mountpoint"
+            umount "$mountpoint" && rm -rf "$mountpoint"
         fi
         if losetup "$loopdev" &>/dev/null; then
             echo "[-] Detaching $loopdev"
