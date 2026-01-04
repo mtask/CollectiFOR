@@ -230,9 +230,9 @@ class FilesAndDirsChecksumParser:
             if sha256:
                 checksums.append({"filepath": str(f), "checksum": sha256, "algorithm": "sha256", "filename": ntpath.basename(str(f))})
             if sha1:
-                checksums.append({"filepath": str(f), "checksum": sha1, "algorithm": "sha1"})
+                checksums.append({"filepath": str(f), "checksum": sha1, "algorithm": "sha1", "filename": ntpath.basename(str(f))})
             if md5:
-                checksums.append({"filepath": str(f), "checksum": md5, "algorithm": "md5"})
+                checksums.append({"filepath": str(f), "checksum": md5, "algorithm": "md5", "filename": ntpath.basename(str(f))})
         return checksums
 
     def parse_dir(self, collection_dir):
