@@ -168,7 +168,7 @@ def main():
     # Database
     # -----------------------------
     try:
-        collection_id = os.path.join(Path(collection_dir).parts[-2], Path(collection_dir).parts[-1])
+        collection_id = os.path.join(Path(collection_dir).parts[-2])
     except UnboundLocalError:
         collection_dir = None
         collection_id = None
