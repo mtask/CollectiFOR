@@ -2,6 +2,7 @@ import os
 import re
 import json
 import logging
+import ntpath
 import shlex
 from datetime import datetime, timezone
 from lib.hash import get_sha1, get_sha256, get_md5
@@ -201,6 +202,7 @@ class ChecksumParser:
                     path, checksum = line.rsplit(" - ", 1)
                     entries.append({
                         "filepath": path,
+                        "filename": ntpath.basename(path),
                         "checksum": checksum,
                         "algorithm": algorithm
                     })
@@ -226,7 +228,7 @@ class FilesAndDirsChecksumParser:
             sha1 = get_sha1(f)
             sha256 = get_sha256(f)
             if sha256:
-                checksums.append({"filepath": str(f), "checksum": sha256, "algorithm": "sha256"})
+                checksums.append({"filepath": str(f), "checksum": sha256, "algorithm": "sha256", "filename": ntpath.basename(str(f))})
             if sha1:
                 checksums.append({"filepath": str(f), "checksum": sha1, "algorithm": "sha1"})
             if md5:

@@ -1,5 +1,6 @@
 import logging
 import sys
+import ntpath
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -42,6 +43,7 @@ class Checksum(Base):
     __tablename__ = "checksums"
     id = Column(Integer, primary_key=True, autoincrement=True)
     collection_name = Column(String, nullable=False)
+    filename = Column(Text, nullable=False)
     filepath = Column(Text, nullable=False)
     checksum = Column(String, nullable=False)
     algorithm = Column(String, nullable=False)  # md5, sha1, sha256
@@ -213,6 +215,7 @@ class DB:
             session.add(Checksum(
                 collection_name = self.collection_name,
                 filepath=entry["filepath"],
+                filename=entry["filename"],
                 checksum=entry["checksum"],
                 algorithm=entry["algorithm"]
             ))
