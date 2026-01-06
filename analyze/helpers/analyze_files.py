@@ -5,10 +5,9 @@ import yaml
 import os
 import sys
 import json
-import modules.mod_pcap as mpcap
 from pathlib import Path
 from lib.db import DB
-from lib.parsers import PcapParser
+import modules.mod_files as mf
 from lib.utils import collection_selector
 
 def load_config(path):
@@ -22,7 +21,7 @@ if __name__=="__main__":
         format="%(asctime)s %(levelname)s %(message)s",
     )
     parser = argparse.ArgumentParser(
-        description="Initialize PCAP files from a directory"
+        description="Analyze arbitrary directory path wih Files analysis module. Rules' \"filenames\" need to match with the given path"
     )
 
     parser.add_argument(
@@ -31,24 +30,23 @@ if __name__=="__main__":
         required=True
     )
     parser.add_argument(
-        "-p", "--pcap-dir",
-        help="Path to directory with PCAP files",
+        "-p", "--path",
+        help="Root path to analyze.",
         required=True
     )
     args = parser.parse_args()
+    if not os.path.isdir(args.path):
+        logging.erro("[-] Path {args.path} is not an existing directory path")
+        sys.exit(1)
     config = load_config(args.config)
-    name_timestamp =  datetime.now().strftime("%Y%m%d_%H%M%S")
-    pcp = PcapParser(db, subdir="")
-    logging.info("[+] Running PCAP parser")
-    pcp.parse_dir(args.pcap_dir)
-    logging.info("[+] Running PCAP analysis module")
-    findings = mpcap.analyze(args.pcap_dir, subdir="")
-    if not findings:
-        logging.info(f"No findings")
+    logging.info("[+] Running Files analysis")
+    findings = mf.analyze(config['analysis']['files'], args.path)
     collection = collection_selector(config['collection_database'])
     if not collection:
          print(json.dumps(findings, indent=2))
          sys.exit(0)
+    if not findings:
+        logging.info(f"No findings")
     if collection['new']:
         db = DB(config['collection_database'], collection['name'], collection['path'], init=True)
         db.add_collection_info({"date": datetime.now(), "interfaces": {}, "os": {}, "hostname": ""})

@@ -31,6 +31,39 @@ python3 -m helpers.init_pcap -c config.yaml -p /data/new_pcaps/
 
 All `*.pcap` from the given path are included. Prompts to create a new collection or select an existing one. Prompts optionally to select an existing case or create a new case to add findings to. If no case is selected then findings are not initially associated with any case.
 
+## analyze_files.py
+
+Run files module
+
+```
+python3 -m helpers.analyze_files -c config.yaml -p /mnt/forensic/dev_vda.img-p1/
+```
+
+Note that relative paths still need to match with the given path (`-p <path>`) in rules' `filenames` definitions. For example, if `-p /mnt/forensic/dev_vda.img-p1/` is path to Linux root filesystem, then this works:
+
+```
+filenames:
+  - /var/log/some.log
+  - /var/log/other.log
+```
+
+With command like this...
+
+```bash
+python3 -m helpers.analyze_files -c config.yaml -p /mnt/forensic/dev_vda.img-p1/var/log
+```
+
+...filenames would need to match like this if those are expected to be under `/var/log`:
+
+```
+filenames:
+  - /some.log # Path becomes /var/log/some.log
+  - /other.log # /var/log/other.log
+  - /subdir/more_logs.log # /var/log/subdir/more_logs.log
+```
+
+Filename definition always starts with `/`.
+
 ## file_high_entropy.py
 
 Search a directory path for files with high entropy.
