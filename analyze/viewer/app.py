@@ -6,7 +6,7 @@ from viewer.tools import tools_bp
 from viewer.filters import apply_collection_filter, apply_text_query
 from flask import session as flask_session
 from sqlalchemy import create_engine, or_, not_, insert
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, selectinload, contains_eager
 from datetime import datetime
 from viewer.database import get_session
 from viewer.timelines import get_timelines
@@ -25,7 +25,8 @@ from lib.db import (
     NetworkFlow,
     Finding,
     FileEntry,
-    ListenerEntry,
+    ProcessEntry,
+    ProcessNetworkEntry,
     Collections,
     FindingNotes,
     Cases,
@@ -120,21 +121,70 @@ def change_timeline():
 
     return redirect(request.form.get("next", "/"))
 
-@app.route("/listeners")
-def listeners():
+from sqlalchemy.orm import selectinload, contains_eager
+from sqlalchemy import or_
+
+@app.route("/processes")
+def processes_route():
     db = get_session()
     try:
-        query = db.query(ListenerEntry)
-        query = apply_collection_filter(query, ListenerEntry)
+        # --- Base query ---
+        # Use outerjoin so processes without network rows are included
+        query = db.query(ProcessEntry).outerjoin(ProcessEntry.network)
+        query = apply_collection_filter(query, ProcessEntry)
 
-        entries = query.order_by(ListenerEntry.protocol, ListenerEntry.port).all()
+        # --- Apply filters from form ---
+        protocol = request.args.get("protocol")
+        if protocol:
+            query = query.filter(ProcessNetworkEntry.protocol.ilike(protocol))
+
+        port = request.args.get("port")
+        if port:
+            query = query.filter(ProcessNetworkEntry.port == int(port))
+
+        pid = request.args.get("pid")
+        if pid:
+            query = query.filter(ProcessEntry.pid == int(pid))
+
+        ppid = request.args.get("ppid")
+        if ppid:
+            query = query.filter(ProcessEntry.ppid == int(ppid))
+
+        q_text = request.args.get("q")
+        if q_text:
+            query = apply_text_query(
+                query,
+                columns=[
+                    ProcessEntry.process,
+                    ProcessEntry.exec,
+                    ProcessEntry.cmdline,
+                    ProcessEntry.related_paths
+                ],
+                q_text=q_text
+            )
+
+        # Ensure network relationship only contains filtered rows
+        query = query.options(contains_eager(ProcessEntry.network))
+
+        # Order by PID, protocol, port
+        entries = query.order_by(ProcessEntry.pid, ProcessNetworkEntry.protocol, ProcessNetworkEntry.port).all()
+
+        # Prepare network dicts for template
+        for e in entries:
+            e.network_by_protocol = {
+                "tcp": [n for n in e.network if n.protocol.lower() == "tcp"],
+                "udp": [n for n in e.network if n.protocol.lower() == "udp"],
+            }
+
     finally:
         db.close()
 
     return render_template(
-        "listeners.html",
+        "processes.html",
         entries=entries,
+        protocols=["tcp", "udp"]  # for protocol filter dropdown
     )
+
 
 @app.route("/files/", defaults={"dir_path": ""})
 @app.route("/files/<path:dir_path>")

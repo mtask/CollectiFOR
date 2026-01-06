@@ -13,7 +13,7 @@ from lib.parsers import (
     PermissionsParser,
     PcapParser,
     FilesAndDirsParser,
-    ListenersParser,
+    ProcessesParser,
     BasicInfoParser,
     FilesAndDirsChecksumParser,
 )
@@ -39,7 +39,7 @@ PARSERS = [
     PermissionsParser,
     PcapParser,
     FilesAndDirsParser,
-    ListenersParser,
+    ProcessesParser,
     FilesAndDirsChecksumParser,
 ]
 

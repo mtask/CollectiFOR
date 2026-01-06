@@ -2,8 +2,8 @@ import logging
 import sys
 import ntpath
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON, ForeignKey
+from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 Base = declarative_base()
 
@@ -103,21 +103,46 @@ class FileEntry(Base):
 
     inserted_at = Column(DateTime, default=datetime.utcnow)
 
-class ListenerEntry(Base):
-    __tablename__ = "listeners"
+
+class ProcessEntry(Base):
+    __tablename__ = "processes"
 
     id = Column(Integer, primary_key=True)
     collection_name = Column(String, nullable=False)
-    pid = Column(Integer)
-    protocol = Column(String, nullable=False)
-    port = Column(Integer)
-    bind = Column(String, nullable=False)
-    exec = Column(String, nullable=False)
+
+    pid = Column(Integer, nullable=False)
+    ppid = Column(Integer)
+
     process = Column(String, nullable=False)
+    exec = Column(String, nullable=False)
+    cmdline = Column(String, nullable=False)
     systemd = Column(String, default="")
     related_paths = Column(String, default="")
 
     inserted_at = Column(DateTime, default=datetime.utcnow)
+
+    network = relationship(
+        "ProcessNetworkEntry",
+        back_populates="process",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+    )
+
+
+class ProcessNetworkEntry(Base):
+    __tablename__ = "process_network"
+
+    id = Column(Integer, primary_key=True)
+    process_id = Column(Integer, ForeignKey("processes.id"), nullable=False)
+
+    protocol = Column(String, nullable=False)
+    bind = Column(String, nullable=False)
+    port = Column(Integer, nullable=False)
+
+    inserted_at = Column(DateTime, default=datetime.utcnow)
+
+    process = relationship("ProcessEntry", back_populates="network")
+
 
 class Finding(Base):
     __tablename__ = "findings"
@@ -293,12 +318,24 @@ class DB:
         finally:
             session.close()
 
-    def add_listener_entries(self, entries):
+    def add_processes(self, proc_entries):
         session = self.Session()
         try:
-            for entry in entries:
-                entry['collection_name'] = self.collection_name
-                session.add(ListenerEntry(**entry))
+            for proc_entry, network in proc_entries:
+                proc = ProcessEntry(**proc_entry)
+                session.add(proc)
+                session.flush()  # get proc.id
+
+                for proto in ("tcp", "udp"):
+                    for sock in network.get(proto, []):
+                        net = ProcessNetworkEntry(
+                            process_id=proc.id,
+                            protocol=proto,
+                            bind=sock["bind"],
+                            port=sock["port"],
+                        )
+                        session.add(net)
+
             session.commit()
         finally:
             session.close()
