@@ -126,6 +126,24 @@ events:
       - /files_and_dirs/etc/sudoers.d/*
 ```
 
+Rules default to regexp patterns, but also grok is supported. This requires type to be set with `type: grok`. Here's an example rule:
+
+```
+  - name: rule_web_command_injection
+    indicator: OS command injection attempt
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"(GET|POST) %{URIPATHPARAM:uri}.*(\\;|\\|\\||\\|\\s|&&|`|\\$\\().*(wget|curl|bash|sh|nc|netcat|python|perl).* HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "Possible command injection from {ip} against {uri}"
+    meta_fields: [timestamp, ip, user, uri, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/nginx/access.log
+      - /var/log/apache2/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+```
+
 More samples can be found here: `analyze/source/files/`. Note that this module uses `re.VERBOSE` with its patterns, more information in [re library's docs](https://docs.python.org/3/library/re.html#re.VERBOSE).
 
 </details>

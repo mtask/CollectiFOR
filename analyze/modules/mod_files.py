@@ -6,6 +6,7 @@ import yaml
 import logging
 from pathlib import Path
 from lib.finding import new_finding
+from pygrok import Grok
 
 
 def _open_file(path):
@@ -17,8 +18,6 @@ def _open_file(path):
 
 
 def _load_rules(rule_dir):
-    import re
-    import yaml
     rules = []
 
     for i in os.listdir(rule_dir):
@@ -28,28 +27,38 @@ def _load_rules(rule_dir):
             data = yaml.safe_load(f)
 
         for event in data.get("events", []):
+            type = event.get('type', 're')
             raw_pattern = event["pattern"]
-
             # Normalize YAML-folded whitespace:
             # remove all literal whitespace that VERBOSE would ignore anyway
             normalized = re.sub(r"[ \t\r\n]+", " ", raw_pattern).strip()
-
-            try:
-                regex = re.compile(normalized, re.VERBOSE)
-            except re.error as e:
-                raise ValueError(
-                    f"Invalid regex in rule '{event['name']}': {e}"
-                ) from e
-
+            if type == "re":
+                try:
+                    pattern = re.compile(normalized, re.VERBOSE)
+                except re.error as e:
+                    raise ValueError(
+                        f"Invalid regex in rule '{event['name']}': {e}"
+                    ) from e
+            elif type == "grok":
+                try:
+                    pattern = Grok(normalized)
+                except re.error as e:
+                    raise ValueError(
+                        f"Invalid grok in rule '{event['name']}': {e}"
+                    ) from e
+            else:
+                logging.warning(f'[-] Unknown rule type "{type}" - {event["name"]}')
             rules.append({
                 "name": event["name"],
                 "indicator": event["indicator"],
-                "regex": regex,
+                "pattern": pattern,
+                "type": type,
                 "message_template": event["message_template"],
                 "meta_fields": event.get("meta_fields", []),
-                "filenames": event.get("filenames", [])
+                "filenames": event.get("filenames", []),
+                "source_file": str(rule_file)
             })
-
+    logging.info(f"[+] Loaded {len(rules)} rules")
     return rules
 
 
@@ -109,24 +118,30 @@ def analyze(rules_dir, rootdir):
                         # Check if current file is in rule filenames
                         if f"{current_file['prefix']}" not in rule['filenames']:
                             continue
-                        match = rule["regex"].search(line)
-                        if not match:
+                        if rule['type'] == "re":
+                            match_raw = rule["pattern"].search(line)
+                        elif rule['type'] == "grok":
+                            match_raw = rule["pattern"].match(line)
+                        if not match_raw:
                             continue
+                        elif match_raw and rule['type'] == "re":
+                            match = match_raw.groupdict()
+                        elif match_raw and rule['type'] == "grok":
+                            match = match_raw
                         finding = new_finding()
                         finding["type"] = "files"
                         finding["artifact"] = current_file['path'].split(str(rootdir))[1]
                         finding["indicator"] = rule["indicator"]
                         finding['rule'] = rule['name']
+                        finding['source_file'] = rule['source_file']
 
-                        # Message formatting (same content as original)
                         finding["message"] = rule["message_template"].format(
-                            **match.groupdict()
+                            **match
                         )
 
-                        # Meta (same structure as original)
                         meta = {"line": line}
                         for field in rule["meta_fields"]:
-                            meta[field] = match.group(field)
+                            meta[field] = match[field]
                         finding["meta"] = meta
 
                         results.append(finding)

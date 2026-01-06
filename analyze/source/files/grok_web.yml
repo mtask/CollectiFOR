@@ -1,0 +1,196 @@
+events:
+  - name: rule_web_command_injection
+    indicator: OS command injection attempt
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"(GET|POST) %{URIPATHPARAM:uri}.*(\\;|\\|\\||\\|\\s|&&|`|\\$\\().*(wget|curl|bash|sh|nc|netcat|python|perl).* HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "Possible command injection from {ip} against {uri}"
+    meta_fields: [timestamp, ip, user, uri, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/nginx/access.log
+      - /var/log/apache2/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_web_lfi_attempt
+    indicator: Local File Inclusion attempt
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"(GET|POST) .*?(etc/passwd|proc/self/environ|/var/log/).* HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "Possible LFI attempt from {ip}"
+    meta_fields: [timestamp, ip, user, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/nginx/access.log
+      - /var/log/apache2/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_web_rfi_attempt
+    indicator: Remote File Inclusion attempt
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"(GET|POST) .*?(http://|https://).*(\\.txt|\\.php|\\.sh).* HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "Possible RFI attempt from {ip}"
+    meta_fields: [timestamp, ip, user, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/nginx/access.log
+      - /var/log/apache2/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_web_webshell_upload
+    indicator: Webshell upload attempt
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"POST .*?(upload|file|image).*\\.(php|phtml|php5|php7|jsp|asp|aspx).* HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "Possible webshell upload from {ip}"
+    meta_fields: [timestamp, ip, user, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/nginx/access.log
+      - /var/log/apache2/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_web_sql_injection
+    indicator: SQL injection attempt
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"(GET|POST) .*?(union\\s+select|select\\s+.*from|insert\\s+into|update\\s+.*set|delete\\s+from|or\\s+1=1|--|%27).* HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "SQL injection attempt from {ip}"
+    meta_fields: [timestamp, ip, user, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/nginx/access.log
+      - /var/log/apache2/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_web_scanner_useragent
+    indicator: Automated vulnerability scanner detected
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \".*\" %{INT:status} .*?(nikto|sqlmap|acunetix|nmap|wpscan|masscan)"
+    message_template: "Scanner activity detected from {ip}"
+    meta_fields: [timestamp, ip, user, status]
+    type: grok
+    filenames:
+      - /var/log/nginx/access.log
+      - /var/log/apache2/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_web_encoded_attack_payload
+    indicator: Encoded attack payload
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"(GET|POST) .*?(%3B|%7C|%26%26|%24%28|%60|%2Fbin%2Fsh).* HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "Encoded attack payload from {ip}"
+    meta_fields: [timestamp, ip, user, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/nginx/access.log
+      - /var/log/apache2/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_webshell_command_execution
+    indicator: Webshell-style command execution
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"(GET|POST) %{URIPATHPARAM:uri}.*(cmd=|exec=|system=)%{DATA:payload} HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "Possible webshell command from {ip} against {uri}"
+    meta_fields: [timestamp, ip, user, uri, payload, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/apache2/access.log
+      - /var/log/nginx/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_web_directory_traversal
+    indicator: Directory traversal attempt
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"(GET|POST) .*?(\\.\\./|\\.\\.\\\\|%2e%2e%2f|%2e%2e%5c).* HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "Directory traversal attempt from {ip}"
+    meta_fields: [timestamp, ip, user, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/apache2/access.log
+      - /var/log/nginx/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_web_remote_file_inclusion
+    indicator: Remote File Inclusion attempt
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"(GET|POST) .*?(http://|https://).*(\\.php|\\.txt|\\.sh).* HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "Possible RFI attempt from {ip}"
+    meta_fields: [timestamp, ip, user, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/apache2/access.log
+      - /var/log/nginx/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_web_xss_attempt
+    indicator: Cross-site scripting attempt
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"(GET|POST) .*?(<script>|%3cscript%3e|onerror=|onload=|alert\\().* HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "XSS attempt from {ip}"
+    meta_fields: [timestamp, ip, user, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/apache2/access.log
+      - /var/log/nginx/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_web_webshell_upload
+    indicator: Webshell upload attempt
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"POST .*?(upload|file|image).*\\.(php|phtml|php5|php7|jsp|asp|aspx).* HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "Possible webshell upload from {ip}"
+    meta_fields: [timestamp, ip, user, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/apache2/access.log
+      - /var/log/nginx/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_web_encoded_attack_payload
+    indicator: Encoded attack payload
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \"(GET|POST) .*?(%3B|%7C|%26%26|%24%28|%60|%2Fbin%2Fsh).* HTTP/%{NUMBER:http_version}\" %{INT:status}"
+    message_template: "Encoded attack payload from {ip}"
+    meta_fields: [timestamp, ip, user, status, http_version]
+    type: grok
+    filenames:
+      - /var/log/apache2/access.log
+      - /var/log/nginx/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
+
+  - name: rule_web_scanner_activity
+    indicator: Automated vulnerability scanner detected
+    pattern: "%{IP:ip} - %{USERNAME:user} \\[%{HTTPDATE:timestamp}\\] \".*\" %{INT:status} .*?(nikto|sqlmap|acunetix|nmap|wpscan|masscan)"
+    message_template: "Scanner activity detected from {ip}"
+    meta_fields: [timestamp, ip, user, status]
+    type: grok
+    filenames:
+      - /var/log/apache2/access.log
+      - /var/log/nginx/access.log
+      - /files_and_dirs/var/log/nginx/access.log
+      - /files_and_dirs/var/log/apache2/access.log
+      - /nginx/access.log
+      - /apache2/access.log
