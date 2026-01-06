@@ -10,8 +10,10 @@ import pwd
 import grp
 import json
 import socket
+import psutil
 from datetime import datetime
 from pathlib import Path
+from collections import defaultdict
 
 def _command(cmd):
     logging.info(f"Running command: {cmd}")
@@ -213,142 +215,21 @@ def file_permissions(outdir, config):
                     f.write(f"{sfp} ERROR: {e}\n")
 
 
-#####################
-# Module: listeners #
-#####################
-
-def _get_exec_path(pid):
-    try:
-        return os.readlink(f"/proc/{pid}/exe")
-    except Exception:
-        return ""
-
-def _extract_paths(text):
-    PATH_RE = re.compile(
-        r'(?<![\w-])'          # avoid --flag=/path
-        r'(/(?:[A-Za-z0-9._+-]+/)*[A-Za-z0-9._+-]+)'
-    )
-    EXCLUDE_PREFIXES = (
-        "/proc",
-        "/sys",
-        "/dev",
-        "/run",
-    )
-    paths = set()
-    for match in PATH_RE.findall(text):
-        if match.startswith(EXCLUDE_PREFIXES):
-            continue
-        paths.add(match)
-    return paths
-
-def _extract_environment_files(text):
-    paths = set()
-
-    for line in text.splitlines():
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-
-        if not line.startswith("EnvironmentFile"):
-            continue
-
-        # EnvironmentFile=/path or EnvironmentFile=-/path
-        _, _, value = line.partition("=")
-        value = value.strip()
-        if not value:
-            continue
-
-        # systemd allows multiple files separated by whitespace
-        for token in value.split():
-            optional = token.startswith("-")
-            path = token[1:] if optional else token
-
-            # Handle globs
-            matches = glob.glob(path)
-            for p in matches:
-                if os.path.isfile(p) or os.path.isdir(p):
-                    paths.add(p)
-
-    return paths
-
-def _get_cmdline_paths(pid):
-    try:
-        with open(f"/proc/{pid}/cmdline", "rb") as f:
-            raw = f.read()
-        argv = raw.split(b"\x00")
-        argv = [a.decode(errors="ignore") for a in argv if a]
-    except Exception:
-        return set()
-
-    paths = set()
-
-    for i, arg in enumerate(argv):
-        # Case 1: argument itself contains a path
-        for p in _extract_paths(arg):
-            if os.path.isfile(p) or os.path.isdir(p):
-                paths.add(p)
-
-        # Case 2: flag followed by path (e.g. --config /etc/foo.conf)
-        if arg.startswith("-") and i + 1 < len(argv):
-            for p in _extract_paths(argv[i + 1]):
-                if os.path.isfile(p) or os.path.isdir(p):
-                    paths.add(p)
-
-    return paths
-
-def _get_unit_paths(unit_path):
-    paths = set()
-
-    try:
-        with open(unit_path, "r") as f:
-            content = f.read()
-            # regular path extraction
-            for p in _extract_paths(content):
-                if os.path.isfile(p) or os.path.isdir(p):
-                    paths.add(p)
-            # EnvironmentFile extraction
-            paths |= _extract_environment_files(content)
-    except Exception:
-        return paths
-
-    # Drop-in directory: foo.service.d/*.conf
-    dropin_dir = f"{unit_path}.d"
-    if os.path.isdir(dropin_dir):
-        for name in os.listdir(dropin_dir):
-            if not name.endswith(".conf"):
-                continue
-            try:
-                with open(os.path.join(dropin_dir, name), "r") as f:
-                    content = f.read()
-                    for p in _extract_paths(content):
-                        if os.path.isfile(p) or os.path.isdir(p):
-                            paths.add(p)
-                    paths |= _extract_environment_files(content)
-            except Exception:
-                pass
-
-    return paths
-
+# ---------------- systemd helpers ---------------- #
 
 def _get_systemd_unit(pid):
-    """
-    Returns systemd unit name (e.g. ssh.service) or empty string
-    """
     try:
-        with open(f"/proc/{pid}/cgroup", "r") as f:
+        with open(f"/proc/{pid}/cgroup") as f:
             for line in f:
-                # system.slice/ssh.service
-                match = re.search(r"/([^/]+\.service)", line)
-                if match:
-                    return match.group(1)
+                m = re.search(r"/([^/]+\.service)", line)
+                if m:
+                    return m.group(1)
     except Exception:
         pass
     return ""
 
+
 def _get_systemd_fragment(unit):
-    """
-    Returns full path to unit file or empty string
-    """
     try:
         proc = subprocess.run(
             ["systemctl", "show", "-p", "FragmentPath", unit],
@@ -356,88 +237,141 @@ def _get_systemd_fragment(unit):
             text=True,
         )
         if proc.returncode == 0:
-            _, _, value = proc.stdout.partition("=")
-            return value.strip()
+            return proc.stdout.partition("=")[2].strip()
     except Exception:
         pass
     return ""
 
-def _get_listeners():
-    cmd = "ss -H -l -n -p -u -t"
-    stdout, stderr = _command(cmd)
 
-    result = {"tcp": [], "udp": []}
+# ---------------- path extraction ---------------- #
 
-    pid_re = re.compile(r'pid=(\d+)')
-    proc_re = re.compile(r'\("([^"]+)"')
-    port_re = re.compile(r':(\d+)$')
-    addr_re = re.compile(r'(.*):\d+$')
+PATH_RE = re.compile(
+    r'(?<![\w-])(/(?:[A-Za-z0-9._+-]+/)*[A-Za-z0-9._+-]+)'
+)
+EXCLUDE_PREFIXES = ("/proc", "/sys", "/dev", "/run")
 
-    # Cache systemd lookups (huge speed win)
+
+def _extract_paths(text):
+    return {
+        p for p in PATH_RE.findall(text)
+        if not p.startswith(EXCLUDE_PREFIXES)
+        and (os.path.isfile(p) or os.path.isdir(p))
+    }
+
+
+def _extract_environment_files(text):
+    paths = set()
+    for line in text.splitlines():
+        if not line.strip().startswith("EnvironmentFile"):
+            continue
+        _, _, value = line.partition("=")
+        for token in value.split():
+            token = token.lstrip("-")
+            paths |= {
+                p for p in glob.glob(token)
+                if os.path.isfile(p) or os.path.isdir(p)
+            }
+    return paths
+
+
+def _get_unit_paths(unit_path):
+    paths = set()
+    try:
+        with open(unit_path) as f:
+            content = f.read()
+        paths |= _extract_paths(content)
+        paths |= _extract_environment_files(content)
+    except Exception:
+        return paths
+
+    dropin = f"{unit_path}.d"
+    if os.path.isdir(dropin):
+        for name in os.listdir(dropin):
+            if name.endswith(".conf"):
+                try:
+                    with open(os.path.join(dropin, name)) as f:
+                        content = f.read()
+                    paths |= _extract_paths(content)
+                    paths |= _extract_environment_files(content)
+                except Exception:
+                    pass
+
+    return paths
+
+
+# ---------------- network pre-scan ---------------- #
+
+def _scan_network():
+    net = defaultdict(lambda: {"tcp": [], "udp": []})
+    seen = set()
+
+    for conn in psutil.net_connections(kind="inet"):
+        if not conn.pid or not conn.laddr:
+            continue
+
+        if conn.type == socket.SOCK_STREAM:
+            if conn.status != psutil.CONN_LISTEN:
+                continue
+            proto = "tcp"
+        elif conn.type == socket.SOCK_DGRAM:
+            proto = "udp"
+        else:
+            continue
+
+        key = (conn.pid, proto, conn.laddr.ip, conn.laddr.port)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        net[conn.pid][proto].append({
+            "bind": conn.laddr.ip,
+            "port": conn.laddr.port,
+        })
+
+    return net
+
+
+# ---------------- unified process scan ---------------- #
+
+def processes(outdir, config):
     systemd_cache = {}
+    network = _scan_network()
+    result = []
 
-    for line in stdout.splitlines():
-        parts = line.split()
-        if len(parts) < 5:
+    for proc in psutil.process_iter(["pid", "ppid", "name"]):
+        try:
+            pid = proc.pid
+            entry = {
+                "pid": pid,
+                "ppid": proc.ppid(),
+                "process": proc.name(),
+                "exec": proc.exe(),
+                "cmdline": " ".join(proc.cmdline()),
+                "systemd": "",
+                "related_paths": [],
+                "network": network.get(pid, {"tcp": [], "udp": []}),
+            }
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
 
-        protocol = parts[0]
-        local_addr = parts[4]
-        bind_match = addr_re.search(local_addr)
-        port_match = port_re.search(local_addr)
-        if not port_match or not bind_match:
-            continue
-        bind = bind_match.group(1)
-        port = int(port_match.group(1))
-
-        pid_match = pid_re.search(line)
-        proc_match = proc_re.search(line)
-        if not pid_match or not proc_match:
-            continue
-
-        pid = int(pid_match.group(1))
-        process = proc_match.group(1)
-
-        exec_path = _get_exec_path(pid)
-
-        # --- systemd handling ---
-        systemd_unit = _get_systemd_unit(pid)
-        systemd_path = ""
-
-        if systemd_unit:
-            if systemd_unit not in systemd_cache:
-                systemd_cache[systemd_unit] = _get_systemd_fragment(systemd_unit)
-            systemd_path = systemd_cache[systemd_unit]
+        # --- systemd ---
+        unit = _get_systemd_unit(pid)
+        if unit:
+            entry["systemd"] = systemd_cache.setdefault(
+                unit, _get_systemd_fragment(unit)
+            )
 
         # --- related paths ---
-        related_paths = set()
+        paths = set()
+        paths.add(entry["exec"])
+        paths |= _extract_paths(entry["cmdline"])
 
-        # from cmdline
-        related_paths |= _get_cmdline_paths(pid)
+        if entry["systemd"]:
+            paths |= _get_unit_paths(entry["systemd"])
 
-        # from systemd unit
-        if systemd_path:
-            related_paths |= _get_unit_paths(systemd_path)
+        entry["related_paths"] = sorted(paths)
+        result.append(entry)
 
-        entry = {
-            "pid": pid,
-            "protocol": protocol,
-            "bind": bind,
-            "port": port,
-            "process": process,
-            "exec": exec_path,
-            "systemd": systemd_path,
-            "related_paths": sorted(related_paths),
-        }
-
-        if protocol in result:
-            result[protocol].append(entry)
-    return result
-
-def listeners(outdir, config):
-    """
-    Get details of network listening processes
-    """
-    listener_data = _get_listeners()
-    with open(os.path.join(outdir, "listeners.json"), 'w+') as f:
-        f.write(json.dumps(listener_data, indent=2))
+    os.makedirs(outdir, exist_ok=True)
+    with open(os.path.join(outdir, "processes.json"), "w") as f:
+        json.dump(result, f, indent=2)

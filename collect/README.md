@@ -230,25 +230,30 @@ files_and_dirs/etc/passwd
 
 <details>
 
-<summary>#Collect module: listeners</summary>
+<summary>#Collect module: processes</summary>
 
-Listeners module collects information about network listening processes. Data gathered by other modules can be used to collect all the same information, but this quickly collects the data inside a single file. 
-Collected details are stored in file `listeners.json` inside the collection.
+Processes module collects information about processes including network listening information. Commands module can be used to collect all the same information, but this quickly collects the data inside a single file.
+Collected details are stored in file `processes.json` inside the collection.
 
 ```
-cat listeners.json 
-{
-  "tcp": [
-    {
-      "pid": 1239,
-      "protocol": "tcp",
-      "port": 53,
-      "process": "systemd-resolve",
-      "exec": "/usr/lib/systemd/systemd-resolved",
-      "systemd": "/usr/lib/systemd/system/systemd-resolved.service",
-      "related_paths": [
-        "/usr/lib/systemd/systemd-resolved"
-      ]
+cat processes.json 
+[
+  {
+    "pid": 1,
+    "ppid": 0,
+    "process": "systemd",
+    "exec": "/usr/lib/systemd/systemd",
+    "cmdline": "/sbin/init splash",
+    "systemd": "",
+    "related_paths": [
+      "/sbin/init",
+      "/usr/lib/systemd/systemd"
+    ],
+    "network": {
+      "tcp": [],
+      "udp": []
+    }
+  },
 ```
 </details>
 

@@ -1,3 +1,4 @@
 python-magic==0.4.27
 PyYAML==6.0.3
 scapy==2.6.1
+psutil==7.2.1

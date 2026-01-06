@@ -23,8 +23,8 @@ modules:
     enable_luks: yes
     # Collect file permissions for the given paths
     enable_file_permissions: ye
-    # Collect details about network listening processes
-    enable_listeners: yes
+    # Collect details about processes
+    enable_processes: yes
     # Luks
     luks:
     # Command outputs
@@ -138,4 +138,4 @@ modules:
       - /usr/games
       - /usr/local/games
       - /snap/bin
-    listeners:
+    processes:
