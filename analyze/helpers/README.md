@@ -33,7 +33,7 @@ All `*.pcap` from the given path are included. Prompts to create a new collectio
 
 ## analyze_files.py
 
-Run files module
+Run files module with arbitrary directory path. Rule files are loaded from configuration key `analysis.files` like with `collectifor.py --analysis`.
 
 ```
 python3 -m helpers.analyze_files -c config.yaml -p /mnt/forensic/dev_vda.img-p1/
