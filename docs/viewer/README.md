@@ -165,11 +165,11 @@ View and search for command outputs. Search allows to search by command (e.g. do
 </details>
 
 <details>
-<summary>Network Listening Processes</summary>
+<summary>Processes</summary>
   
-Details about network listening processes
+Details about processes including network listening information.
 
-![](imgs/listeners.png)
+![](imgs/processes.png)
 
 </details>
 

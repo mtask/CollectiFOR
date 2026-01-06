@@ -42,7 +42,7 @@ Below table shows which data is currently ingested to CollectiFOR database in in
 | capture/*.pcap       | PcapParser         | pcap_packets     |
 | capture/*.pcap       | PcapParser         | network_flows    |
 | file_permissions.txt | PermissionsParser  | file_permissions |
-| listeners.json       | ListenersParser    | listeners        |
+| processes.json       | ProcessesParser    | processes        |
 
 All parsers skip ingestion gracefully if the related collection data is not found because not all collections include content from every collect module.
   

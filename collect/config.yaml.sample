@@ -37,8 +37,8 @@ modules:
     enable_luks: true
     # Collect file permissions for the given paths
     enable_file_permissions: true
-    # Collect details about network listening processes
-    enable_listeners: true
+    # Collect details about all processes
+    enable_processes: true
     # Luks - no additional configuration.
     luks:
     # Command outputs
@@ -162,5 +162,5 @@ modules:
     file_permissions:
       list:
       - /etc/
-    # Collect information about network processes - no addittional configuration
-    listeners:
+    # Collect information about processes - no addittional configuration
+    processes:

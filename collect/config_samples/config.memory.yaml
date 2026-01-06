@@ -22,7 +22,7 @@ modules:
     enable_checksums: false
     enable_luks: false
     enable_file_permissions: false
-    enable_listeners: false
+    enable_processes: false
     luks:
     commands:
       list: []
@@ -32,4 +32,4 @@ modules:
       list: []
     file_permissions:
       list: []
-    listeners:
+    processes:

@@ -448,33 +448,42 @@ class FilesAndDirsParser:
             self.db.add_file_entries(entries)
             logging.info(f"[+] Indexed {len(entries)} files/directories")
 
-class ListenersParser:
+class ProcessesParser:
 
     def __init__(self, db):
         self.db = db
 
     def parse_dir(self, collection_dir):
-        listeners = os.path.join(collection_dir, 'listeners.json')
+        path = os.path.join(collection_dir, "processes.json")
 
-        if not os.path.isfile(listeners):
-            logging.error('[-] "listeners.json" not found')
+        if not os.path.isfile(path):
+            logging.error('[-] "processes.json" not found')
             return
 
         try:
-            with open(listeners, 'r') as f:
-                lst = json.load(f)
+            with open(path, "r") as f:
+                processes = json.load(f)
         except Exception as e:
-            logging.erro(f"[-] Failed to load listeners.json: {repr(e)}")
-        entries = []
-        if lst:
-            for l in lst.get('udp', []):
-                entry = l.copy()
-                entry['related_paths'] = ' | '.join(l['related_paths'])
-                entries.append(entry)
-            for l in lst.get('tcp', []):
-                entry = l.copy()
-                entry['related_paths'] = ' | '.join(l['related_paths'])
-                entries.append(entry)
-        if entries:
-            self.db.add_listener_entries(entries)
-            logging.info(f"[+] Indexed {len(entries)} network listener process details")
+            logging.error(f"[-] Failed to load processes.json: {repr(e)}")
+            return
+
+        proc_entries = []
+        net_entries = []
+
+        for p in processes:
+            proc_entry = {
+                "collection_name": self.db.collection_name,
+                "pid": p["pid"],
+                "ppid": p.get("ppid"),
+                "process": p["process"],
+                "exec": p["exec"],
+                "cmdline": p["cmdline"],
+                "systemd": p.get("systemd", ""),
+                "related_paths": " | ".join(p.get("related_paths", [])),
+            }
+
+            proc_entries.append((proc_entry, p.get("network", {})))
+
+        if proc_entries:
+            self.db.add_processes(proc_entries)
+            logging.info(f"[+] Indexed {len(proc_entries)} processes")

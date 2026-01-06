@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="d-flex justify-content-center align-items-center mb-4">
+  <h2 class="text-light mb-0 d-flex align-items-center">
+  Processes
+  <i
+  class="bi bi-question-circle-fill text-primary ms-2"
+  style="cursor: pointer; font-size: 1.2rem;"
+  tabindex="0"
+  data-bs-toggle="popover"
+  data-bs-trigger="focus"
+  data-bs-placement="right"
+  data-bs-html="true"
+  title="Search Box Help"    data-bs-content="
+<b>Search Box How-To:</b><br><br>
+1. <b>Free-text search:</b><br>
+&emsp;Type one or more words to filter messages containing all words.<br>
+&emsp;Example: <code>ssh sudo</code> → messages containing both 'ssh' AND 'sudo'.<br><br>
+2. <b>Negation:</b><br>
+&emsp;Prefix a word with '-' to exclude messages containing it.<br>
+&emsp;Example: <code>ssh -root</code> → messages containing 'ssh' but NOT 'root'.<br><br>
+3. <b>OR operator:</b><br>
+&emsp;Use <code>|</code> to match any of multiple terms within a group.<br>
+&emsp;Example: <code>user|admin</code> → messages containing 'user' OR 'admin'.<br>
+&emsp;Combine with spaces for AND logic: <code>user|admin ssh</code> → ('user' OR 'admin') AND 'ssh'.<br><br>
+4. <b>Multi-term filtering:</b><br>
+&emsp;Combine multiple include and exclude terms.<br>
+&emsp;Example: <code>ssh sudo -root -admin</code><br>
+&emsp;→ messages containing 'ssh' AND 'sudo' AND NOT containing 'root' OR 'admin'.<br><br>
+5. <b>Quotes:</b><br>
+&emsp;Include as one string →  &quot;include this text &quot;.<br>
+&emsp;Exclude as one string → - &quot;exclude this text &quot;.<br>
+6. <b>Type / Rule filters:</b><br>
+&emsp;Use the dropdowns to select one or more event types or rules.<br>
+&emsp;Multiple selections are allowed via checkboxes.<br>
+"
+  ></i>
+  </h2>
+</div>
+
+
+<p style="text-align: center;" class="text-light">
+  This page shows processes and their network listeners detected at collection time.
+  Same process can have multiple rows if it has multiple network related entries.
+</p>
+
+<form method="get" action="{{ url_for('processes_route') }}" class="mb-4">
+
+  <div class="row mb-3 justify-content-center">
+    <!-- Protocol -->
+    <div class="col-md-2">
+      <label>Protocol</label>
+      <select name="protocol" class="form-control">
+        <option value="" selected>Protocol</option>
+        {% for proto in protocols %}
+        <option value="{{ proto }}" {% if request.args.get('protocol') == proto %}selected{% endif %}>
+          {{ proto.upper() }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <!-- Port -->
+    <div class="col-md-2">
+      <label>Port</label>
+      <input type="number" name="port" class="form-control" placeholder="Port" value="{{ request.args.get('port','') }}">
+    </div>
+
+    <!-- PID -->
+    <div class="col-md-2">
+      <label>PID</label>
+      <input type="number" name="pid" class="form-control" placeholder="PID" value="{{ request.args.get('pid','') }}">
+    </div>
+
+    <!-- Parent PID -->
+    <div class="col-md-2">
+      <label>PPID</label>
+      <input type="number" name="ppid" class="form-control" placeholder="Parent PID" value="{{ request.args.get('ppid','') }}">
+    </div>
+  </div>
+
+<div class="row mb-3 justify-content-center align-items-end">
+  <div class="col-md-10">
+    <label>Search</label>
+    <input
+      type="text"
+      name="q"
+      class="form-control"
+      placeholder="Process name, executable, cmdline, or related paths"
+      spellcheck="false"
+      autocorrect="off"
+      autocapitalize="off"
+      value="{{ request.args.get('q','') }}"
+    >
+  </div>
+
+  <div class="col-md-2">
+    <button type="submit" class="btn btn-primary w-100">Filter</button>
+  </div>
+</div>
+
+  </div>
+
+</form>
+
+
+{% if entries %}
+<table class="table table-dark table-striped table-hover table-sm">
+  <thead class="table-secondary">
+    <tr>
+      <th>Collection</th>
+      <th>Protocol</th>
+      <th>Port</th>
+      <th>Bind</th>
+      <th>PID</th>
+      <th>PPID</th>
+      <th>Process</th>
+      <th>Executable</th>
+      <th>systemd</th>
+      <th>Related Paths</th>
+    </tr>
+  </thead>
+  <tbody>
+{% for e in entries %}
+  {% if e.network_by_protocol.tcp or e.network_by_protocol.udp %}
+    {% for net in e.network_by_protocol.tcp + e.network_by_protocol.udp %}
+      <tr>
+        <td class="text-light">{{ e.collection_name }}</td>
+        <td class="text-light">{{ net.protocol }}</td>
+        <td class="text-light">{{ net.port }}</td>
+        <td class="mono text-light">{{ net.bind }}</td>
+        <td class="text-light">{{ e.pid }}</td>
+        <td class="text-light">{{ e.ppid }}</td>
+        <td class="text-light">{{ e.process }}</td>
+        <td class="mono text-light">{{ e.exec }}</td>
+        <td class="mono text-light">{{ e.systemd }}</td>
+        <td class="mono text-light">
+{% if e.related_paths %}
+{{ '\n'.join(e.related_paths.split(' | ')) }}
+{% else %}
+          —
+{% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+  {% else %}
+    <tr>
+      <td class="text-light">{{ e.collection_name }}</td>
+      <td class="text-light">—</td>
+      <td class="text-light">—</td>
+      <td class="mono text-light">—</td>
+      <td class="text-light">{{ e.pid }}</td>
+      <td class="text-light">{{ e.ppid }}</td>
+      <td class="text-light">{{ e.process }}</td>
+      <td class="mono text-light">{{ e.exec }}</td>
+      <td class="mono text-light">{{ e.systemd }}</td>
+      <td class="mono text-light">
+{% if e.related_paths %}
+{{ '\n'.join(e.related_paths.split(' | ')) }}
+{% else %}
+          —
+{% endif %}
+      </td>
+    </tr>
+  {% endif %}
+{% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="text-light">No process entries found.</p>
+{% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var popoverTriggerList = [].slice.call(
+      document.querySelectorAll('[data-bs-toggle="popover"]')
+    );
+    popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl);
+    });
+});
+</script>
+{% endblock %}
