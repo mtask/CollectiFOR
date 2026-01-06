@@ -7,19 +7,13 @@ import subprocess
 from collections import defaultdict
 from contextlib import chdir
 from lib.finding import new_finding
+from lib.utils import string_entropy
 
 # -----------------------------
 # Helpers
 # -----------------------------
 
-def _entropy(s):
-    """Shannon entropy for domain analysis"""
-    if not s:
-        return 0
-    freq = {c: s.count(c) for c in set(s)}
-    return -sum((freq[c]/len(s)) * math.log2(freq[c]/len(s)) for c in freq)
-
-def _high_entropy_domain(domain, threshold=3.2, min_label_len=6, whitelist=None):
+def _high_entropy_domain(domain, threshold=3.5, min_label_len=6, whitelist=None):
     """Detect algorithmically generated domain names based on entropy of the first label."""
     labels = domain.split(".")
     first_label = labels[0] if labels else ""
@@ -27,7 +21,7 @@ def _high_entropy_domain(domain, threshold=3.2, min_label_len=6, whitelist=None)
         return False
     if len(first_label) < min_label_len:
         return False
-    ent = _entropy(first_label)
+    ent = string_entropy(first_label)
     return ent >= threshold
 
 def _normalize_flow(pkt, proto_layer):
@@ -55,7 +49,7 @@ def _normalize_flow(pkt, proto_layer):
 # Main analysis function
 # -----------------------------
 
-def analyze(rootdir):
+def analyze(rootdir, subdir="capture"):
     """
     Analyze all PCAPs in capture/ directory for:
       - DNS anomalies (high-entropy domains)
@@ -64,7 +58,7 @@ def analyze(rootdir):
       - Normalize flows to client -> server
     """
     results = []
-    capture_dir = Path(rootdir) / "capture"
+    capture_dir = Path(rootdir) / subdir
     if not capture_dir.exists():
         logging.warning('[-] "capture" directory was not found inside the collection')
         return results

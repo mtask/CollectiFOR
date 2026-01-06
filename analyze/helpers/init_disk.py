@@ -6,6 +6,7 @@ import os
 import sys
 from pathlib import Path
 from lib.db import DB
+from lib.utils import collection_selector
 from lib.parsers import FilesAndDirsParser, BasicInfoParser, FilesAndDirsChecksumParser
 from modules import mod_files as mf
 from modules import mod_pattern as mp
@@ -75,7 +76,6 @@ if __name__=="__main__":
     config = load_config(args.config)
     findings = []
     name_timestamp =  datetime.now().strftime("%Y%m%d_%H%M%S")
-    db = DB(config['collection_database'], f"DISK_{Path(args.disk).name}_{name_timestamp}", args.disk, init=True)
     if args.subdir:
         if args.subdir.startswith(args.disk):
             target_path = args.subdir
@@ -86,9 +86,16 @@ if __name__=="__main__":
     if not os.path.isdir(target_path):
         logging.error(f"[-] Provided path {target_path} is not a directory")
         sys.exit(1)
+    collection = collection_selector(config['collection_database'])
+    if not collection:
+         logging.error("[-] No collection was selected")
+         sys.exit(1)
+    if collection['new']:
+        db = DB(config['collection_database'], collection['name'], args.disk, init=True)
+        db.add_collection_info({"date": datetime.now(), "interfaces": {}, "os": {}, "hostname": ""})
     else:
-       logging.info(f'[+] Running initialization with target path: "{target_path}"')
-    db.add_collection_info({"date": datetime.now(), "interfaces": {}, "os": {}, "hostname": ""})
+        db = DB(config['collection_database'], collection['name'], collection['path'], init=False)
+    logging.info(f'[+] Running initialization with target path: "{target_path}"')
     if args.checksums or args.all:
         fpc = FilesAndDirsChecksumParser(db, subdir="")
         logging.info("[+] Running checksums")

@@ -4,6 +4,7 @@ import ntpath
 from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, JSON, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
+from lib.utils import case_selector
 
 Base = declarative_base()
 
@@ -349,10 +350,13 @@ class DB:
         findings: list[dict]
         """
         session = self.Session()
+        case = case_selector(session, Cases)
         try:
             for entry in findings:
                 session.add(Finding(
                     collection_name=self.collection_name,
+                    case_id=case['case_id'],
+                    case_name=case['case_name'],
                     type=entry.get("type", ""),
                     message=entry.get("message", ""),
                     rule=entry.get("rule", ""),

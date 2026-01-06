@@ -18,8 +18,29 @@ Instead of `--all` you can also specify specific init or analysis modules.
 * `--yara` -> Run Yara analysis module
 * `--files` -> Run Files analysis module
 
-Init data and findings are added to a new collection that is named based on mount directory and prefixed with "DISK_". For example, `DISK_4Dell.E01-p1_<TIMESTAMP>`.
+Prompts to create a new collection or select an existing one. Prompts optionally to select an existing case or create a new case to add findings to. If no case is selected then findings are not initially associated with any case.
 You can also target only a sub-directory path within the mounted disk image with argument `--subdir / -s <path inside the disk mount>`. Provided path can be the absolute path to sub-directory or relative path from the mountpoint.
+
+## init_pcap.py
+
+Allows to init and analyze new PCAP files from a directory without full collection.
+
+```bash
+python3 -m helpers.init_pcap -c config.yaml -p /data/new_pcaps/
+```
+
+All `*.pcap` from the given path are included. Prompts to create a new collection or select an existing one. Prompts optionally to select an existing case or create a new case to add findings to. If no case is selected then findings are not initially associated with any case.
+
+## file_high_entropy.py
+
+Search a directory path for files with high entropy.
+
+```bash
+# -m "1MGB" -> max size to check a file
+python3 -m helpers.file_high_entropy -c config.yaml -p /srv/ -m "1GB"
+```
+
+Prompts to create a new collection or select an existing one. Prompts optionally to select an existing case or create a new case to add findings to. If no case is selected then findings are not initially associated with any case.
 
 ## hasher.py 
 
@@ -53,7 +74,7 @@ Collection extracted -> /tmp/out/host_20251218_092648
 root@ee4c81067f78:/out# ls /data/
 20251218_092648
 root@ee4c81067f78:/out# ls /data/20251218_092648/
-capture  checksums  commands  file_permissions.txt  files_and_dirs  listeners.json
+capture  checksums  commands  file_permissions.txt  files_and_dirs  processes.json
 ```
 
 ## Threatofx | threatfox_to_yara.py

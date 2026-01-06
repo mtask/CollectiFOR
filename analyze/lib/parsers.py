@@ -305,13 +305,13 @@ class PermissionsParser:
 
 
 class PcapParser:
-    SUBDIR = "capture"
 
-    def __init__(self, db):
+    def __init__(self, db, subdir="capture"):
         self.db = db
+        self.subdir = subdir
 
     def parse_dir(self, collection_dir):
-        capture_dir = os.path.join(collection_dir, self.SUBDIR)
+        capture_dir = os.path.join(collection_dir, self.subdir)
 
         if not os.path.isdir(capture_dir):
             logging.error('[-] "capture" directory not found')

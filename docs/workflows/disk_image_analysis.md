@@ -52,6 +52,8 @@ python3 -m helpers.init_disk -c config.yaml -d /mnt/forensic/4Dell.E01-p1/ --all
 ```
 </details>
 
+Prompts to create a new collection or select an existing one. Prompts optionally to select an existing case or create a new case to add findings to. If no case is selected then findings are not initially associated with any case.
+
 <details>
 <summary>5. Run viewer to see added findings and ingested data</summary>
 
